@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'encaminhamentos:admin_cotas' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card" style="margin-bottom:1rem;">
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>USF *</label>
+            <select name="usf" class="form-input">
+                <option value="">Selecione...</option>
+                {% for usf in usfs %}
+                    <option value="{{ usf.pk }}"
+                        {% if cota and cota.usf_id == usf.pk %}selected{% endif %}>
+                        {{ usf.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Tipo de encaminhamento *</label>
+            <select name="tipo" id="select-tipo" class="form-input"
+                    onchange="atualizarSubtipos()">
+                <option value="">Selecione...</option>
+                {% for tipo in tipos %}
+                    <option value="{{ tipo.pk }}"
+                        {% if cota and cota.tipo_id == tipo.pk %}selected{% endif %}>
+                        {{ tipo.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {# Subtipo — só aparece se o tipo tiver subtipos #}
+        <div id="bloco-subtipo" style="display:none; margin-bottom:1rem;">
+            <div class="form-group">
+                <label>Subtipo <span style="color:#9ca3af;">(opcional)</span></label>
+                <select name="subtipo" id="select-subtipo" class="form-input">
+                    <option value="">Cota do tipo inteiro</option>
+                </select>
+                <span style="font-size:12px; color:#9ca3af; margin-top:4px; display:block;">
+                    Deixe em branco para cota geral do tipo.
+                    Preencha para cotas separadas por subtipo.
+                    Ex: Psiquiatra infantil / Psiquiatra adulto.
+                </span>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Critério</label>
+            <select name="criterio" id="criterio" class="form-input"
+                    onchange="atualizarCampos()">
+                {% for valor, label in criterios %}
+                    <option value="{{ valor }}"
+                        {% if cota and cota.criterio == valor %}selected
+                        {% elif not cota and valor == 'geral' %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+            <span style="font-size:12px; color:#9ca3af; margin-top:4px; display:block;">
+                Use "Somente gestantes" para tipos como USG Obstétrico.
+            </span>
+        </div>
+
+        {# Faixa etária — oculta quando critério = gestante #}
+        <div id="bloco-idade"
+             style="display:flex; gap:12px; margin-bottom:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>Idade mínima</label>
+                <input type="number" name="idade_minima" class="form-input"
+                       value="{{ cota.idade_minima|default:'' }}"
+                       min="0" max="120"
+                       placeholder="Ex: 12">
+                <span style="font-size:12px; color:#9ca3af; margin-top:4px; display:block;">
+                    Deixe em branco para sem restrição.
+                </span>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Idade máxima</label>
+                <input type="number" name="idade_maxima" class="form-input"
+                       value="{{ cota.idade_maxima|default:'' }}"
+                       min="0" max="120"
+                       placeholder="Ex: 11">
+                <span style="font-size:12px; color:#9ca3af; margin-top:4px; display:block;">
+                    Deixe em branco para sem restrição.
+                </span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="label-cota">Cota *</label>
+            <input type="number" name="cota" id="campo-cota" class="form-input"
+                   value="{{ cota.cota|default:'' }}"
+                   min="1"
+                   placeholder="Ex: 10">
+            <span id="hint-cota"
+                  style="font-size:12px; color:#9ca3af; margin-top:4px; display:block;">
+                Quantidade máxima de encaminhamentos na fila para esta faixa.
+            </span>
+        </div>
+
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a href="{% url 'encaminhamentos:admin_cotas' %}" class="btn btn-cinza">Cancelar</a>
+        <button type="submit" class="btn btn-verde">{{ acao }}</button>
+    </div>
+</form>
+
+{# Dados dos subtipos por tipo — injetados pelo Django para o JS #}
+<script>
+const subtiposPorTipo = {{ subtipos_por_tipo|safe }};
+
+{# ID do subtipo atual — para remarcar ao editar #}
+const subtipoAtual = "{{ cota.subtipo_id|default:'' }}";
+
+function atualizarSubtipos() {
+    const tipoId     = document.getElementById('select-tipo').value;
+    const blocoSub   = document.getElementById('bloco-subtipo');
+    const selectSub  = document.getElementById('select-subtipo');
+
+    // Limpa as opções atuais mantendo só o "Cota do tipo inteiro"
+    selectSub.innerHTML = '<option value="">Cota do tipo inteiro</option>';
+
+    if (tipoId && subtiposPorTipo[tipoId]) {
+        // Preenche com os subtipos do tipo selecionado
+        subtiposPorTipo[tipoId].forEach(function(sub) {
+            const opt = document.createElement('option');
+            opt.value       = sub.id;
+            opt.textContent = sub.nome;
+            // Remarca o subtipo ao editar
+            if (String(sub.id) === String(subtipoAtual)) {
+                opt.selected = true;
+            }
+            selectSub.appendChild(opt);
+        });
+        blocoSub.style.display = 'block';
+    } else {
+        blocoSub.style.display = 'none';
+    }
+}
+
+function atualizarCampos() {
+    const criterio   = document.getElementById('criterio').value;
+    const blocoIdade = document.getElementById('bloco-idade');
+    const campoCota  = document.getElementById('campo-cota');
+    const labelCota  = document.getElementById('label-cota');
+    const hintCota   = document.getElementById('hint-cota');
+
+    if (criterio === 'gestante') {
+        blocoIdade.style.display  = 'none';
+        campoCota.placeholder     = 'Deixe vazio para usar total de gestantes';
+        campoCota.required        = false;
+        labelCota.textContent     = 'Cota (opcional)';
+        hintCota.textContent      =
+            'Deixe em branco para usar automaticamente o total de ' +
+            'gestantes ativas na USF como cota.';
+    } else {
+        blocoIdade.style.display  = 'flex';
+        campoCota.placeholder     = 'Ex: 10';
+        campoCota.required        = true;
+        labelCota.textContent     = 'Cota *';
+        hintCota.textContent      =
+            'Quantidade máxima de encaminhamentos na fila para esta faixa.';
+    }
+}
+
+// Inicializa ao carregar — garante estado correto na edição
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarSubtipos();
+    atualizarCampos();
+});
+</script>
+
+{% endblock %}

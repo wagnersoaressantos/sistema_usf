@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block titulo %}Desativar vínculo{% endblock %}
+
+{% block conteudo %}
+
+<div class="card" style="max-width:480px; margin:2rem auto; text-align:center;">
+    <div style="font-size:48px; margin-bottom:1rem;">⚠️</div>
+    <h2 style="font-size:18px; font-weight:600; margin-bottom:8px;">
+        Desativar vínculo?
+    </h2>
+    <p style="font-size:14px; color:#6b7280; margin-bottom:1.5rem;">
+        O vínculo de <strong>{{ vinculo.user.get_full_name }}</strong>
+        como <strong>{{ vinculo.cargo.nome }}</strong> na
+        <strong>{{ vinculo.usf.nome }}</strong> será desativado.
+        O histórico será preservado.
+    </p>
+    <div style="display:flex; gap:10px; justify-content:center;">
+        <a href="{% url 'core:admin_equipe' %}" class="btn btn-cinza">
+            Cancelar
+        </a>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-verde"
+                    style="background:#dc2626;">
+                Confirmar desativação
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

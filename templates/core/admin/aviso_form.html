@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }} — Administração{% endblock %}
+
+{% block conteudo %}
+<h1 class="page-title">📢 <span>{{ titulo }}</span></h1>
+
+<div class="card" style="max-width:600px;">
+    <div class="card-title">{{ titulo }}</div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Título *</label>
+            <input type="text" name="titulo" class="form-input"
+                   value="{{ aviso.titulo|default:'' }}"
+                   placeholder="Ex: Mutirão de Saúde — 10/05"
+                   required autofocus>
+        </div>
+
+        <div class="form-grid" style="margin-bottom:1rem;">
+            <div class="form-group">
+                <label>Categoria *</label>
+                <select name="categoria" class="form-input">
+                    {% for valor, label in categorias %}
+                    <option value="{{ valor }}"
+                        {% if aviso.categoria == valor %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Válido até *</label>
+                <input type="date" name="data_validade" class="form-input"
+                       value="{{ aviso.data_validade|date:'Y-m-d'|default:'' }}"
+                       required>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Mensagem *</label>
+            {#
+                textarea = campo de texto multilinha.
+                rows=4 define a altura inicial visível.
+                resize:vertical permite o usuário redimensionar.
+            #}
+            <textarea name="mensagem"
+                      class="form-input"
+                      rows="4"
+                      placeholder="Digite a mensagem do aviso..."
+                      style="resize:vertical;"
+                      required>{{ aviso.mensagem|default:'' }}</textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1.5rem;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not aviso or aviso.ativo %}checked{% endif %}
+                       style="width:16px;height:16px;accent-color:var(--verde);">
+                Aviso ativo
+                <span style="font-size:12px;color:#6b7280;">
+                    — avisos inativos não aparecem no mural
+                </span>
+            </label>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+            <button type="submit" class="btn btn-verde">✓ {{ acao }}</button>
+            <a href="{% url 'core:admin_avisos' %}" class="btn btn-cinza">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

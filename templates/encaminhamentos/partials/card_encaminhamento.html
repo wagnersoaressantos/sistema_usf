@@ -1,0 +1,182 @@
+{% comment %}
+Card reutilizável de encaminhamento.
+Espera a variável 'enc' no contexto.
+Usado em: paciente.html, fila_tipo.html, concluidos.html
+
+Variável opcional:
+- mostrar_paciente=True → mostra nome, idade, micro-área e condições
+{% endcomment %}
+
+<div style="background:white;
+            border:1px solid #e5e7eb;
+            border-left:4px solid
+            {% if enc.prioridade == 1 %}
+            {% if enc.retorno_ativo %}#3b82f6{% else %}#9ca3af{% endif %}
+                {% elif enc.prioridade == 2 %}#a855f7
+                {% elif enc.prioridade == 3 %}#f59e0b
+                {% elif enc.prioridade == 4 %}#ef4444
+                {% else %}#e5e7eb{% endif %};
+            border-radius:8px;
+            padding:14px 16px;
+            margin-bottom:10px;">
+
+    {# ── Alerta de óbito ──────────────────────────── #}
+    {% if enc.paciente.obito %}
+    <div style="background:#1f2937; color:white;
+                font-size:12px; font-weight:500;
+                padding:6px 10px; border-radius:4px;
+                margin-bottom:10px; display:flex;
+                align-items:center; gap:6px;">
+        🪦 Paciente falecido
+        {% if enc.paciente.data_obito %}
+            · {{ enc.paciente.data_obito|date:"d/m/Y" }}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div style="display:flex; align-items:flex-start;
+                justify-content:space-between; gap:12px;">
+        <div style="flex:1;">
+
+            {# ── Info do paciente — só quando mostrar_paciente=True ── #}
+            {% if mostrar_paciente %}
+{% include 'core/pacientes/partials/card_paciente.html' with paciente=enc.paciente modo='compacto' %}
+{% endif %}
+            {% comment %}
+            {% if mostrar_paciente %}
+            <p style="font-size:13px; color:#6b7280; margin:0 0 2px;">
+                {# Primeiro nome + inicial do sobrenome #}
+                {% with partes=enc.paciente.nome.split %}
+                    {{ partes.0 }}
+                    {% if partes|length > 1 %} {{ partes.1|first }}.{% endif %}
+                {% endwith %}
+                {% if enc.paciente.idade %}
+                    · {{ enc.paciente.idade }} anos
+                {% endif %}
+                {% if enc.paciente.get_sexo_display and enc.paciente.sexo != 'I' %}
+                    · {{ enc.paciente.get_sexo_display }}
+                {% endif %}
+                {% if enc.paciente.micro_area %}
+                    · {{ enc.paciente.micro_area.codigo }}
+                {% else %}
+                    · <span style="color:#dc2626;">⚠️ Fora de área</span>
+                {% endif %}
+            </p>
+
+            {# Condições de saúde ativas #}
+            {% with condicoes=enc.paciente.condicoes.all %}
+                {% if condicoes %}
+                <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px;">
+                    {% for pc in condicoes %}
+                        {% if pc.ativa %}
+                        <span title="{{ pc.condicao.nome }}"
+                              style="font-size:11px; padding:2px 8px;
+                                     border-radius:20px; background:#f0fdf4;
+                                     color:#166534; border:1px solid #bbf7d0;">
+                            {{ pc.condicao.icone }} {{ pc.condicao.nome }}
+                        </span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+            {% endif %}
+{% endcomment %}
+            {# ── Tipo do encaminhamento ─────────────── #}
+            <p style="font-size:14px; font-weight:600;
+                       margin:0 0 4px; color:#111827;">
+                {{ enc.tipo.nome }}
+            </p>
+
+            {# Subtipos se houver #}
+            {% with subs=enc.subtipos.all %}
+                {% if subs %}
+                <p style="font-size:13px; color:#6b7280; margin:0 0 4px;">
+                    {% for s in subs %}
+                        {{ s.subtipo.nome }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+                {% endif %}
+            {% endwith %}
+
+            <p style="font-size:12px; color:#9ca3af; margin:0;">
+                {{ enc.data_solicitacao|date:"d/m/Y" }}
+            </p>
+        </div>
+
+        {# ── Badges laterais ───────────────────────── #}
+        <div style="display:flex; flex-direction:column;
+                    align-items:flex-end; gap:6px; flex-shrink:0;">
+
+            {# Status #}
+            <span style="font-size:11px; padding:3px 10px;
+                         border-radius:20px; background:#f3f4f6;
+                         color:#374151;">
+                {{ enc.get_status_display }}
+            </span>
+
+            {# Prioridade — só mostra se não for Normal #}
+            {% if enc.prioridade != 5 %}
+            <span style="font-size:11px; padding:3px 10px;
+                         border-radius:20px;
+                         background:
+                             {% if enc.prioridade == 1 %}
+                                 {% if enc.retorno_ativo %}#eff6ff{% else %}#f3f4f6{% endif %}
+                             {% elif enc.prioridade == 2 %}#faf5ff
+                             {% elif enc.prioridade == 3 %}#fffbeb
+                             {% elif enc.prioridade == 4 %}#fef2f2
+                             {% else %}#f9fafb{% endif %};
+                         color:
+                             {% if enc.prioridade == 1 %}
+                                 {% if enc.retorno_ativo %}#1d4ed8{% else %}#6b7280{% endif %}
+                             {% elif enc.prioridade == 2 %}#7e22ce
+                             {% elif enc.prioridade == 3 %}#92400e
+                             {% elif enc.prioridade == 4 %}#991b1b
+                             {% else %}#374151{% endif %};">
+                {{ enc.get_prioridade_display }}
+                {% if enc.prioridade == 1 and enc.mes_retorno %}
+                    · {{ enc.mes_retorno }}/{{ enc.ano_retorno }}
+                {% endif %}
+            </span>
+            {% endif %}
+
+            {# Retorno futuro #}
+            {% if enc.prioridade == 1 and not enc.retorno_ativo %}
+            <span style="font-size:11px; padding:3px 10px;
+                         border-radius:20px; background:#f0f9ff;
+                         color:#0369a1;">
+                🔄 Retorno futuro
+            </span>
+            {% endif %}
+
+            {# Acima da cota #}
+            {% if enc.acima_da_cota %}
+            <span style="font-size:11px; padding:3px 10px;
+                         border-radius:20px; background:#fef2f2;
+                         color:#dc2626;">
+                📊 Acima da cota
+            </span>
+            {% endif %}
+
+            {# Duplicata #}
+            {% if enc.duplicata_de %}
+            <span style="font-size:11px; padding:3px 10px;
+                         border-radius:20px; background:#fef2f2;
+                         color:#dc2626;">
+                ⚠️ Duplicata
+            </span>
+            {% endif %}
+
+        </div>
+    </div>
+
+    {# ── Rodapé do card ────────────────────────────── #}
+    <div style="margin-top:10px; border-top:1px solid #f3f4f6;
+                padding-top:10px;">
+        <a href="{% url 'encaminhamentos:detalhe' enc.pk %}"
+           style="font-size:13px; color:var(--verde);
+                  text-decoration:none; font-weight:500;">
+            Ver detalhes →
+        </a>
+    </div>
+</div>

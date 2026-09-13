@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block titulo %}Cargos{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:painel_admin' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <h1 class="page-title" style="margin:0;">📋 Cargos</h1>
+    </div>
+    <a href="{% url 'core:admin_cargo_criar' %}" class="btn btn-verde">
+        ➕ Novo cargo
+    </a>
+</div>
+
+<div class="card">
+    {% if cargos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cargo in cargos %}
+                <tr>
+                    <td>{{ cargo.nome }}</td>
+                    <td>
+                        {% if cargo.ativo %}
+                            <span class="badge badge-verde">Ativo</span>
+                        {% else %}
+                            <span class="badge" style="background:#f3f4f6; color:#6b7280;">
+                                Inativo
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'core:admin_cargo_editar' cargo.pk %}"
+                           style="color:var(--verde); font-size:13px;">
+                            Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color:#9ca3af; text-align:center; padding:2rem;">
+            Nenhum cargo cadastrado.
+        </p>
+    {% endif %}
+</div>
+
+{% endblock %}

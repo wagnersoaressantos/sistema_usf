@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block titulo %}Tipos de Atendimento — Administração{% endblock %}
+
+{% block conteudo %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin:0;">🩺 <span>Tipos</span> de atendimento</h1>
+    <div style="display:flex;gap:8px;">
+        <a href="{% url 'core:painel_admin' %}" class="btn btn-cinza">← Voltar</a>
+        <a href="{% url 'core:admin_tipo_criar' %}" class="btn btn-verde">➕ Novo tipo</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="tabela-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome do tipo</th>
+                    <th>Contexto / Visibilidade</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tipo in tipos %}
+                <tr>
+                    <td><strong>{{ tipo.nome }}</strong></td>
+                    
+                    <td>
+                        {% if tipo.apenas_mutirao %}
+                            <span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">
+                                🏥 Apenas Mutirão
+                            </span>
+                        {% else %}
+                            <span class="badge" style="background:#f3f4f6; color:#4b5563; border:1px solid #d1d5db;">
+                                📅 Rotina Diária
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if tipo.ativo %}
+                        <span class="badge badge-verde">● Ativo</span>
+                        {% else %}
+                        <span class="badge" style="background:#fee2e2;color:#991b1b;">● Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'core:admin_tipo_editar' tipo.pk %}"
+                           style="font-size:12px;color:#185FA5;text-decoration:none;
+                                  padding:3px 8px;border:1px solid #bfdbfe;border-radius:4px;">
+                            ✏ Editar
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align:center;padding:2rem;color:#9ca3af;">
+                        Nenhum tipo cadastrado ainda.
+                        <a href="{% url 'core:admin_tipo_criar' %}" style="color:#185FA5;">Cadastrar o primeiro ↗</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

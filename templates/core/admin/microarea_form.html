@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'core:admin_microareas' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card" style="margin-bottom:1rem;">
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>USF *</label>
+            <select name="usf" class="form-input">
+                <option value="">Selecione...</option>
+                {% for usf in usfs %}
+                    <option value="{{ usf.pk }}"
+                        {% if microarea and microarea.usf_id == usf.pk %}selected{% endif %}>
+                        {{ usf.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Código *</label>
+            <input type="text" name="codigo" class="form-input"
+                   value="{{ microarea.codigo|default:'' }}"
+                   placeholder="Ex: MA-01">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Responsável (ACS/TACS)</label>
+            <select name="responsavel" class="form-input">
+                <option value="">Sem responsável — Fora de área</option>
+                {% for r in responsaveis %}
+                    <option value="{{ r.pk }}"
+                        {% if microarea and microarea.responsavel_id == r.pk %}selected{% endif %}>
+                        {{ r.user.get_full_name }} · {{ r.cargo.nome }} · {{ r.usf.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not microarea or microarea.ativo %}checked{% endif %}>
+                Micro-área ativa
+            </label>
+        </div>
+
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a href="{% url 'core:admin_microareas' %}" class="btn btn-cinza">Cancelar</a>
+        <button type="submit" class="btn btn-verde">{{ acao }}</button>
+    </div>
+</form>
+
+{% endblock %}

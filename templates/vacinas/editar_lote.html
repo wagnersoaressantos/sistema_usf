@@ -1,0 +1,52 @@
+<!-- templates/vacinas/editar_lote.html -->
+{% extends 'base.html' %}
+{% block titulo %}Editar Lote - {{ lote.numero_lote }}{% endblock %}
+
+{% block conteudo %}
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'vacinas:controle_lotes' %}" style="color:var(--verde, #10b981); text-decoration:none; font-size:20px;">← Voltar ao Estoque</a>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto; background:white; padding:24px; border-radius:8px; border:1px solid #d1d5db;">
+    <h1 style="font-size:20px; font-weight:700; color:#111827; margin-bottom:8px;">
+        ✏️ Editar Lote: {{ lote.numero_lote }} ({{ lote.vacina.sigla }})
+    </h1>
+    <p style="font-size:14px; color:#4b5563; margin-bottom:24px;">
+        Use este ecrã para ajustar a quantidade de <strong>Doses Recebidas</strong> caso o PNI tenha recolhido frascos parcialmente ou caso tenha ocorrido quebra/perda física.
+    </p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            
+            <label style="font-size:13px; font-weight:600; color:#374151;">Vacina *
+                {{ form.vacina }}
+            </label>
+
+            <label style="font-size:13px; font-weight:600; color:#374151;">Número do Lote *
+                {{ form.numero_lote }}
+            </label>
+
+            <label style="font-size:13px; font-weight:600; color:#374151;">Data de Validade *
+                {{ form.data_validade }}
+            </label>
+
+            <div style="background:#fef3c7; border:1px solid #f59e0b; padding:12px; border-radius:6px;">
+                <label style="font-size:13px; font-weight:700; color:#92400e;">Quantidade Original Recebida (Ajuste aqui se houve recolhimento) *
+                    {{ form.doses_recebidas }}
+                </label>
+                <p style="font-size:11px; color:#b45309; margin:4px 0 0 0;">Se recebeu 50 e o PNI recolheu 20, altere o valor acima para 30. O sistema recalculará o saldo disponível automaticamente.</p>
+            </div>
+
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#374151;">
+                {{ form.ativo }}
+                Lote Ativo (Desmarque para inativar completamente)
+            </label>
+
+            <button type="submit" style="width:100%; background:#0284c7; color:white; border:none; padding:12px; border-radius:6px; font-weight:700; font-size:14px; cursor:pointer; margin-top:8px;">
+                💾 Guardar Alterações
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'core:admin_condicoes' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card" style="margin-bottom:1rem;">
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome *</label>
+            <input type="text" name="nome" class="form-input"
+                   value="{{ condicao.nome|default:'' }}"
+                   placeholder="Ex: Hipertensão, Diabetes, Gestante">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Código *
+                <span style="font-size:12px; color:#9ca3af;">
+                    (sem espaços, não altere após criado)
+                </span>
+            </label>
+            <input type="text" name="codigo" class="form-input"
+                   value="{{ condicao.codigo|default:'' }}"
+                   placeholder="Ex: hipertensao, diabetes">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Ícone (emoji)</label>
+            <input type="text" name="icone" class="form-input"
+                   style="max-width:100px;"
+                   value="{{ condicao.icone|default:'' }}"
+                   placeholder="Ex: ❤️ 🩸 🤰">
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
+                Cole um emoji para identificar visualmente a condição.
+            </p>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label style="display:flex; align-items:center;
+                           gap:8px; cursor:pointer;">
+                <input type="checkbox" name="afeta_prioridade"
+                       {% if condicao and condicao.afeta_prioridade %}checked{% endif %}>
+                Afeta prioridade no encaminhamento
+            </label>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0 24px;">
+                Se marcado, o sistema sugere prioridade preferencial
+                ao cadastrar encaminhamento para este paciente.
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label style="display:flex; align-items:center;
+                           gap:8px; cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not condicao or condicao.ativo %}checked{% endif %}>
+                Condição ativa
+            </label>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a href="{% url 'core:admin_condicoes' %}" class="btn btn-cinza">
+            Cancelar
+        </a>
+        <button type="submit" class="btn btn-verde">{{ acao }}</button>
+    </div>
+</form>
+
+{% endblock %}

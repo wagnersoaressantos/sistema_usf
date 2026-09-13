@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Novo Atendimento — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+<h1 class="page-title">➕ <span>Registrar</span> Atendimento</h1>
+
+<div class="card">
+    <div class="card-title">Dados do paciente</div>
+
+    <form method="post" action="{% url 'mutirao:cadastrar' %}">
+        {% csrf_token %}
+        <div class="form-grid">
+
+            {# ── CPF / SUS ─────────────────────────────────────────── #}
+            {# Esse campo tem o autocompletar — ao sair dele #}
+            {# o JavaScript busca os dados do paciente automaticamente #}
+            <div class="form-group">
+                <label for="id_cpf_sus">
+                    CPF ou Cartão SUS *
+                    {# Indicador de carregamento — aparece enquanto busca #}
+                    <span id="cpf-buscando"
+                          style="display:none;font-size:11px;
+                                 color:#6b7280;font-weight:400;">
+                        🔍 buscando...
+                    </span>
+                </label>
+                <input type="text"
+                       name="cpf_sus"
+                       id="id_cpf_sus"
+                       class="form-input {% if form.cpf_sus.errors %}erro{% endif %}"
+                       placeholder="000.000.000-00 ou nº SUS"
+                       value="{{ form.cpf_sus.value|default:'' }}"
+                       autofocus>
+                {% if form.cpf_sus.errors %}
+                <div class="form-errors">{{ form.cpf_sus.errors.as_text }}</div>
+                {% endif %}
+
+                {# Aviso que aparece quando encontra o paciente #}
+                {# Começa escondido — JavaScript mostra quando encontrar #}
+                <div id="cpf-encontrado"
+                     style="display:none;
+                            margin-top:6px;
+                            padding:8px 12px;
+                            background:#e8f5ee;
+                            border-left:3px solid #1a7a4c;
+                            border-radius:4px;
+                            font-size:12px;
+                            color:#145c38;">
+                    ✓ <span id="cpf-encontrado-texto"></span>
+                    {# Botão para limpar os campos preenchidos #}
+                    <button type="button"
+                            onclick="limparAutocompletar()"
+                            style="margin-left:8px;background:none;border:none;
+                                   color:#6b7280;cursor:pointer;font-size:11px;
+                                   text-decoration:underline;">
+                        limpar
+                    </button>
+                </div>
+
+            </div>
+
+            {# ── DATA DE NASCIMENTO ────────────────────────────────── #}
+            <div class="form-group">
+                <label for="id_data_nascimento">Data de nascimento *</label>
+                {# Deixamos o Django renderizar para garantir #}
+                {# o formato correto no input type="date" #}
+                {{ form.data_nascimento }}
+                {% if form.data_nascimento.errors %}
+                <div class="form-errors">{{ form.data_nascimento.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            {# ── NOME DO PACIENTE ──────────────────────────────────── #}
+            <div class="form-group span-2">
+                <label for="id_nome_paciente">Nome do paciente *</label>
+                <input type="text"
+                       name="nome_paciente"
+                       id="id_nome_paciente"
+                       class="form-input {% if form.nome_paciente.errors %}erro{% endif %}"
+                       placeholder="Nome completo do paciente"
+                       value="{{ form.nome_paciente.value|default:'' }}">
+                {% if form.nome_paciente.errors %}
+                <div class="form-errors">{{ form.nome_paciente.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            {# ── NOME DA MÃE ───────────────────────────────────────── #}
+            <div class="form-group span-2">
+                <label for="id_nome_mae">Nome da mãe *</label>
+                <input type="text"
+                       name="nome_mae"
+                       id="id_nome_mae"
+                       class="form-input {% if form.nome_mae.errors %}erro{% endif %}"
+                       placeholder="Nome completo da mãe"
+                       value="{{ form.nome_mae.value|default:'' }}">
+                {% if form.nome_mae.errors %}
+                <div class="form-errors">{{ form.nome_mae.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            {# ── USF ───────────────────────────────────────────────── #}
+            <div class="form-group">
+                <label for="id_usf">USF *</label>
+                {# ForeignKey — Django renderiza o select automaticamente #}
+                {{ form.usf }}
+                {% if form.usf.errors %}
+                <div class="form-errors">{{ form.usf.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            {# ── TIPO DE ATENDIMENTO ───────────────────────────────── #}
+            <div class="form-group">
+                <label for="id_tipo_atendimento">Tipo de atendimento *</label>
+                {{ form.tipo_atendimento }}
+                {% if form.tipo_atendimento.errors %}
+                <div class="form-errors">{{ form.tipo_atendimento.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        {# ── RODAPÉ DO FORMULÁRIO ──────────────────────────────────── #}
+        <div style="margin-top:1.5rem;
+                    display:flex;
+                    gap:10px;
+                    align-items:center;
+                    padding-top:1rem;
+                    border-top:1px solid #f0f0f0;">
+            <button type="submit" class="btn btn-verde">
+                ✓ Salvar atendimento
+            </button>
+            <a href="{% url 'mutirao:listar' %}" class="btn btn-cinza">
+                Cancelar
+            </a>
+            <span style="font-size:12px;color:#9ca3af;margin-left:auto;">
+                Registrado por:
+                <strong>{{ user.get_full_name|default:user.username }}</strong>
+            </span>
+        </div>
+
+    </form>
+</div>
+
+{# ── JAVASCRIPT DO AUTOCOMPLETAR ──────────────────────────────────────────── #}
+<script>
+    const campoCpf        = document.getElementById('id_cpf_sus');
+    const campoNome       = document.getElementById('id_nome_paciente');
+    const campoData       = document.getElementById('id_data_nascimento');
+    const campoMae        = document.getElementById('id_nome_mae');
+    const avisBuscando    = document.getElementById('cpf-buscando');
+    const avisEncontrado  = document.getElementById('cpf-encontrado');
+    const textoEncontrado = document.getElementById('cpf-encontrado-texto');
+    const urlApi          = "{% url 'mutirao:api_buscar_paciente' %}";
+
+    /* ── Máscara de CPF e Limpeza de Segurança ──────────────────────── */
+    campoCpf.addEventListener('input', function() {
+        let valor = this.value;
+        let numeros = valor.replace(/\D/g, '');
+        numeros = numeros.slice(0, 11);
+
+        if (numeros.length <= 3) {
+            this.value = numeros;
+        } else if (numeros.length <= 6) {
+            this.value = numeros.slice(0,3) + '.' + numeros.slice(3);
+        } else if (numeros.length <= 9) {
+            this.value = numeros.slice(0,3) + '.' + numeros.slice(3,6) + '.' + numeros.slice(6);
+        } else {
+            this.value = numeros.slice(0,3) + '.' + numeros.slice(3,6) + '.' + numeros.slice(6,9) + '-' + numeros.slice(9);
+        }
+
+        /* 🛡️ PROTEÇÃO SANITÁRIA DE DADOS:
+           Sempre que o CPF mudar, limpamos os campos antigos para evitar que 
+           dados de um paciente contaminem o cadastro do próximo caso não seja encontrado! */
+        campoNome.value = '';
+        campoData.value = '';
+        campoMae.value = '';
+        avisEncontrado.style.display = 'none';
+
+        const botaoSalvar = document.querySelector('button[type="submit"]');
+        if (botaoSalvar) {
+            botaoSalvar.disabled = false;
+            botaoSalvar.style.opacity = '1';
+            botaoSalvar.style.cursor = 'pointer';
+        }
+    });
+
+    /* ── Autocompletar ao sair do campo (Blur) ─────────────────────── */
+    campoCpf.addEventListener('blur', function() {
+        const cpf = this.value.trim();
+
+        if (!cpf) return;
+
+        avisBuscando.style.display = 'inline';
+
+        fetch(`${urlApi}?cpf=${encodeURIComponent(cpf)}`)
+            .then(r => r.json())
+            .then(function(dados) {
+                avisBuscando.style.display = 'none';
+                const botaoSalvar = document.querySelector('button[type="submit"]');
+
+                if (dados.invalido) {
+                    /* ❌ CASO A: DOCUMENTO MATEMATICAMENTE INVÁLIDO */
+                    textoEncontrado.textContent = dados.mensagem;
+                    avisEncontrado.style.display = 'block';
+                    
+                    avisEncontrado.style.background = '#fee2e2';
+                    avisEncontrado.style.borderLeftColor = '#dc2626';
+                    avisEncontrado.style.color = '#991b1b';
+                    
+                    if (botaoSalvar) {
+                        botaoSalvar.disabled = true;
+                        botaoSalvar.style.opacity = '0.5';
+                        botaoSalvar.style.cursor = 'not-allowed';
+                    }
+
+                } else if (dados.encontrado) {
+                    /* ✅ CASO B: ENCONTRADO COM SUCESSO (FORÇA PREENCHIMENTO) */
+                    // Removemos as travas condicionais. Se achou no banco, manda os dados corretos!
+                    campoNome.value = dados.nome_paciente;
+                    campoData.value = dados.data_nascimento;
+                    campoMae.value = dados.nome_mae;
+
+                    textoEncontrado.textContent = `✓ Dados de ${dados.nome_paciente} preenchidos automaticamente.`;
+                    avisEncontrado.style.display = 'block';
+                    
+                    avisEncontrado.style.background = '#e8f5ee';
+                    avisEncontrado.style.borderLeftColor = '#1a7a4c';
+                    avisEncontrado.style.color = '#145c38';
+                    
+                    if (botaoSalvar) {
+                        botaoSalvar.disabled = false;
+                        botaoSalvar.style.opacity = '1';
+                        botaoSalvar.style.cursor = 'pointer';
+                    }
+
+                } else {
+                    /* ⚪ CASO C: VÁLIDO MAS NÃO CADASTRADO (PACIENTE NOVO, LIBERA CAMPOS LIMPOD) */
+                    avisEncontrado.style.display = 'none';
+                    if (botaoSalvar) {
+                        botaoSalvar.disabled = false;
+                        botaoSalvar.style.opacity = '1';
+                        botaoSalvar.style.cursor = 'pointer';
+                    }
+                }
+            })
+            .catch(function(erro) {
+                avisBuscando.style.display = 'none';
+                console.error('Erro ao buscar paciente:', erro);
+            });
+    });
+
+    function limparAutocompletar() {
+        campoNome.value = '';
+        campoData.value = '';
+        campoMae.value  = '';
+        avisEncontrado.style.display = 'none';
+        campoCpf.value = '';
+        campoCpf.focus();
+    }
+</script>
+
+{% endblock %}

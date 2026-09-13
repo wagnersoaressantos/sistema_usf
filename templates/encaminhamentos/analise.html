@@ -1,0 +1,1018 @@
+{% extends 'base.html' %}
+{% comment %}
+{# ──────────────────────────────────────────────────────
+   Este template herda do base.html — isso significa que
+   ele usa o mesmo cabeçalho, menu e rodapé definidos lá.
+   Só precisamos preencher o bloco "conteudo".
+────────────────────────────────────────────────────── #}
+{% endcomment %}
+
+{% block titulo %}Análise — Encaminhamentos{% endblock %}
+{# O bloco "titulo" define o texto que aparece na aba do navegador #}
+
+{% block conteudo %}
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   CABEÇALHO DA PÁGINA
+   Mostra o título e a USF do usuário logado.
+   O ← é um link para voltar à página inicial.
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'encaminhamentos:inicio' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <div>
+        <h1 style="font-size:20px; font-weight:600; margin:0;">
+            📊 Análise de Encaminhamentos
+        </h1>
+        <p style="font-size:13px; color:#6b7280; margin:0;">
+            {# usf vem da view — é a USF do usuário logado #}
+            {{ usf.nome }}
+        </p>
+    </div>
+</div>
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   FILTRO DE PERÍODO
+   Formulário com duas datas — início e fim.
+   Ao clicar em Filtrar, a página recarrega com os
+   dados filtrados pelo período selecionado.
+   method="get" = os dados vão na URL como ?data_inicio=...&data_fim=...
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+<form method="get" style="margin-bottom:1.5rem;">
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:14px 16px;
+                display:flex; gap:12px; align-items:flex-end;
+                flex-wrap:wrap;">
+
+        <div class="form-group" style="flex:1; min-width:150px;">
+            <label style="font-size:13px; font-weight:500;">Data inicial</label>
+            {# value="{{ data_inicio }}" mantém o valor ao recarregar a página #}
+            <input type="date" name="data_inicio"
+                   value="{{ data_inicio }}" class="form-input">
+        </div>
+
+        <div class="form-group" style="flex:1; min-width:150px;">
+            <label style="font-size:13px; font-weight:500;">Data final</label>
+            <input type="date" name="data_fim"
+                   value="{{ data_fim }}" class="form-input">
+        </div>
+
+        <button type="submit" class="btn btn-verde">Filtrar</button>
+
+        {# Limpar remove os filtros voltando para a URL base #}
+        <a href="{% url 'encaminhamentos:analise' %}" class="btn btn-cinza">
+            Limpar
+        </a>
+
+    </div>
+</form>
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   CARDS DE TOTAIS DO PERÍODO
+   4 números grandes que resumem o período selecionado.
+   display:grid com repeat(4,1fr) = 4 colunas iguais.
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+<div style="display:grid; grid-template-columns:repeat(4,1fr);
+            gap:12px; margin-bottom:1.5rem;">
+
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:1rem; text-align:center;">
+        <p style="font-size:28px; font-weight:700; color:var(--verde); margin:0;">
+            {{ total_periodo }}
+        </p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">
+            solicitações no período
+        </p>
+    </div>
+
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:1rem; text-align:center;">
+        <p style="font-size:28px; font-weight:700; color:#ef4444; margin:0;">
+            {{ acima_cota_periodo }}
+        </p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">
+            acima da cota
+        </p>
+    </div>
+
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:1rem; text-align:center;">
+        <p style="font-size:28px; font-weight:700; color:#f59e0b; margin:0;">
+            {{ duplicatas_periodo }}
+        </p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">
+            duplicatas detectadas
+        </p>
+    </div>
+
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:1rem; text-align:center;">
+        <p style="font-size:28px; font-weight:700; color:#3b82f6; margin:0;">
+            {{ unificadas_periodo }}
+        </p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">
+            guias unificadas
+        </p>
+    </div>
+
+</div>
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   NAVEGAÇÃO POR ABAS
+   Cada botão chama mostrarAba('nome') via JavaScript.
+   A aba ativa recebe a classe CSS 'ativo' que a destaca.
+   border-bottom nos botões cria a linha indicadora.
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+<div style="display:flex; gap:4px; margin-bottom:1.5rem;
+            border-bottom:2px solid #e5e7eb;">
+    <button onclick="mostrarAba('visao-geral')"
+            id="btn-visao-geral" class="btn-aba ativo">
+        📈 Visão Geral
+    </button>
+    <button onclick="mostrarAba('pacientes')"
+            id="btn-pacientes" class="btn-aba">
+        👤 Pacientes
+    </button>
+    <button onclick="mostrarAba('fila')"
+            id="btn-fila" class="btn-aba">
+        📋 Fila
+    </button>
+    <button onclick="mostrarAba('cotas')"
+            id="btn-cotas" class="btn-aba">
+        📊 Cotas
+    </button>
+</div>
+{% comment %}
+{# ── Estilos das abas ─────────────────────────────────
+   Definidos aqui perto de onde são usados.
+   .conteudo-aba começa oculto (display:none).
+   .conteudo-aba.ativo fica visível (display:block).
+   O JavaScript alterna a classe 'ativo' entre as abas.
+──────────────────────────────────────────────────── #}
+{% endcomment %}
+<style>
+    .btn-aba {
+        background: none;
+        border: none;
+        padding: 8px 16px;
+        font-size: 13px;
+        cursor: pointer;
+        color: #6b7280;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;   /* sobe 2px para cobrir a borda do container */
+        font-weight: 500;
+        transition: color 0.15s;
+    }
+    .btn-aba:hover { color: var(--verde); }
+    .btn-aba.ativo {
+        color: var(--verde);
+        border-bottom-color: var(--verde);  /* linha verde sob o botão ativo */
+    }
+    .conteudo-aba { display: none; }        /* oculto por padrão */
+    .conteudo-aba.ativo { display: block; } /* visível quando ativo */
+</style>
+
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   ABA 1 — VISÃO GERAL
+   Começa com classe 'ativo' — é a aba inicial.
+   Contém: demanda por tipo, gráfico mensal,
+   tempo médio por fase e ranking de tipos.
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+<div id="aba-visao-geral" class="conteudo-aba ativo">
+
+    {# ── Demanda reprimida por tipo ────────────────── #}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Demanda reprimida por tipo
+    </h2>
+
+    {% if demanda_por_tipo %}
+        <div style="margin-bottom:2rem;">
+            {% for item in demanda_por_tipo %}
+                {# Cada tipo vira um card com barra de progresso #}
+                <div style="background:white; border:1px solid #e5e7eb;
+                            border-radius:8px; padding:14px 16px;
+                            margin-bottom:8px; display:flex;
+                            align-items:center; gap:16px;">
+
+                    {# Nome e cota do tipo #}
+                    <div style="flex:1;">
+                        <p style="font-size:14px; font-weight:500; margin:0 0 4px;">
+                            {{ item.tipo.nome }}
+                        </p>
+                        {% if item.cota %}
+                            <p style="font-size:12px; color:#9ca3af; margin:0;">
+                                Cota: {{ item.cota }} · Na fila: {{ item.total_fila }}
+                            </p>
+                        {% endif %}
+                    </div>
+{% comment %}
+                    {# Barra de progresso — mostra quanto da cota foi usado
+                       widthratio calcula: (total_fila / cota) * 100 = percentual #}
+                       {% endcomment %}
+                    {% if item.cota %}
+                        <div style="flex:2;">
+                            {% widthratio item.total_fila item.cota 100 as pct %}
+                            <div style="height:8px; background:#f3f4f6;
+                                        border-radius:4px; overflow:hidden;">
+                                <div style="width:{% if pct > 100 %}100{% else %}{{ pct }}{% endif %}%;
+                                            height:100%;
+                                            background:{% if item.acima_cota > 0 %}#ef4444{% else %}var(--verde){% endif %};
+                                            border-radius:4px;">
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {# Número acima da cota ou badge "dentro da cota" #}
+                    {% if item.acima_cota > 0 %}
+                        <div style="text-align:center; flex-shrink:0;">
+                            <p style="font-size:20px; font-weight:700;
+                                       color:#ef4444; margin:0;">
+                                +{{ item.acima_cota }}
+                            </p>
+                            <p style="font-size:11px; color:#9ca3af; margin:0;">
+                                acima da cota
+                            </p>
+                        </div>
+                    {% else %}
+                        <span style="font-size:12px; color:var(--verde); flex-shrink:0;">
+                            ✓ Dentro da cota
+                        </span>
+                    {% endif %}
+
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; padding:2rem; text-align:center;
+                    margin-bottom:2rem; color:#9ca3af;">
+            Nenhum encaminhamento na fila no momento.
+        </div>
+    {% endif %}
+
+    {# ── Gráfico de evolução mensal ────────────────── #}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Evolução mensal
+    </h2>
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:16px; margin-bottom:2rem;">
+                {% comment %}
+        {# position:relative + height:280px define o tamanho do gráfico.
+           O Chart.js usa esse espaço para desenhar. #}
+           {% endcomment %}
+        <div style="position:relative; height:280px;">
+            <canvas id="grafico-mensal"></canvas>
+        </div>
+    </div>
+
+    {# ── Tempo médio por fase ──────────────────────── #}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Tempo médio por fase
+    </h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr;
+                gap:12px; margin-bottom:2rem;">
+{% comment %}
+        {# Card da Regulação — cor muda conforme o tempo:
+           verde = rápido (até 15 dias)
+           amarelo = médio (16-30 dias)
+           vermelho = lento (mais de 30 dias) #}
+{% endcomment %}
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; padding:1.5rem; text-align:center;">
+            <p style="font-size:13px; color:#6b7280; margin:0 0 8px;">
+                🏛 Regulação Municipal
+            </p>
+            <p style="font-size:36px; font-weight:700; margin:0;
+                       color:{% if media_regulacao > 30 %}#ef4444
+                             {% elif media_regulacao > 15 %}#f59e0b
+                             {% else %}var(--verde){% endif %};">
+                {{ media_regulacao }}
+            </p>
+            <p style="font-size:13px; color:#9ca3af; margin:4px 0 0;">
+                dias em média
+            </p>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
+                {% if total_regulacao > 0 %}
+                    baseado em {{ total_regulacao }}
+                    encaminhamento{{ total_regulacao|pluralize }}
+                {% else %}
+                    sem dados suficientes
+                {% endif %}
+            </p>
+        </div>
+
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; padding:1.5rem; text-align:center;">
+            <p style="font-size:13px; color:#6b7280; margin:0 0 8px;">
+                🏥 UPAE
+            </p>
+            <p style="font-size:36px; font-weight:700; margin:0;
+                       color:{% if media_upae > 30 %}#ef4444
+                             {% elif media_upae > 15 %}#f59e0b
+                             {% else %}var(--verde){% endif %};">
+                {{ media_upae }}
+            </p>
+            <p style="font-size:13px; color:#9ca3af; margin:4px 0 0;">
+                dias em média
+            </p>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
+                {% if total_upae > 0 %}
+                    baseado em {{ total_upae }}
+                    encaminhamento{{ total_upae|pluralize }}
+                {% else %}
+                    sem dados suficientes
+                {% endif %}
+            </p>
+        </div>
+
+    </div>
+
+    {# ── Ranking de tipos que mais demoram ─────────── #}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Tipos que mais demoram
+    </h2>
+    {% if ranking_tipos %}
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; overflow:hidden; margin-bottom:2rem;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Tipo</th>
+                        <th>Tempo médio</th>
+                        <th>Encaminhamentos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in ranking_tipos %}
+                    <tr>
+                        <td style="color:#9ca3af;">{{ forloop.counter }}</td>
+                        <td>{{ item.tipo.nome }}</td>
+                        <td>
+                            <span style="font-weight:600;
+                                color:{% if item.media_dias > 30 %}#ef4444
+                                      {% elif item.media_dias > 15 %}#f59e0b
+                                      {% else %}var(--verde){% endif %};">
+                                {{ item.media_dias }} dias
+                            </span>
+                        </td>
+                        <td style="color:#6b7280;">
+                            {{ item.total }} concluído{{ item.total|pluralize }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; padding:2rem; text-align:center;
+                    margin-bottom:2rem; color:#9ca3af;">
+            Ainda não há encaminhamentos concluídos para calcular o tempo médio.
+        </div>
+    {% endif %}
+
+</div>
+
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   ABA 2 — PACIENTES
+   Gráficos de sexo e faixa etária + tabela por micro-área.
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+<div id="aba-pacientes" class="conteudo-aba">
+
+    <p style="font-size:13px; color:#6b7280; margin-bottom:1.5rem;">
+        Total de pacientes cadastrados na unidade:
+        <strong>{{ total_pacientes }}</strong>
+    </p>
+
+    {# Grade com dois gráficos lado a lado #}
+    <div style="display:grid; grid-template-columns:1fr 1fr;
+                gap:16px; margin-bottom:2rem;">
+
+        {# Gráfico de rosca — Sexo #}
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; padding:16px;">
+            <h2 style="font-size:14px; font-weight:600; margin-bottom:1rem;">
+                Distribuição por sexo
+            </h2>
+            <div style="position:relative; height:200px;">
+                <canvas id="grafico-sexo"></canvas>
+            </div>
+        </div>
+
+        {# Gráfico de barras — Faixa etária #}
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; padding:16px;">
+            <h2 style="font-size:14px; font-weight:600; margin-bottom:1rem;">
+                Distribuição por faixa etária
+            </h2>
+            <div style="position:relative; height:200px;">
+                <canvas id="grafico-faixa"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    {# Tabela de encaminhamentos por micro-área no período #}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Encaminhamentos por micro-área no período
+    </h2>
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; overflow:hidden; margin-bottom:2rem;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Micro-área</th>
+                    <th>Encaminhamentos</th>
+                    <th>Proporção</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in dist_microarea %}
+                <tr>
+                    <td>
+                        {% if item.paciente__micro_area__codigo %}
+                            {{ item.paciente__micro_area__codigo }}
+                        {% else %}
+                            <span style="color:#dc2626;">⚠️ Fora de área</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ item.total }}</strong></td>
+                    <td style="width:200px;">
+                        {# widthratio calcula a % do total para a barra #}
+                        {% if total_periodo > 0 %}
+                            {% widthratio item.total total_periodo 100 as pct_ma %}
+                            <div style="height:6px; background:#f3f4f6; border-radius:3px;">
+                                <div style="width:{{ pct_ma }}%; height:100%;
+                                            background:var(--verde); border-radius:3px;">
+                                </div>
+                            </div>
+                            <span style="font-size:12px; color:#9ca3af;">
+                                {{ pct_ma }}%
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align:center;
+                                           color:#9ca3af; padding:2rem;">
+                        Nenhum dado no período selecionado.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   ABA 3 — FILA
+   Perfil de prioridade, encaminhamentos mais antigos
+   e distribuição da fila por micro-área.
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+<div id="aba-fila" class="conteudo-aba">
+
+    {# Cards de prioridade — um card por nível #}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Perfil de prioridade na fila
+    </h2>
+    <div style="display:grid; grid-template-columns:repeat(5,1fr);
+                gap:10px; margin-bottom:2rem;">
+        {% for item in perfil_prioridade %}
+            <div style="background:white; border:1px solid #e5e7eb;
+                        border-radius:8px; padding:1rem; text-align:center;">
+                {# Cor diferente por nível de prioridade #}
+                <p style="font-size:24px; font-weight:700; margin:0;
+                           color:{% if item.valor == 1 %}#3b82f6
+                                 {% elif item.valor == 2 %}#a855f7
+                                 {% elif item.valor == 3 %}#f59e0b
+                                 {% elif item.valor == 4 %}#ef4444
+                                 {% else %}#6b7280{% endif %};">
+                    {{ item.total }}
+                </p>
+                <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">
+                    {{ item.label }}
+                </p>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# Tabela dos encaminhamentos mais antigos na fila #}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Aguardando há mais tempo
+    </h2>
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; overflow:hidden; margin-bottom:2rem;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Paciente</th>
+                    <th>Tipo</th>
+                    <th>Solicitado em</th>
+                    <th>Tempo esperando</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enc in mais_antigos %}
+                <tr>
+                    <td>
+                        <a href="{% url 'encaminhamentos:detalhe' enc.pk %}"
+                           style="color:var(--verde); text-decoration:none;">
+                            {# DEPOIS — só o primeiro nome + inicial do sobrenome #}
+                            {% with partes=enc.paciente.nome.split %}
+                                {{ partes.0 }}
+                                {% if partes|length > 1 %}
+                                    {{ partes.1|first }}.
+                                {% endif %}
+                            {% endwith %}
+                        </a>
+                    </td>
+                    <td>{{ enc.tipo.nome }}</td>
+                    <td>{{ enc.data_solicitacao|date:"d/m/Y" }}</td>
+                    <td>
+                        {# timesince calcula quanto tempo passou desde a data #}
+                        <strong style="color:#ef4444;">
+                            {{ enc.data_solicitacao|timesince }}
+                        </strong>
+                    </td>
+                    <td>{{ enc.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align:center;
+                                           color:#9ca3af; padding:2rem;">
+                        Nenhum encaminhamento na fila.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# Fila por micro-área #}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Fila por micro-área
+    </h2>
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; overflow:hidden; margin-bottom:2rem;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Micro-área</th>
+                    <th>Na fila</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in fila_por_microarea %}
+                <tr>
+                    <td>
+                        {% if item.paciente__micro_area__codigo %}
+                            {{ item.paciente__micro_area__codigo }}
+                        {% else %}
+                            <span style="color:#dc2626;">⚠️ Fora de área</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ item.total }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" style="text-align:center;
+                                           color:#9ca3af; padding:2rem;">
+                        Nenhum dado disponível.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   ABA 4 — COTAS
+   Barra de progresso para cada tipo mostrando
+   quanto da cota mensal está sendo usado.
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+<div id="aba-cotas" class="conteudo-aba">
+
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                text-transform:uppercase; letter-spacing:0.05em;
+                margin-bottom:1rem;">
+        Aproveitamento das cotas
+    </h2>
+
+    {% if aproveitamento_cotas %}
+        <div style="margin-bottom:2rem;">
+            {% for item in aproveitamento_cotas %}
+                <div style="background:white; border:1px solid #e5e7eb;
+                            border-radius:8px; padding:14px 16px;
+                            margin-bottom:8px;">
+
+                    <div style="display:flex; align-items:center;
+                                justify-content:space-between; margin-bottom:8px;">
+                        <p style="font-size:14px; font-weight:500; margin:0;">
+                            {{ item.tipo.nome }}
+                        </p>
+                        {% comment %}
+                        {# Cor muda conforme o percentual usado:
+                           vermelho = acima da cota
+                           amarelo  = acima de 80%
+                           verde    = dentro da cota #}
+                           {% endcomment %}
+                        <span style="font-size:13px; font-weight:600;
+                                     color:{% if item.acima %}#ef4444
+                                           {% elif item.pct > 80 %}#f59e0b
+                                           {% else %}var(--verde){% endif %};">
+                            {{ item.usado }} / {{ item.cota }}
+                            {% if item.acima %}⚠️{% endif %}
+                        </span>
+                    </div>
+
+                    {# Barra de progresso da cota #}
+                    <div style="height:8px; background:#f3f4f6;
+                                border-radius:4px; overflow:hidden;">
+                        <div style="width:{{ item.pct }}%; height:100%;
+                                    background:{% if item.acima %}#ef4444
+                                               {% elif item.pct > 80 %}#f59e0b
+                                               {% else %}var(--verde){% endif %};
+                                    border-radius:4px;">
+                        </div>
+                    </div>
+
+                    <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
+                        {{ item.pct }}% da cota utilizada
+                    </p>
+
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; padding:2rem; text-align:center;
+                    margin-bottom:2rem; color:#9ca3af;">
+            Nenhuma cota configurada.
+        </div>
+    {% endif %}
+
+</div>
+
+{% comment %}
+{# ══════════════════════════════════════════════════════
+   JAVASCRIPT
+   Carrega as bibliotecas e inicializa os gráficos.
+   Fica no final do HTML para garantir que todos os
+   elementos (canvas) já existam quando o JS rodar.
+══════════════════════════════════════════════════════ #}
+{% endcomment %}
+
+{# Chart.js — biblioteca principal de gráficos #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+{# Plugin que mostra os valores acima das barras #}
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+<script>
+/*
+  JAVASCRIPT DA ANÁLISE
+
+  Organizado em 3 partes:
+  1. Registro do plugin
+  2. Controle das abas
+  3. Criação dos gráficos
+
+  Todo o código fica dentro do 'DOMContentLoaded'
+  para garantir que o HTML já foi carregado antes
+  de qualquer operação com elementos da página.
+*/
+
+// Registra o plugin de data labels ANTES de criar gráficos
+// Sem isso, os valores acima das barras não aparecem
+Chart.register(ChartDataLabels);
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ════════════════════════════════════════════════
+    // PARTE 1 — CONTROLE DAS ABAS
+    // ════════════════════════════════════════════════
+
+    /*
+      window.mostrarAba = function() é diferente de só
+      function mostrarAba() porque dentro do DOMContentLoaded
+      as funções ficam em escopo local — não são acessíveis
+      pelo onclick do HTML. Colocando no window, a função
+      fica global e o onclick consegue chamá-la.
+    */
+    window.mostrarAba = function(nome) {
+
+        // Esconde TODAS as abas removendo a classe 'ativo'
+        document.querySelectorAll('.conteudo-aba').forEach(function(el) {
+            el.classList.remove('ativo');
+        });
+
+        // Remove o destaque de TODOS os botões
+        document.querySelectorAll('.btn-aba').forEach(function(el) {
+            el.classList.remove('ativo');
+        });
+
+        // Mostra SÓ a aba clicada adicionando 'ativo'
+        document.getElementById('aba-' + nome).classList.add('ativo');
+
+        // Destaca SÓ o botão correspondente
+        document.getElementById('btn-' + nome).classList.add('ativo');
+    };
+
+
+    // ════════════════════════════════════════════════
+    // PARTE 2 — DADOS DOS GRÁFICOS
+    // ════════════════════════════════════════════════
+
+    /*
+      O Django gera esses arrays usando as template tags.
+      O resultado final no navegador é algo como:
+      const labels = ["Jan/26", "Fev/26", "Mar/26"];
+      const dadosTotais = [3, 7, 12];
+
+      {# O {% for %} do Django vira um loop que gera os valores #}
+      separados por vírgula dentro do array JavaScript.
+      O {% if not forloop.last %},{% endif %} adiciona a
+      vírgula em todos exceto no último item.
+    */
+
+    const labels = [
+        {% for mes in demanda_por_mes %}
+            "{{ mes.mes_label }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const dadosTotais = [
+        {% for mes in demanda_por_mes %}
+            {{ mes.total }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const dadosAcimaCota = [
+        {% for mes in demanda_por_mes %}
+            {{ mes.acima }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const dadosDuplicatas = [
+        {% for mes in demanda_por_mes %}
+            {{ mes.duplicatas }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const dadosUnificadas = [
+        {% for mes in demanda_por_mes %}
+            {{ mes.unificadas }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+
+    // ════════════════════════════════════════════════
+    // PARTE 3 — GRÁFICO DE BARRAS: EVOLUÇÃO MENSAL
+    // ════════════════════════════════════════════════
+
+    /*
+      getElementById encontra o elemento <canvas> pelo id.
+      O 'if (ctxMensal)' verifica se ele existe antes de
+      tentar criar o gráfico — evita erros se o canvas
+      não for encontrado por algum motivo.
+    */
+    const ctxMensal = document.getElementById('grafico-mensal');
+    if (ctxMensal) {
+        new Chart(ctxMensal.getContext('2d'), {
+
+            type: 'bar',    // barras verticais agrupadas
+
+            data: {
+                labels: labels,     // meses no eixo X
+                datasets: [
+                    {
+                        label: 'Total solicitados',
+                        data: dadosTotais,
+                        // rgba(r,g,b,a) = cor com transparência
+                        // 0.7 = 70% opaco, 30% transparente
+                        backgroundColor: 'rgba(26,122,76,0.7)',
+                        borderColor: '#1a7a4c',
+                        borderWidth: 1,
+                        borderRadius: 4,    // cantos arredondados
+                    },
+                    {
+                        label: 'Acima da cota',
+                        data: dadosAcimaCota,
+                        backgroundColor: 'rgba(239,68,68,0.7)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Duplicatas',
+                        data: dadosDuplicatas,
+                        backgroundColor: 'rgba(245,158,11,0.7)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Unificadas',
+                        data: dadosUnificadas,
+                        backgroundColor: 'rgba(59,130,246,0.7)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                ]
+            },
+
+            options: {
+                responsive: true,
+                // false = respeita a altura definida no CSS (280px)
+                // true = calcularia a altura automaticamente
+                maintainAspectRatio: false,
+
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 },
+                            padding: 12,
+                            usePointStyle: true,    // ícone redondo
+                        }
+                    },
+
+                    // datalabels = plugin para mostrar valores nas barras
+                    datalabels: {
+                        anchor: 'end',      // ancora no topo da barra
+                        align: 'end',       // posiciona acima do topo
+                        font: { size: 11, weight: '600' },
+                        color: '#374151',
+                        formatter: function(v) {
+                            // Retorna o valor se > 0, senão string vazia
+                            // Evita mostrar "0" em barras vazias
+                            return v > 0 ? v : '';
+                        }
+                    }
+                },
+
+                scales: {
+                    x: {
+                        grid: { display: false }    // remove linhas verticais
+                    },
+                    y: {
+                        beginAtZero: true,
+                        // grace: espaço extra acima do valor máximo
+                        // para os labels não serem cortados pelo topo
+                        grace: '15%',
+                        ticks: { stepSize: 1, precision: 0 },
+                        grid: { color: '#f3f4f6' }  // linhas horizontais claras
+                    }
+                }
+            }
+        });
+    }
+
+
+    // ════════════════════════════════════════════════
+    // PARTE 4 — GRÁFICO DE ROSCA: SEXO
+    // ════════════════════════════════════════════════
+
+    /*
+      'doughnut' = rosca (pizza com buraco no centro).
+      Bom para mostrar proporções entre poucas categorias.
+      Os valores vêm do Django via {{ dist_sexo.chave }}.
+    */
+    const ctxSexo = document.getElementById('grafico-sexo');
+    if (ctxSexo) {
+        new Chart(ctxSexo.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Masculino', 'Feminino', 'Não informado'],
+                datasets: [{
+                    data: [
+                        {{ dist_sexo.masculino }},
+                        {{ dist_sexo.feminino }},
+                        {{ dist_sexo.nao_informado }}
+                    ],
+                    backgroundColor: [
+                        'rgba(59,130,246,0.7)',   // azul
+                        'rgba(168,85,247,0.7)',   // roxo
+                        'rgba(156,163,175,0.7)',  // cinza
+                    ],
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 11 }, padding: 10 }
+                    },
+                    datalabels: {
+                        // Mostra o valor dentro de cada fatia
+                        formatter: function(v) { return v > 0 ? v : ''; },
+                        font: { size: 11, weight: '600' },
+                        color: 'white'  // branco sobre as cores das fatias
+                    }
+                }
+            }
+        });
+    }
+
+
+    // ════════════════════════════════════════════════
+    // PARTE 5 — GRÁFICO DE BARRAS: FAIXA ETÁRIA
+    // ════════════════════════════════════════════════
+
+    /*
+      faixas.items retorna os pares (chave, valor) do
+      {# dicionário Python. O {% for label, val in faixas.items %} #}
+      percorre cada faixa e gera os labels e dados.
+    */
+    const ctxFaixa = document.getElementById('grafico-faixa');
+    if (ctxFaixa) {
+        new Chart(ctxFaixa.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [
+                    {% for label, val in faixas.items %}
+                        "{{ label }}"{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: 'Pacientes',
+                    data: [
+                        {% for label, val in faixas.items %}
+                            {{ val }}{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    backgroundColor: 'rgba(26,122,76,0.7)',
+                    borderColor: '#1a7a4c',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    // Sem legenda — os labels já estão no eixo X
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        font: { size: 11, weight: '600' },
+                        color: '#374151',
+                        formatter: function(v) { return v > 0 ? v : ''; }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        grace: '15%',
+                        ticks: { precision: 0 },
+                        grid: { color: '#f3f4f6' }
+                    }
+                }
+            }
+        });
+    }
+
+}); // fim do DOMContentLoaded
+</script>
+{% endblock %}

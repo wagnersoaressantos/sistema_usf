@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }} — Administração{% endblock %}
+
+{% block conteudo %}
+<h1 class="page-title">🩺 <span>{{ titulo }}</span></h1>
+
+<div class="card" style="max-width:480px;">
+    <div class="card-title">{{ titulo }}</div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome do tipo *</label>
+            <input type="text" name="nome" class="form-input"
+                   value="{{ tipo.nome|default:'' }}"
+                   placeholder="Ex: Clínico Geral"
+                   required autofocus>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1.5rem;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not tipo or tipo.ativo %}checked{% endif %}
+                       style="width:16px;height:16px;accent-color:var(--verde);">
+                Tipo ativo
+                <span style="font-size:12px;color:#6b7280;">
+                    — tipos inativos não aparecem no formulário de cadastro
+                </span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top: 15px; padding: 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px;">
+                <input type="checkbox" name="apenas_mutirao" {% if tipo and tipo.apenas_mutirao %}checked{% endif %}>
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-size:14px; font-weight:600; color:#1e40af;">Apenas para Mutirão</span>
+                    <span style="font-size:12px; color:#3b82f6;">Oculta este tipo da receção nos dias normais. Aparece apenas quando o modo Mutirão está ligado.</span>
+                </div>
+            </label>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+            <button type="submit" class="btn btn-verde">✓ {{ acao }}</button>
+            <a href="{% url 'core:admin_tipos' %}" class="btn btn-cinza">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

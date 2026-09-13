@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %} {# 👈 AULÃO: Obrigatório colocar isso no topo para o Django achar a pasta 'static' #}
+{% block titulo %}Consolidado Geral SSA2{% endblock %}
+
+{% block conteudo %}
+
+
+<style>
+    @media print {
+        @page { size: landscape; margin: 10mm; }
+        nav, aside, footer, header, .no-print { display: none !important; }
+        body, main, #conteudo { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .print-only { display: block !important; }
+        
+        /* AULÃO DE CSS: 
+           Ao colocar 'justify-content: center !important', o navegador ignora
+           o 'space-between' que estava no HTML original e empurra a Logo + Título
+           exatamente para o meio da folha quando os botões somem!
+        */
+        .cabecalho-impressao {
+            border-bottom: 2px solid #111827;
+            padding-bottom: 15px;
+            margin-bottom: 20px !important;
+            justify-content: center !important; /* 👈 A mágica acontece aqui! */
+        }
+    }
+    .print-only { display: none; }
+</style>
+
+{# ── CABEÇALHO DA TELA ── #}
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:1.5rem;">
+    
+    {# Bloco da Esquerda: Logo + Títulos #}
+    <div style="display:flex; align-items:center; gap:16px;">
+        <img src="{% static 'img/logo.png' %}" alt="Logo da USF" style="height: 100px; width: auto; object-fit: contain;">
+        
+        <div>
+            <h1 style="font-size:22px; font-weight:700; color:#111827; margin:0 0 4px;">
+                📑 Relatório da Situação de Saúde (SSA2)
+            </h1>
+            <p style="font-size:14px; color:#6b7280; margin:0;">
+                Unidade: {{ usf.nome|default:"USF Bom Jesus 2" }} — Ano Base: <strong style="color:#111827; font-size:15px;">{{ ano_filtro }}</strong>
+            </p>
+        </div>
+    </div>
+    
+    {# Envolvemos o filtro e o novo botão numa div com a classe 'no-print' para sumirem no papel #}
+    <div class="no-print" style="display:flex; gap:12px; align-items:center;">
+        
+        {# Filtro de Ano Original #}
+        <form method="get" style="display:flex; gap:8px; background:white; padding:8px 12px; border:1px solid #d1d5db; border-radius:8px;">
+            <span style="font-size:14px; font-weight:600; color:#374151; margin-right:8px; padding-top:4px;">Ano:</span>
+            <select name="ano" style="padding:4px; border:none; background:transparent; font-weight:700; color:var(--verde); outline:none; cursor:pointer;" onchange="this.form.submit()">
+                {% for a in anos %}
+                    <option value="{{ a }}" {% if a == ano_filtro %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        {# NOVO: Botão que aciona a tela de impressão do Windows/Mac #}
+        <button onclick="window.print()" style="background:#0284c7; color:white; border:none; padding:10px 16px; border-radius:8px; font-weight:600; font-size:14px; cursor:pointer; transition:background 0.2s;">
+            🖨️ Imprimir / PDF
+        </button>
+    </div>
+</div>
+
+{# ── Tabela Matriz (Estilo Papel SSA2 Oficial) ── #}
+<div style="background:white; border:1px solid #9ca3af; overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; text-align:center; font-size:12px; font-family: Arial, sans-serif;">
+        <thead>
+            <tr style="background:#e5e7eb; border-bottom:2px solid #9ca3af;">
+                <th style="padding:10px; text-align:left; border-right:1px solid #9ca3af; width:350px; font-size:13px; color:#111827;">
+                    MESES / INDICADORES
+                </th>
+                
+                {# Colunas Dinâmicas: JAN a DEZ #}
+                {% for mes in meses_labels %}
+                    <th style="padding:10px; border-right:1px solid #d1d5db; font-weight:700; color:#1f2937; width:45px;">
+                        {{ mes }}
+                    </th>
+                {% endfor %}
+                
+                <th style="padding:10px; background:#d1d5db; font-weight:800; color:#111827; width:60px;">TOTAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {# 1. O LAÇO DE REPETIÇÃO (FOR) #}
+            {# O 'for' é como uma esteira rolante. Ele vai pegar a nossa 'matriz' (lista de indicadores) #}
+            {# e vai desenhar uma linha <tr> para cada indicador (Crianças, Gestantes, Óbitos, etc). #}
+            {% for linha in matriz %}
+                
+                {# 2. O SEPARADOR DE CATEGORIAS #}
+                {# Lá no nosso Python (views.py), nós criamos a variável 'nova_categoria'. #}
+                {# Se a linha atual for a primeira de um grupo (ex: Primeira linha de "CRIANÇAS"), #}
+                {# ela vale 'Verdadeiro' (True). Então o Django entra neste 'if' e desenha a barra cinza. #}
+                {% if linha.nova_categoria %}
+                    <tr style="background:#e5e7eb; border-top:2px solid #9ca3af; border-bottom:1px solid #9ca3af;">
+                        <td colspan="14" style="padding:8px 12px; text-align:left; font-weight:800; color:#374151; font-size:12px; letter-spacing:1px;">
+                            {{ linha.categoria }} {# Exibe o nome do grupo: "CRIANÇAS", "GESTANTES", etc. #}
+                        </td>
+                    </tr>
+                {% endif %}
+
+                {# 3. A INTELIGÊNCIA DE DESIGN (O TRUQUE DA SETINHA '↳') #}
+                {# Aqui começa a desenhar a linha do indicador (ex: "De 0 a 11 meses" ou "↳ Pesadas"). #}
+                <tr style="border-bottom:1px solid #e5e7eb; transition:background 0.1s;
+                           {% if '↳' not in linha.rotulo %} background:#f8fafc; font-weight:700; {% endif %}" 
+                    onmouseover="this.style.filter='brightness(0.95)'" 
+                    onmouseout="this.style.filter='none'">
+                    
+                    {# 4. A COLUNA DO NOME DO INDICADOR #}
+                    <td style="padding:8px 12px; text-align:left; border-right:1px solid #9ca3af; 
+                               /* Aqui fazemos a pergunta inversa: A setinha '↳' ESTÁ no texto?
+                                  Se sim, é um SUB-ITEM. Então usamos 'padding-left: 24px' para 
+                                  empurrar o texto para a direita (dar recuo) e diminuímos a letra. 
+                               */
+                               {% if '↳' in linha.rotulo %} padding-left:24px; color:#6b7280; font-weight:500; font-size:11px; 
+                               /* Se não for sub-item, usamos letra maior e cor escura: */
+                               {% else %} color:#111827; font-weight:700; font-size:12px; {% endif %}">
+                        
+                        {{ linha.rotulo }} {# Exibe o nome real do indicador na tela #}
+                    </td>
+                    
+                    {# 5. AS COLUNAS DOS 12 MESES #}
+                    {# Aqui abrimos um "for" menor (um loop dentro do loop). #}
+                    {# Para cada linha, vamos desenhar 12 células (uma para cada mês do ano). #}
+                    {% for valor in linha.meses %}
+                        <td style="padding:8px; border-right:1px solid #e5e7eb; color:#111827; 
+                                   /* Se for linha principal, mês fica em negrito. Se for sub-item, normal. */
+                                   {% if '↳' not in linha.rotulo %} font-weight:700; {% else %} font-weight:500; {% endif %}">
+                            
+                            {{ valor }} {# Exibe o número calculado pelo Python (ex: 5, 12, 0) #}
+                        </td>
+                    {% endfor %}
+                    
+                    {# 6. A COLUNA DO TOTAL ANUAL (A ÚLTIMA COLUNA DA DIREITA) #}
+                    <td style="padding:8px; border-left:1px solid #9ca3af; color:#111827;
+                               /* Pintamos o fundo da coluna Total para dar destaque (azul ou cinza). */
+                               {% if '↳' not in linha.rotulo %} background:#e0f2fe; font-weight:800; {% else %} background:#f9fafb; font-weight:700; {% endif %}">
+                        
+                        {# Exibe a soma de todos os meses. O '|default:""' garante que, se for zero, fique em branco #}
+                        {{ linha.total_anual|default:"" }} 
+                    </td>
+                    
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="print-only" style="margin-top:40px;">
+    <div style="display:flex; justify-content:space-around; align-items:flex-end;">
+        <div style="text-align:center; width:300px; border-top:1px solid #111827; padding-top:8px;">
+            <p style="margin:0; font-size:12px; font-weight:700; color:#111827;">Assinatura do Enfermeiro(a)</p>
+            <p style="margin:0; font-size:12px; color:#4b5563;">COREN:</p>
+        </div>
+        <div style="text-align:center; width:300px; border-top:1px solid #111827; padding-top:8px;">
+            <p style="margin:0; font-size:12px; font-weight:700; color:#111827;">Coordenação da USF</p>
+            <p style="margin:0; font-size:12px; color:#4b5563;">Data: ___/___/20___</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

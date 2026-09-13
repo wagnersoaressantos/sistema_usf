@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Relatório — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho que só aparece na impressão ── #}
+{% comment %}
+{#
+    Na tela normal: display:none (pelo CSS).
+    Na impressão: display:block (pelo @media print).
+    #}
+{% endcomment %}
+<div class="print-header">
+
+    {# Logo à esquerda + informações à direita #}
+    <div style="display:flex;align-items:center;gap:20px;margin-bottom:8px;">
+
+        {# Logo da unidade #}
+        <img src="{% load static %}{% static 'img/logo.png' %}"
+             alt="Logo"
+             style="height:55px;width:auto;">
+
+        {# Bloco de informações — dividido em duas colunas #}
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0 24px;">
+
+            {# Coluna esquerda — identificação da unidade #}
+            <div>
+                <div style="font-size:14px;font-weight:600;">
+                    {{ sistema.unidade }}
+                </div>
+                <div style="font-size:11px;color:#555;margin-top:2px;">
+                    {{ sistema.municipio }}, {{ sistema.estado }}
+                </div>
+                <div style="font-size:11px;color:#555;margin-top:2px;">
+                    {{ sistema.nome }} — {{ sistema.descricao }}
+                </div>
+            </div>
+
+            {# Coluna direita — informações do relatório #}
+            <div style="text-align:right;">
+                <div style="font-size:11px;color:#555;">
+                    Emitido em: <strong>{% now "d/m/Y H:i" %}</strong>
+                </div>
+                <div style="font-size:11px;color:#555;margin-top:2px;">
+                    Por: <strong>{{ user.get_full_name|default:user.username }}</strong>
+                </div>
+                {% if usf_filtro or tipo_filtro %}
+                <div style="font-size:11px;color:#555;margin-top:4px;">
+                    Filtros:
+                    {% if usf_filtro %}USF: <strong>{{ usf_filtro }}</strong>{% endif %}
+                    {% if usf_filtro and tipo_filtro %} · {% endif %}
+                    {% if tipo_filtro %}Tipo: <strong>{{ tipo_filtro }}</strong>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{# ── Cabeçalho da tela (não aparece na impressão) ── #}
+<div class="no-print"
+     style="display:flex;align-items:center;
+            justify-content:space-between;margin-bottom:1.25rem;">
+    <h1 class="page-title" style="margin:0;">
+        📊 <span>Relatório</span> de atendimentos
+    </h1>
+    <div style="display:flex;gap:8px;">
+        <button class="btn btn-imprimir" onclick="window.print()">
+            🖨 Imprimir
+        </button>
+        <a href="{% url 'mutirao:exportar_csv' %}{% if usf_filtro or tipo_filtro %}?{% endif %}{% if usf_filtro %}usf={{ usf_filtro }}{% endif %}{% if usf_filtro and tipo_filtro %}&{% endif %}{% if tipo_filtro %}tipo_atendimento={{ tipo_filtro }}{% endif %}"
+           class="btn btn-verde">
+            📥 Exportar CSV
+        </a>
+    </div>
+</div>
+
+{# ── Filtros — somem na impressão ── #}
+<form method="get" action="{% url 'mutirao:relatorio' %}"
+      class="filtros-bar no-print">
+    <div class="form-group">
+        <label>Filtrar por USF</label>
+        <select name="usf" class="form-input">
+            <option value="">Todas as USFs</option>
+            {% for usf in usfs %}
+            <option value="{{ usf.id }}"
+                {% if usf.id|stringformat:"s" == usf_filtro %}selected{% endif %}>
+                {{ usf.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Tipo de atendimento</label>
+        <select name="tipo_atendimento" class="form-input">
+            <option value="">Todos os tipos</option>
+            {% for tipo in tipos %}
+            <option value="{{ tipo.id }}"
+                {% if tipo.id|stringformat:"s" == tipo_filtro %}selected{% endif %}>
+                {{ tipo.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-verde">Filtrar</button>
+    <a href="{% url 'mutirao:relatorio' %}" class="btn btn-cinza">Limpar</a>
+</form>
+
+{# ── Total de atendimentos ── #}
+<div class="total-bar">
+    Total encontrado: <strong>{{ total }}</strong>
+    atendimento{{ total|pluralize }}
+    {% if usf_filtro %} · USF: <strong>{{ usf_filtro }}</strong>{% endif %}
+    {% if tipo_filtro %} · Tipo: <strong>{{ tipo_filtro }}</strong>{% endif %}
+</div>
+
+{# ── Tabela de atendimentos ── #}
+<div class="card">
+    <div class="tabela-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:30px;">#</th>
+                    <th>Nome do paciente</th>
+                    <th style="width:120px;">CPF / SUS</th>
+                    <th style="width:80px;">Nascimento</th>
+                    <th>Nome da mãe</th>
+                    <th>USF</th>
+                    <th>Tipo</th>
+                    <th style="width:110px;">Cadastrado em</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in atendimentos %}
+                <tr>
+                    <td style="color:#9ca3af;">{{ forloop.counter }}</td>
+                    <td><strong>{{ a.nome_paciente }}</strong></td>
+                    <td style="font-family:monospace;font-size:11px;">
+                        {{ a.cpf_sus }}
+                    </td>
+                    <td style="white-space:nowrap;">
+                        {{ a.data_nascimento|date:"d/m/Y" }}
+                    </td>
+                    <td>{{ a.nome_mae }}</td>
+                    <td>{{ a.usf.nome|default:"—" }}</td>
+                    <td>
+                        <span class="badge badge-verde">
+                            {{ a.tipo_atendimento.nome|default:"—" }}
+                        </span>
+                    </td>
+                    <td style="white-space:nowrap;">
+                        {{ a.criado_em|date:"d/m/Y H:i" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8"
+                        style="text-align:center;padding:2rem;color:#9ca3af;">
+                        Nenhum atendimento encontrado.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% comment %}
+<!-- {% extends 'base.html' %}
+
+{% load static %} {% block titulo %}Relatório — Mutirão de Saúde{% endblock %}
+
+{% block conteudo %}
+
+    <!--
+        Esse cabeçalho só aparece na impressão (display:none no CSS normal).
+        O @media print no style.css muda para display:block na hora de imprimir.
+    -->
+<div class="print-header">
+
+    {# Esse div usa flexbox para colocar a logo e o título lado a lado. #}
+    {# justify-content:center centraliza o conjunto horizontalmente. #}
+    {# align-items:center alinha logo e título pelo meio verticalmente. #}
+    {# gap:16px define o espaço entre a logo e o bloco de texto. #}
+    <div style="display:flex;
+                align-items:center;
+                justify-content:center;
+                gap:16px;
+                margin-bottom:8px;">
+
+        <img src="{% static 'img/logo.png' %}"
+             alt="Logo da unidade"
+             style="height:60px;width:auto;">
+        {# height:60px — tamanho adequado para impressão em papel A4 #}
+
+        {# text-align:left porque esse div fica à direita da logo. #}
+        {# Sem isso o texto herdaria o text-align:center do .print-header. #}
+        <div style="text-align:left;">
+            <h1 style="font-size:18px;margin-bottom:2px;">Mutirão de Saúde</h1>
+            <p style="font-size:13px;color:#555;">Relatório de Atendimentos</p>
+        </div>
+
+    </div>
+
+    {# Linha separadora entre o cabeçalho e as informações do relatório. #}
+    {# border-top cria uma linha horizontal acima do elemento. #}
+    {# padding-top:8px afasta o texto da linha. #}
+    <div style="border-top:1px solid #ccc;
+                padding-top:8px;
+                font-size:12px;
+                color:#666;">
+
+        {# {% now "d/m/Y H:i" %} é uma tag Django que retorna #}
+        {# a data e hora atual no formato brasileiro. #}
+        {# Ex: 25/04/2026 14:30 #}
+        Emitido em: {% now "d/m/Y H:i" %}
+        | Por: {{ user.get_full_name|default:user.username }}
+
+        {# Mostra o filtro de USF apenas se estiver ativo #}
+        {% if usf_filtro %} | USF: {{ usf_filtro }}{% endif %}
+
+        {# Mostra o filtro de tipo apenas se estiver ativo #}
+        {% if tipo_filtro %} | Tipo: {{ tipo_filtro }}{% endif %}
+
+    </div>
+</div>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+    <h1 class="page-title" style="margin:0;">📊 <span>Relatório</span> de atendimentos</h1>
+    <!--
+        window.print() é uma função do navegador que abre o diálogo de impressão.
+        A classe no-print faz esse botão sumir quando o usuário imprimir.
+    -->
+    <div style="display:flex;gap:8px;" class="no-print">
+    <button class="btn btn-imprimir" onclick="window.print()">
+        🖨 Imprimir
+    </button>
+
+    {# O link de exportação passa os mesmos filtros ativos para a view do CSV #}
+    {# Assim se o usuário filtrou por USF, o CSV também vai filtrado #}
+    <a href="{% url 'mutirao:exportar_csv' %}{% if usf_filtro or tipo_filtro %}?{% endif %}{% if usf_filtro %}usf={{ usf_filtro }}{% endif %}{% if usf_filtro and tipo_filtro %}&{% endif %}{% if tipo_filtro %}tipo_atendimento={{ tipo_filtro }}{% endif %}"
+       class="btn btn-verde">
+        📥 Exportar Excel (CSV)
+    </a>
+</div>
+</div>
+
+<!-- Formulário de filtros — some na impressão pela classe no-print -->
+<form method="get" action="{% url 'mutirao:relatorio' %}" class="filtros-bar no-print">
+    <div class="form-group">
+        <label>Filtrar por USF</label>
+        <select name="usf" class="form-input">
+            <option value="">Todas as USFs</option>
+            {# usfs agora são objetos USF do banco #}
+            {% for usf in usfs %}
+            <option value="{{ usf.id }}"
+                {% if usf.id|stringformat:"s" == usf_filtro %}selected{% endif %}>
+                {{ usf.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Tipo de atendimento</label>
+        <select name="tipo_atendimento" class="form-input">
+            <option value="">Todos os tipos</option>
+            {# tipos agora são objetos TipoAtendimento do banco #}
+            {% for tipo in tipos %}
+            <option value="{{ tipo.id }}"
+                {% if tipo.id|stringformat:"s" == tipo_filtro %}selected{% endif %}>
+                {{ tipo.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-verde">Filtrar</button>
+    <a href="{% url 'mutirao:relatorio' %}" class="btn btn-cinza">Limpar</a>
+</form>
+
+<div class="total-bar">
+    Total encontrado: <strong>{{ total }}</strong> atendimento{{ total|pluralize }}
+    {% if usf_filtro %} · USF: <strong>{{ usf_filtro }}</strong>{% endif %}
+    {% if tipo_filtro %} · Tipo: <strong>{{ tipo_filtro }}</strong>{% endif %}
+</div>
+
+<div class="card">
+    <div class="tabela-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nome do paciente</th>
+                    <th>CPF / SUS</th>
+                    <th>Nascimento</th>
+                    <th>Nome da mãe</th>
+                    <th>USF</th>
+                    <th>Tipo</th>
+                    <th>Cadastrado em</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in atendimentos %}
+                <tr>
+                    <td style="color:#9ca3af;font-size:11px;">{{ forloop.counter }}</td>
+                    <td><strong>{{ a.nome_paciente }}</strong></td>
+                    <td style="font-family:monospace;font-size:12px;">{{ a.cpf_sus }}</td>
+                    <td style="font-size:12px;">{{ a.data_nascimento|date:"d/m/Y" }}</td>
+                    <td style="font-size:12px;">{{ a.nome_mae }}</td>
+                    <td style="font-size:12px;">{{ a.usf.nome|default:"—" }}</td>
+                    <td><span class="badge badge-verde">{{ a.tipo_atendimento.nome|default:"—" }}</span></td>
+                    <td style="font-size:12px;">{{ a.criado_em|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:2rem;color:#9ca3af;">
+                        Nenhum atendimento encontrado com os filtros selecionados.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %} -->
+
+{% endcomment %}

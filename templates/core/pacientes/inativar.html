@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block titulo %}Confirmar inativação{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'core:admin_pacientes' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">⚠️ Confirmar inativação</h1>
+</div>
+
+<div style="background:#fef2f2; border:1px solid #fecaca;
+            border-radius:8px; padding:14px 16px; margin-bottom:1.5rem;">
+    <p style="font-size:14px; font-weight:600; color:#dc2626; margin:0 0 4px;">
+        Você está prestes a inativar {{ pacientes|length }}
+        paciente{{ pacientes|length|pluralize }}.
+    </p>
+    <p style="font-size:13px; color:#7f1d1d; margin:0;">
+        Pacientes inativos não aparecem na busca de encaminhamentos.
+        Os encaminhamentos existentes não serão cancelados automaticamente —
+        você precisará tratar cada guia manualmente se necessário.
+    </p>
+</div>
+
+{# Tabela de impacto #}
+<div class="card" style="margin-bottom:1.5rem;">
+    <table>
+        <thead>
+            <tr>
+                <th>Paciente</th>
+                <th>Idade</th>
+                <th>Micro-área</th>
+                <th>Condições</th>
+                <th style="color:#f59e0b;">Guias na fila</th>
+                <th style="color:#3b82f6;">Disponíveis</th>
+                <th style="color:#9ca3af;">Concluídos</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in pacientes %}
+            <tr>
+                <td>
+                    <p style="font-size:14px; font-weight:500; margin:0;">
+                        {{ item.paciente.nome }}
+                    </p>
+                    <p style="font-size:12px; color:#9ca3af; margin:0;">
+                        {% if item.paciente.cpf %}CPF: {{ item.paciente.cpf }}{% endif %}
+                    </p>
+                </td>
+                <td style="font-size:13px;">
+                    {{ item.paciente.idade|default:"—" }}
+                    {% if item.paciente.idade %}anos{% endif %}
+                </td>
+                <td style="font-size:13px;">
+                    {% if item.paciente.micro_area %}
+                        {{ item.paciente.micro_area.codigo }}
+                    {% else %}
+                        <span style="color:#dc2626;">⚠️ Fora de área</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% for pc in item.paciente.condicoes.all %}
+                        {% if pc.ativa %}
+                        <span title="{{ pc.condicao.nome }}"
+                              style="font-size:14px;">
+                            {{ pc.condicao.icone }}
+                        </span>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+                <td style="text-align:center;">
+                    {% if item.na_fila > 0 %}
+                        <strong style="color:#f59e0b; font-size:16px;">
+                            {{ item.na_fila }}
+                        </strong>
+                        {# Lista os tipos na fila #}
+                        <br>
+                        <span style="font-size:11px; color:#9ca3af;">
+                            {% for enc in item.enc_fila %}
+                                {{ enc.tipo.nome }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </span>
+                    {% else %}
+                        <span style="color:#9ca3af;">—</span>
+                    {% endif %}
+                </td>
+                <td style="text-align:center;">
+                    {% if item.disponiveis > 0 %}
+                        <strong style="color:#3b82f6;">{{ item.disponiveis }}</strong>
+                    {% else %}
+                        <span style="color:#9ca3af;">—</span>
+                    {% endif %}
+                </td>
+                <td style="text-align:center; color:#9ca3af;">
+                    {{ item.concluidos }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# Aviso se houver guias na fila #}
+{% if total_na_fila > 0 %}
+<div style="background:#fffbeb; border:1px solid #fcd34d;
+            border-radius:8px; padding:14px 16px; margin-bottom:1.5rem;">
+    <p style="font-size:14px; font-weight:600; color:#92400e; margin:0 0 4px;">
+        ⚠️ Atenção — {{ total_na_fila }}
+        guia{{ total_na_fila|pluralize }} ainda na fila
+    </p>
+    <p style="font-size:13px; color:#78350f; margin:0;">
+        Alguns desses pacientes têm encaminhamentos ativos na fila.
+        Após inativar, as guias continuarão aparecendo na fila até
+        serem canceladas ou concluídas manualmente.
+    </p>
+</div>
+{% endif %}
+
+{# Formulário de confirmação #}
+<form method="post" action="{% url 'core:admin_pacientes_inativar_confirmar' %}">
+    {% csrf_token %}
+
+    {# Passa os IDs como campos ocultos #}
+    {% for item in pacientes %}
+        <input type="hidden" name="pacientes_ids" value="{{ item.paciente.pk }}">
+    {% endfor %}
+
+    {# Preserva os filtros para voltar na mesma página #}
+    <input type="hidden" name="q"         value="{{ q }}">
+    <input type="hidden" name="microarea" value="{{ microarea_filtro }}">
+    <input type="hidden" name="situacao"  value="{{ situacao_filtro }}">
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <a href="{% url 'core:admin_pacientes' %}?q={{ q }}&microarea={{ microarea_filtro }}&situacao={{ situacao_filtro }}"
+           class="btn btn-cinza">
+            Cancelar
+        </a>
+        <button type="submit"
+                style="background:#ef4444; color:white; border:none;
+                       border-radius:6px; padding:9px 20px;
+                       font-size:14px; font-weight:500; cursor:pointer;">
+            Confirmar inativação de {{ pacientes|length }}
+            paciente{{ pacientes|length|pluralize }}
+        </button>
+    </div>
+</form>
+
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block titulo %}Usuários — Administração{% endblock %}
+
+{% block conteudo %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin:0;">👥 <span>Usuários</span> do sistema</h1>
+    <div style="display:flex;gap:8px;">
+        <a href="{% url 'core:painel_admin' %}" class="btn btn-cinza">← Voltar</a>
+        <a href="{% url 'core:admin_usuario_criar' %}" class="btn btn-verde">➕ Novo usuário</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="tabela-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Nível</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for perfil in perfis %}
+                <tr>
+                    <td><strong>{{ perfil.user.get_full_name|default:perfil.user.username }}</strong></td>
+                    <td style="font-family:monospace;font-size:12px;">{{ perfil.cpf }}</td>
+                    <td>
+                        {% if perfil.nivel == 'admin' %}
+                        <span class="badge" style="background:#ede9fe;color:#5b21b6;">
+                            ⚙ Administrador
+                        </span>
+                        {% else %}
+                        <span class="badge badge-azul">Comum</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if perfil.ativo %}
+                        <span class="badge badge-verde">● Ativo</span>
+                        {% else %}
+                        <span class="badge" style="background:#fee2e2;color:#991b1b;">● Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'core:admin_usuario_editar' perfil.pk %}"
+                           style="font-size:12px;color:#185FA5;text-decoration:none;
+                                  padding:3px 8px;border:1px solid #bfdbfe;border-radius:4px;">
+                            ✏ Editar
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align:center;padding:2rem;color:#9ca3af;">
+                        Nenhum usuário cadastrado.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

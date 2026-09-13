@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block titulo %}Cotas{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:painel_admin' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <h1 class="page-title" style="margin:0;">📊 Cotas Mensais</h1>
+    </div>
+    <a href="{% url 'encaminhamentos:admin_cota_criar' %}" class="btn btn-verde">
+        ➕ Nova cota
+    </a>
+</div>
+{% comment %}
+{# ── Filtros ─────────────────────────────────────────
+    USF é pré-selecionada com a USF do usuário logado.
+    O admin pode trocar para ver outras unidades.
+    ──────────────────────────────────────────────────── #}
+    
+    {# ── Filtros ─────────────────────────────────────────
+        USF vai ao servidor — muda os dados carregados.
+        Busca por tipo é dinâmica — filtra as linhas já carregadas.
+    ──────────────────────────────────────────────────── #}
+{% endcomment %}
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:1.5rem;">
+
+    {# Filtro de USF — envia para o servidor ao mudar #}
+    <form method="get" style="display:contents;">
+        <select name="usf"
+                class="form-input"
+                style="flex:2; min-width:200px;"
+                onchange="this.form.submit()">
+            <option value="">Todas as USFs</option>
+            {% for usf in usfs %}
+                <option value="{{ usf.pk }}"
+                    {% if usf_id == usf.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ usf.nome }}
+                </option>
+            {% endfor %}
+        </select>
+        {# Preserva a busca por tipo ao trocar de USF #}
+        <input type="hidden" name="q" value="{{ q }}">
+    </form>
+
+    {# Busca por tipo — dinâmica, filtra sem recarregar #}
+    <input type="text"
+           id="busca-cota"
+           placeholder="🔍 Buscar por tipo..."
+           value="{{ q }}"
+           autocomplete="off"
+           class="form-input"
+           style="flex:2; min-width:200px;">
+
+    <button id="btn-limpar-cota"
+            onclick="limparBusca()"
+            class="btn btn-cinza"
+            style="display:{% if q %}''{% else %}none{% endif %};">
+        Limpar
+    </button>
+
+</div>
+
+{# Contador de resultados #}
+<p id="contador-cotas"
+   style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
+    {{ cotas|length }} cota{{ cotas|length|pluralize }}
+</p>
+
+<div class="card">
+    {% if cotas %}
+        <table>
+            <thead>
+                <tr>
+                    <th>USF</th>
+                    <th>Tipo</th>
+                    <th>Critério</th>
+                    <th>Faixa etária</th>
+                    <th>Cota</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cota in cotas %}
+                <tr>
+                    <td>{{ cota.usf.nome }}</td>
+                    <td class="col-tipo">{{ cota.tipo.nome }}</td>
+                    <td>
+                        {% if cota.criterio == 'gestante' %}
+                            <span style="background:#fce7f3; color:#9d174d;
+                                        padding:2px 8px; border-radius:99px;
+                                        font-size:12px;">
+                                🤰 Gestante
+                            </span>
+                        {% else %}
+                            <span style="font-size:13px; color:#6b7280;">Geral</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:13px; color:#374151;">
+                        {% if cota.idade_minima is not None and cota.idade_maxima is not None %}
+                            {{ cota.idade_minima }}–{{ cota.idade_maxima }} anos
+                        {% elif cota.idade_minima is not None %}
+                            ≥ {{ cota.idade_minima }} anos
+                        {% elif cota.idade_maxima is not None %}
+                            até {{ cota.idade_maxima }} anos
+                        {% else %}
+                            <span style="color:#9ca3af;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if cota.cota is not None %}
+                            <strong>{{ cota.cota }}</strong>
+                        {% else %}
+                            <span style="font-size:12px; color:#6b7280;">
+                                total de gestantes
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="display:flex; gap:12px;">
+                        <a href="{% url 'encaminhamentos:admin_cota_editar' cota.pk %}"
+                        style="color:var(--verde); font-size:13px;">Editar</a>
+                        <a href="{% url 'encaminhamentos:admin_cota_excluir' cota.pk %}"
+                        style="color:#dc2626; font-size:13px;">Excluir</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color:#9ca3af; text-align:center; padding:2rem;">
+            Nenhuma cota encontrada.
+        </p>
+    {% endif %}
+</div>
+
+<script>
+/*
+  Busca dinâmica por tipo de encaminhamento na tabela de cotas.
+  Filtra as linhas já carregadas sem recarregar a página.
+  O filtro de USF ainda vai ao servidor porque muda os dados.
+*/
+const campoBusca = document.getElementById('busca-cota');
+const btnLimpar  = document.getElementById('btn-limpar-cota');
+const contador   = document.getElementById('contador-cotas');
+
+// Seleciona todas as linhas da tabela
+const linhas = document.querySelectorAll('tbody tr');
+
+function filtrar() {
+    // Texto digitado em minúsculas para comparação
+    const termo = campoBusca.value.toLowerCase().trim();
+    let visiveis = 0;
+
+    linhas.forEach(function(linha) {
+        // Busca pelo texto da célula do tipo (col-tipo)
+        const tipo = linha.querySelector('.col-tipo').textContent.toLowerCase();
+
+        if (tipo.includes(termo)) {
+            linha.style.display = '';
+            visiveis++;
+        } else {
+            linha.style.display = 'none';
+        }
+    });
+
+    // Atualiza o contador
+    contador.textContent = visiveis + ' cota' + (visiveis !== 1 ? 's' : '');
+
+    // Mostra ou esconde o botão limpar
+    btnLimpar.style.display = campoBusca.value ? '' : 'none';
+}
+
+function limparBusca() {
+    campoBusca.value = '';
+    filtrar();
+    campoBusca.focus();
+}
+
+// Filtra a cada tecla digitada
+campoBusca.addEventListener('input', filtrar);
+</script>
+
+{% endblock %}

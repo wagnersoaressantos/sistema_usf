@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% block titulo %}Raio-X: {{ microarea.codigo }}{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho ───────────────────────────────────── #}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'territorializacao:territorio_lista' %}" style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <div>
+            <h1 style="font-size:20px; font-weight:600; margin:0;">
+                Raio-X: M.A {{ microarea.codigo }}
+            </h1>
+            <p style="font-size:13px; color:#6b7280; margin:0;">
+                ACS/TACS: {{ microarea.responsavel.user.get_full_name|default:"Não atribuído" }} · {{ total_pacientes }} pacientes
+            </p>
+        </div>
+    </div>
+</div>
+
+{# ── Panorama de Risco Familiar ───────────────────── #}
+<h2 style="font-size:13px; font-weight:600; color:#9ca3af; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;">
+    Situação de Risco do Território
+</h2>
+<div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:2rem;">
+    <div style="background:white; border:1px solid #86efac; border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:24px; font-weight:700; color:#16a34a; margin:0;">{{ risco_resumo.R0 }}</p>
+        <p style="font-size:11px; font-weight:500; color:#16a34a; margin:2px 0 0;">R0</p>
+        <p style="font-size:10px; color:#9ca3af; margin:0;">Sem risco</p>
+    </div>
+    <div style="background:white; border:1px solid #bef264; border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:24px; font-weight:700; color:#65a30d; margin:0;">{{ risco_resumo.R1 }}</p>
+        <p style="font-size:11px; font-weight:500; color:#65a30d; margin:2px 0 0;">R1</p>
+        <p style="font-size:10px; color:#9ca3af; margin:0;">Risco baixo</p>
+    </div>
+    <div style="background:white; border:1px solid #fcd34d; border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:24px; font-weight:700; color:#d97706; margin:0;">{{ risco_resumo.R2 }}</p>
+        <p style="font-size:11px; font-weight:500; color:#d97706; margin:2px 0 0;">R2</p>
+        <p style="font-size:10px; color:#9ca3af; margin:0;">Risco médio</p>
+    </div>
+    <div style="background:white; border:1px solid #fca5a5; border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:24px; font-weight:700; color:#dc2626; margin:0;">{{ risco_resumo.R3 }}</p>
+        <p style="font-size:11px; font-weight:500; color:#dc2626; margin:2px 0 0;">R3</p>
+        <p style="font-size:10px; color:#9ca3af; margin:0;">Risco alto</p>
+    </div>
+    <div style="background:white; border:1px solid #c4b5fd; border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:24px; font-weight:700; color:#6d28d9; margin:0;">{{ risco_resumo.R4 }}</p>
+        <p style="font-size:11px; font-weight:500; color:#6d28d9; margin:2px 0 0;">R4</p>
+        <p style="font-size:10px; color:#9ca3af; margin:0;">Risco muito alto</p>
+    </div>
+</div>
+
+{# ── Duas colunas: Ruas e Famílias ───────────────── #}
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:20px;">
+
+    {# ── Coluna Esquerda: Logradouros Mapeados ── #}
+    <div>
+        <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;">
+            Logradouros ({{ vinculos|length }})
+        </h2>
+        <div class="card" style="padding:0; overflow:hidden;">
+            <ul style="list-style:none; margin:0; padding:0;">
+                
+                {# Botão para ver a micro-área inteira #}
+                <li onclick="filtrarRua('TODAS', this)" 
+                    class="rua-item" 
+                    style="padding:12px 16px; border-bottom:1px solid #f3f4f6; cursor:pointer; background:#f0fdf4; border-left:4px solid var(--verde);">
+                    <strong style="color:var(--verde); font-size:13px;">Mostrar toda a área</strong>
+                </li>
+
+                {% for v in vinculos %}
+                <li onclick="filtrarRua('{{ v.logradouro.logradouro|escapejs }}', this)" 
+                    class="rua-item" 
+                    style="padding:12px 16px; border-bottom:1px solid #f3f4f6; cursor:pointer; border-left:4px solid transparent; transition:background 0.2s;">
+                    <strong style="font-size:13px; color:#374151;">{{ v.logradouro.logradouro }}</strong>
+                    
+                    <div style="margin-top:4px; font-size:11px; color:#6b7280;">
+                        {% if v.numero_inicial and v.numero_final %}
+                            Numeração: <strong>{{ v.numero_inicial }} a {{ v.numero_final }}</strong>
+                        {% elif v.numero_inicial %}
+                            A partir do Nº {{ v.numero_inicial }}
+                        {% else %}
+                            Sem numeração sequencial
+                        {% endif %}
+                    </div>
+                </li>
+                {% empty %}
+                <li style="padding:16px; text-align:center; color:#9ca3af; font-size:13px;">Nenhum logradouro vinculado.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    {# ── Coluna Direita: Famílias Ordenadas por Risco ── #}
+    <div>
+        <h2 id="titulo-familias" style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;">
+            Famílias da Área ({{ familias|length }})
+        </h2>
+        <div class="card" style="padding:0; overflow-x:auto;">
+            {% if familias %}
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#f9fafb; text-align:left; font-size:12px; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">
+                        <th style="padding:12px 16px; border-bottom:1px solid #e5e7eb; width:60px;">Nº</th>
+                        <th style="padding:12px 16px; border-bottom:1px solid #e5e7eb;">Responsável</th>
+                        <th style="padding:12px 16px; border-bottom:1px solid #e5e7eb;">Rua (Endereço)</th>
+                        <th style="padding:12px 16px; border-bottom:1px solid #e5e7eb; text-align:right;">Risco</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-tabela-familias">
+                    {% for f in familias %}
+                    {# A propriedade data-rua vai permitir que o Javascript esconda ou mostre essa linha #}
+                    <tr class="familia-row" data-rua="{{ f.logradouro|default:'' }}" style="border-bottom:1px solid #f3f4f6;">
+                        <td style="padding:12px 16px; font-size:14px; font-weight:700; color:#374151;">
+                            {{ f.numero|default:"S/N" }}
+                        </td>
+                        <td style="padding:12px 16px;">
+                            <a href="{% url 'core:familia_detalhe' f.cpf_responsavel %}" style="text-decoration:none; color:var(--verde); font-weight:600; font-size:13px;">
+                                {{ f.nome_responsavel }}
+                            </a>
+                            {% if f.complemento %}
+                                <p style="margin:2px 0 0; font-size:11px; color:#9ca3af;">Comp: {{ f.complemento }}</p>
+                            {% endif %}
+                        </td>
+                        <td style="padding:12px 16px; font-size:12px; color:#6b7280;">
+                            {{ f.logradouro|default:"—" }}
+                        </td>
+                        <td style="padding:12px 16px; text-align:right;">
+                            <span style="font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px;
+                                         background:{% if f.classificacao == 'R0' %}#f0fdf4{% elif f.classificacao == 'R1' %}#f7fee7{% elif f.classificacao == 'R2' %}#fffbeb{% elif f.classificacao == 'R3' %}#fef2f2{% else %}#f5f3ff{% endif %};
+                                         color:{% if f.classificacao == 'R0' %}#16a34a{% elif f.classificacao == 'R1' %}#65a30d{% elif f.classificacao == 'R2' %}#d97706{% elif f.classificacao == 'R3' %}#dc2626{% else %}#6d28d9{% endif %};">
+                                {{ f.classificacao }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <p id="msg-sem-familias" style="display:none; padding:2rem; text-align:center; color:#9ca3af; font-size:13px; margin:0;">
+                Nenhuma família mapeada nesta rua ainda.
+            </p>
+            {% else %}
+            <p style="padding:2rem; text-align:center; color:#9ca3af; font-size:13px; margin:0;">
+                Nenhuma família cadastrada nesta área.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{# ── Script de Interatividade ────────────────────── #}
+<script>
+    function filtrarRua(nomeRua, elementoClicado) {
+        // 1. Remove o estilo de destaque de todos os itens da lista
+        document.querySelectorAll('.rua-item').forEach(el => {
+            el.style.background = 'transparent';
+            el.style.borderLeft = '4px solid transparent';
+        });
+
+        // 2. Adiciona o estilo de destaque apenas no item que foi clicado
+        elementoClicado.style.background = '#f0fdf4';
+        elementoClicado.style.borderLeft = '4px solid var(--verde)';
+
+        // 3. Atualiza o título da tabela
+        const titulo = document.getElementById('titulo-familias');
+        if (nomeRua === 'TODAS') {
+            titulo.innerText = 'Famílias da Área (Todas)';
+        } else {
+            titulo.innerText = 'Imóveis em: ' + nomeRua;
+        }
+
+        // 4. Filtra as linhas da tabela
+        const linhas = document.querySelectorAll('.familia-row');
+        let familiasVisiveis = 0;
+
+        linhas.forEach(linha => {
+            if (nomeRua === 'TODAS') {
+                linha.style.display = '';
+                familiasVisiveis++;
+            } else {
+                // Pega o logradouro salvo na família e converte para minúsculo para comparar
+                const ruaFamilia = linha.getAttribute('data-rua').toLowerCase();
+                const ruaBuscada = nomeRua.toLowerCase();
+
+                // Se o nome da rua está contido no endereço da família, mostra a linha
+                if (ruaFamilia && ruaFamilia.includes(ruaBuscada)) {
+                    linha.style.display = '';
+                    familiasVisiveis++;
+                } else {
+                    linha.style.display = 'none';
+                }
+            }
+        });
+
+        // 5. Mostra mensagem caso a rua selecionada não tenha famílias com endereço preenchido
+        const msgVazia = document.getElementById('msg-sem-familias');
+        if (msgVazia) {
+            msgVazia.style.display = (familiasVisiveis === 0) ? 'block' : 'none';
+        }
+    }
+</script>
+
+{% endblock %}

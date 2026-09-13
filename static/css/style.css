@@ -1,0 +1,1046 @@
+/* =====================================================
+   MUTIRÃO DE SAÚDE — Estilos principais
+   
+   CSS (Cascading Style Sheets) é a linguagem que
+   controla a aparência visual do HTML.
+   
+   Funciona assim:
+   seletor {
+       propriedade: valor;
+   }
+   
+   O "seletor" diz QUEM vai receber o estilo.
+   A "propriedade" diz O QUE vai mudar.
+   O "valor" diz COMO vai ficar.
+   
+   Exemplos de seletores:
+   - p          → seleciona todas as tags <p>
+   - .navbar    → seleciona elementos com class="navbar"
+   - #titulo    → seleciona o elemento com id="titulo"
+===================================================== */
+
+
+/* ─── 1. RESET ──────────────────────────────────────────
+   
+   Todo navegador (Chrome, Firefox, Edge) aplica estilos
+   próprios nos elementos HTML por padrão — margens,
+   tamanhos de fonte diferentes, etc.
+   
+   O reset serve para ZERAR esses padrões e partir
+   de uma base igual em todos os navegadores.
+   
+   O seletor "*, *::before, *::after" significa:
+   - *          → todos os elementos da página
+   - *::before  → o conteúdo virtual "antes" de cada elemento
+   - *::after   → o conteúdo virtual "depois" de cada elemento
+──────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+    /* box-sizing: border-box faz com que padding e border
+       sejam incluídos no tamanho total do elemento.
+       
+       Sem isso (padrão content-box):
+       um div com width:200px + padding:20px = 240px de largura real
+       
+       Com border-box:
+       um div com width:200px + padding:20px = 200px de largura real
+       (o padding fica "para dentro")
+       
+       Muito mais intuitivo para calcular tamanhos! */
+    box-sizing: border-box;
+
+    /* Remove a margem padrão de todos os elementos.
+       Ex: <h1> tem margem acima por padrão — aqui zeramos isso. */
+    margin: 0;
+
+    /* Remove o espaço interno padrão de todos os elementos.
+       Ex: <ul> tem padding à esquerda por padrão. */
+    padding: 0;
+}
+
+
+/* ─── 2. VARIÁVEIS CSS ──────────────────────────────────
+   
+   Variáveis CSS (custom properties) permitem definir
+   valores uma única vez e reutilizar em qualquer lugar.
+   
+   Vantagem: se precisar mudar a cor verde do sistema,
+   basta alterar aqui — todos os elementos que usam
+   var(--verde) atualizam automaticamente.
+   
+   :root é o elemento raiz do documento (equivale ao <html>).
+   Definir variáveis no :root as torna disponíveis
+   em todo o arquivo CSS.
+   
+   Sintaxe: --nome-da-variavel: valor;
+   Uso:     color: var(--nome-da-variavel);
+──────────────────────────────────────────────────────── */
+
+:root {
+    /* Família de cores verdes — usadas em botões, navbar, destaques */
+    --verde: #1a7a4c;
+    /* verde principal */
+    --verde-claro: #e8f5ee;
+    /* verde bem claro para fundos */
+    --verde-escuro: #145c38;
+    /* verde escuro para hover */
+
+    /* Azul — usado no botão de impressão */
+    --azul: #1a5276;
+
+    /* Escala de cinzas — usados em textos secundários e bordas */
+    --cinza: #6b7280;
+    /* texto secundário */
+    --cinza-claro: #f3f4f6;
+    /* fundo de tabelas, inputs desabilitados */
+    --borda: #d1d5db;
+    /* cor das bordas */
+    --branco: #ffffff;
+    --texto: #1f2937;
+    /* cor principal do texto — quase preto */
+
+    /* Cores de feedback — vermelho para erros, verde para sucesso */
+    --perigo: #dc2626;
+    --perigo-claro: #fee2e2;
+    /* fundo vermelho claro para mensagens de erro */
+    --sucesso: #059669;
+    --sucesso-claro: #d1fae5;
+    /* fundo verde claro para mensagens de sucesso */
+}
+
+
+/* ─── 3. BODY ───────────────────────────────────────────
+   
+   O <body> é o elemento pai de toda a página.
+   Estilos definidos aqui são herdados pelos filhos
+   (a não ser que sejam sobrescritos mais adiante).
+──────────────────────────────────────────────────────── */
+
+body {
+    /* font-family define a fonte do texto.
+       Passamos uma lista de fontes (font stack) como fallback:
+       o navegador tenta a primeira, se não tiver tenta a segunda, etc.
+       'sans-serif' no final é genérico — sempre existe no sistema. */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+    /* Cor de fundo da página inteira — azul-cinza bem claro */
+    background: #f0f4f8;
+
+    /* Cor do texto — herdada por todos os elementos filhos */
+    color: var(--texto);
+
+    /* Tamanho base da fonte — 15px.
+       Elementos filhos herdam esse valor e podem usar
+       unidades relativas como em e rem baseadas nele. */
+    font-size: 15px;
+
+    /* Altura da linha — 1.5 significa 1.5x o tamanho da fonte.
+       Com font-size:15px, o espaço entre linhas fica 22.5px.
+       Melhora muito a legibilidade em textos corridos. */
+    line-height: 1.5;
+
+    /* Essas três linhas fazem o body ocupar a altura toda da tela
+       e empurram o rodapé para o final automaticamente.
+       
+       min-height:100vh = body ocupa no mínimo a altura da janela.
+       display:flex + flex-direction:column = empilha os filhos.
+       O container recebe flex:1 para crescer e empurrar o rodapé. */
+    /* Garante que o body ocupe no mínimo a tela inteira */
+    min-height: 100vh;
+    flex-direction: column;
+    display: flex;
+    padding-top: 56px;
+}
+
+
+/* ─── 4. NAVBAR ─────────────────────────────────────────
+   
+   A barra de navegação no topo da página.
+   Estrutura HTML:
+   <nav class="navbar">
+     <div class="navbar-inner">
+       <a class="navbar-brand">...</a>
+       <div class="navbar-links">...</div>
+       <div class="navbar-user">...</div>
+     </div>
+   </nav>
+──────────────────────────────────────────────────────── */
+
+.navbar {
+    background: var(--verde);
+    color: white;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 90;
+
+    /* box-shadow cria uma sombra abaixo da navbar.
+       Valores: deslocamento-x deslocamento-y blur cor
+       0 = sem deslocamento horizontal
+       2px = 2px para baixo
+       4px = desfoque de 4px
+       rgba(0,0,0,0.15) = preto com 15% de opacidade */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.navbar-inner {
+    /* Limita a largura máxima do conteúdo interno.
+       Assim em telas grandes o conteúdo não fica
+       espalhado de ponta a ponta. */
+    max-width: 1200px;
+
+    /* margin: 0 auto centraliza horizontalmente o elemento.
+       0 = sem margem em cima e embaixo
+       auto = margem automática dos lados (centraliza) */
+    margin: 0 auto;
+
+    padding: 0 1.5rem;
+
+    /* Flexbox — sistema moderno de layout.
+       display:flex transforma o elemento em um
+       "container flex" e seus filhos em "flex items".
+       Os filhos ficam em linha por padrão. */
+    display: flex;
+
+    /* align-items controla o alinhamento vertical dos filhos.
+       center = centraliza verticalmente */
+    align-items: center;
+
+    /* justify-content controla o alinhamento horizontal.
+       space-between = primeiro filho à esquerda,
+       último à direita, resto distribuído no meio */
+    justify-content: space-between;
+
+    /* Altura fixa da navbar */
+    height: 56px;
+}
+
+.navbar-brand {
+    font-size: 17px;
+    font-weight: 600;
+    /* 600 = negrito semi-bold */
+    color: white;
+    text-decoration: none;
+    /* remove o sublinhado padrão dos links */
+}
+
+.navbar-links {
+    display: flex;
+    align-items: center;
+
+    /* gap define o espaço entre os filhos flex.
+       Muito mais simples do que usar margin em cada filho. */
+    gap: 4px;
+}
+
+.navbar-links a {
+    /* rgba = cor com canal alpha (transparência).
+       rgba(255,255,255,0.88) = branco com 88% de opacidade */
+    color: rgba(255, 255, 255, 0.88);
+    text-decoration: none;
+    padding: 6px 14px;
+    /* 6px cima/baixo, 14px esquerda/direita */
+    border-radius: 6px;
+    /* arredonda os cantos */
+
+    /* transition anima a mudança de propriedades.
+       'background 0.15s' = a cor de fundo muda suavemente
+       em 0.15 segundos quando o mouse passa por cima */
+    transition: background 0.15s;
+}
+
+.navbar-links a:hover {
+    /* :hover é uma pseudo-classe — aplica o estilo
+       apenas quando o mouse está sobre o elemento */
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.navbar-links a.ativo {
+    /* .ativo é a classe adicionada pelo Django no template
+       para destacar o link da página atual */
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-weight: 500;
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.navbar-user a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 12px;
+    padding: 4px 10px;
+
+    /* border é a borda do elemento.
+       Valores: espessura estilo cor */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.navbar-user a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+
+/* ─── 5. CONTAINER E TÍTULOS ────────────────────────────
+   
+   O .container envolve todo o conteúdo principal da página,
+   abaixo da navbar.
+──────────────────────────────────────────────────────── */
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+
+    /* padding: 2rem 1.5rem
+       = 2rem em cima e embaixo, 1.5rem nas laterais.
+       rem = relativo ao font-size do :root (geralmente 16px).
+       2rem ≈ 32px, 1.5rem ≈ 24px */
+    padding: 2rem 1.5rem;
+    /* Espaço mínimo para empurrar o rodapé para baixo
+       mesmo quando o conteúdo for curto.
+       calc(100vh - 56px - 80px):
+       100vh = altura total da tela
+       56px  = altura da navbar
+       80px  = altura aproximada do rodapé + margem */
+    min-height: calc(100vh - 56px - 80px);
+}
+
+.page-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--texto);
+    margin-bottom: 1.5rem;
+}
+
+/* <span> dentro do título recebe cor verde.
+   Ex: "📋 <span>Atendimentos</span> registrados"
+   A palavra "Atendimentos" fica verde. */
+.page-title span {
+    color: var(--verde);
+}
+
+
+/* ─── 6. CARDS ──────────────────────────────────────────
+   
+   Cards são caixas brancas com borda e sombra suave
+   que agrupam conteúdo relacionado visualmente.
+──────────────────────────────────────────────────────── */
+
+.card {
+    background: var(--branco);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+
+.card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+
+    /* Linha separadora abaixo do título do card */
+    border-bottom: 1px solid var(--borda);
+    color: var(--texto);
+}
+
+
+/* ─── 7. FORMULÁRIOS ────────────────────────────────────
+   
+   Sistema de grid para organizar campos lado a lado.
+   
+   CSS Grid é um sistema de layout bidimensional
+   (linhas E colunas ao mesmo tempo).
+   Diferente do Flexbox que é unidimensional (linha OU coluna).
+──────────────────────────────────────────────────────── */
+
+.form-grid {
+    display: grid;
+
+    /* grid-template-columns define as colunas.
+       1fr 1fr = duas colunas de tamanho igual.
+       "fr" = fraction (fração do espaço disponível).
+       Poderia ser: 1fr 2fr (coluna da direita 2x maior) */
+    grid-template-columns: 1fr 1fr;
+
+    /* gap no grid define o espaço entre linhas e colunas */
+    gap: 1rem;
+}
+
+.form-group {
+    /* Flexbox em coluna para empilhar label + input */
+    display: flex;
+    flex-direction: column;
+    /* empilha os filhos verticalmente */
+    gap: 4px;
+}
+
+.form-group.span-2 {
+    /* grid-column: span 2 faz o elemento ocupar 2 colunas.
+       Usado no campo "Nome do paciente" que fica maior. */
+    grid-column: span 2;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.form-input {
+    padding: 9px 12px;
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--texto);
+    background: white;
+    width: 100%;
+    /* ocupa toda a largura disponível */
+
+    /* Anima suavemente a borda e o brilho ao focar no campo */
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-input:focus {
+    /* :focus = quando o campo está selecionado (cursor dentro).
+       outline:none remove o contorno padrão do navegador. */
+    outline: none;
+    border-color: var(--verde);
+
+    /* box-shadow aqui cria um "brilho" verde ao redor do campo.
+       0 0 = sem deslocamento
+       0 3px = espalhamento de 3px
+       rgba com baixa opacidade = efeito suave */
+    box-shadow: 0 0 0 3px rgba(26, 122, 76, 0.12);
+}
+
+.form-input.erro {
+    /* Classe adicionada via Django template quando
+       o formulário tem erros de validação */
+    border-color: var(--perigo);
+}
+
+.form-errors {
+    font-size: 12px;
+    color: var(--perigo);
+    margin-top: 3px;
+}
+
+
+/* ─── 8. BOTÕES ─────────────────────────────────────────
+   
+   Três variações de botão:
+   - .btn-verde  → ação principal (salvar, filtrar)
+   - .btn-cinza  → ação secundária (cancelar, limpar)
+   - .btn-imprimir → abrir impressão
+──────────────────────────────────────────────────────── */
+
+.btn {
+    /* inline-flex = flex mas inline (não ocupa linha inteira).
+       Permite que o botão fique na mesma linha que outros elementos. */
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    /* muda o cursor para "mãozinha" */
+    border: none;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+
+.btn-verde {
+    background: var(--verde);
+    color: white;
+}
+
+.btn-verde:hover {
+    background: var(--verde-escuro);
+}
+
+.btn-cinza {
+    background: var(--cinza-claro);
+    color: var(--cinza);
+    border: 1px solid var(--borda);
+}
+
+.btn-cinza:hover {
+    background: var(--borda);
+}
+
+.btn-imprimir {
+    background: var(--azul);
+    color: white;
+}
+
+.btn-imprimir:hover {
+    background: #154360;
+}
+
+
+/* ─── 9. TABELAS ────────────────────────────────────────
+   
+   .tabela-wrap envolve a tabela para permitir
+   scroll horizontal em telas pequenas.
+──────────────────────────────────────────────────────── */
+
+.tabela-wrap {
+    /* overflow-x: auto adiciona scroll horizontal
+       automaticamente quando o conteúdo for mais largo
+       do que o container. Evita que a tabela "quebre" o layout. */
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+
+    /* border-collapse: collapse junta as bordas das células.
+       Sem isso, cada célula teria sua própria borda separada
+       e apareceriam espaços duplos entre elas. */
+    border-collapse: collapse;
+    font-size: 13.5px;
+}
+
+thead th {
+    background: var(--cinza-claro);
+    padding: 10px 12px;
+    text-align: left;
+    /* alinha o texto à esquerda (padrão de tabelas é center) */
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cinza);
+
+    /* text-transform: uppercase transforma o texto em MAIÚSCULAS
+       sem precisar digitar em maiúsculas no HTML */
+    text-transform: uppercase;
+
+    /* letter-spacing aumenta o espaço entre letras.
+       0.04em = 4% do tamanho da fonte.
+       Melhora a legibilidade de textos em maiúsculas. */
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--borda);
+}
+
+tbody td {
+    padding: 10px 12px;
+
+    /* Linha divisória suave entre as linhas da tabela */
+    border-bottom: 1px solid #f0f0f0;
+}
+
+tbody tr:hover {
+    /* tr = table row = linha da tabela.
+       :hover destaca a linha quando o mouse passa por cima. */
+    background: #fafafa;
+}
+
+tbody tr:last-child td {
+    /* :last-child seleciona o último filho do elemento pai.
+       Remove a borda da última linha para não ficar
+       borda dupla com o card embaixo. */
+    border-bottom: none;
+}
+
+
+/* ─── 10. BADGES ────────────────────────────────────────
+   
+   Badges são etiquetas coloridas arredondadas.
+   Usadas para exibir o tipo de atendimento na tabela.
+──────────────────────────────────────────────────────── */
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+
+    /* border-radius: 99px com valor muito alto
+       cria o efeito "pílula" (cantos completamente redondos).
+       Funciona independente do tamanho do elemento. */
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.badge-verde {
+    background: var(--sucesso-claro);
+    color: #065f46;
+}
+
+.badge-azul {
+    background: #dbeafe;
+    color: #1e3a8a;
+}
+
+
+/* ─── 11. MENSAGENS DE FEEDBACK ─────────────────────────
+   
+   Notificações de sucesso e erro que aparecem
+   no topo da página após ações do usuário.
+   Geradas pelas views com messages.success() e messages.error().
+──────────────────────────────────────────────────────── */
+
+.mensagens {
+    margin-bottom: 1.25rem;
+}
+
+.mensagem {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mensagem-sucesso {
+    background: var(--sucesso-claro);
+    color: #065f46;
+
+    /* border-left cria uma barra colorida à esquerda da mensagem.
+       É uma convenção visual para indicar o tipo da mensagem. */
+    border-left: 3px solid var(--sucesso);
+}
+
+.mensagem-erro {
+    background: var(--perigo-claro);
+    color: #991b1b;
+    border-left: 3px solid var(--perigo);
+}
+
+
+/* ─── 12. CARDS DE ESTATÍSTICAS ─────────────────────────
+   
+   Os três cards numéricos no topo da listagem:
+   "Total de atendimentos", "Páginas", "Nesta página".
+──────────────────────────────────────────────────────── */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* repeat(3, 1fr) é o mesmo que escrever: 1fr 1fr 1fr
+       Mais prático quando há muitas colunas iguais. */
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--branco);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+}
+
+.stat-num {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--verde);
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--cinza);
+    margin-top: 2px;
+}
+
+
+/* ─── 13. PÁGINA DE LOGIN ───────────────────────────────
+   
+   Página especial — não usa a navbar.
+   O formulário fica centralizado na tela
+   sobre um fundo verde degradê.
+──────────────────────────────────────────────────────── */
+
+.login-page {
+    /* min-height: 100vh = ocupa no mínimo 100% da altura da janela.
+       "vh" = viewport height (altura da área visível do navegador) */
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    /* centraliza verticalmente */
+    justify-content: center;
+    /* centraliza horizontalmente */
+
+    /* linear-gradient cria um degradê.
+       135deg = ângulo do degradê (diagonal)
+       do verde normal para o verde escuro */
+    background: linear-gradient(135deg, #1a7a4c 0%, #145c38 100%);
+}
+
+.login-box {
+    background: white;
+    border-radius: 12px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 380px;
+    /* não fica maior que 380px em telas grandes */
+
+    /* Sombra mais intensa para dar profundidade ao card
+       sobre o fundo colorido */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.cruz-grande {
+    font-size: 48px;
+    color: var(--verde);
+}
+
+.login-logo h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--verde);
+    margin-top: 8px;
+}
+
+.login-logo p {
+    font-size: 13px;
+    color: var(--cinza);
+    margin-top: 4px;
+}
+
+
+/* ─── 14. BARRA DE FILTROS ──────────────────────────────
+   
+   Formulário de filtros no topo da página de relatório.
+   Fica em linha, com os selects e botões lado a lado.
+──────────────────────────────────────────────────────── */
+
+.filtros-bar {
+    background: white;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: flex-end;
+    /* flex-end alinha os itens pela base (embaixo).
+       Garante que botões fiquem alinhados com os campos. */
+    gap: 12px;
+    flex-wrap: wrap;
+    /* flex-wrap: wrap permite que os itens quebrem
+       para a linha de baixo em telas menores */
+}
+
+.filtros-bar .form-group {
+    /* flex: 1 faz cada campo crescer igualmente
+       para preencher o espaço disponível */
+    flex: 1;
+    min-width: 160px;
+    /* garante largura mínima antes de quebrar linha */
+}
+
+/* Barra verde com o total de resultados filtrados */
+.total-bar {
+    background: var(--verde-claro);
+    border: 1px solid #a7d7bc;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--verde-escuro);
+    margin-bottom: 1rem;
+}
+
+
+/* ─── 15. PAGINAÇÃO ─────────────────────────────────────
+   
+   Links de navegação entre páginas da listagem.
+   Aparece abaixo da tabela quando há mais de 20 registros.
+──────────────────────────────────────────────────────── */
+
+.paginacao {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 1rem;
+    justify-content: center;
+}
+
+.paginacao a,
+.paginacao span {
+    /* Estiliza tanto os links <a> quanto o <span> da página atual */
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 13px;
+    text-decoration: none;
+    border: 1px solid var(--borda);
+    color: var(--texto);
+}
+
+.paginacao a:hover {
+    background: var(--verde-claro);
+    border-color: var(--verde);
+}
+
+.paginacao .atual {
+    /* Página atual fica com fundo verde sólido */
+    background: var(--verde);
+    color: white;
+    border-color: var(--verde);
+}
+
+
+/* ─── 16. IMPRESSÃO ─────────────────────────────────────
+   
+   @media print é uma "media query" — um bloco CSS
+   que só é aplicado em situações específicas.
+   
+   @media print = só quando o usuário manda imprimir.
+   
+   Tudo dentro desse bloco é ignorado na tela normal.
+   Tudo fora desse bloco é ignorado na impressão.
+   
+   Isso nos permite ter um layout completamente diferente
+   para o papel, sem criar um arquivo separado.
+──────────────────────────────────────────────────────── */
+/* ─── IMPRESSÃO ─────────────────────────────────────────
+   Tudo aqui só é aplicado quando o usuário imprime.
+   O navegador ignora essas regras na tela normal.
+──────────────────────────────────────────────────────── */
+@media print {
+
+    /* ── Orientação paisagem para caber mais colunas ──
+       @page define configurações da página impressa.
+       size: A4 landscape = papel A4 na horizontal.
+       margin define as margens do papel. */
+    @page {
+        size: A4 landscape;
+        margin: 1.2cm 1.5cm;
+    }
+
+    /* Esconde TUDO que não deve aparecer no papel */
+    /* Esconde elementos que não fazem sentido no papel:
+       - navbar (links de navegação são inúteis no papel)
+       - filtros (já foram aplicados, resultado está na tela)
+       - botões (não clicáveis no papel)
+       - classe .no-print (qualquer elemento marcado para sumir)
+       
+       !important garante que esse display:none não seja
+       sobrescrito por nenhuma outra regra CSS */
+    .navbar,
+    .drawer,
+    .drawer-overlay,
+    .filtros-bar,
+    .btn,
+    .btn-imprimir,
+    .btn-verde,
+    .btn-cinza,
+    .btn-drawer,
+    .no-print,
+    .mensagens,
+    .rodape,
+    .paginacao {
+        display: none !important;
+    }
+
+    /* Reset do body para impressão */
+    body {
+        background: white !important;
+        font-size: 10px !important;
+        color: #000 !important;
+        min-height: auto !important;
+    }
+
+    /* Container ocupa toda a largura do papel */
+    .container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        min-height: auto !important;
+    }
+
+    /* Card sem borda nem sombra */
+    .card {
+        border: none !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+
+    /* Tabela otimizada para impressão */
+    table {
+        font-size: 9px !important;
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    thead th {
+        /* !important necessário para sobrescrever o background
+           definido fora do @media print */
+        background: #e8e8e8 !important;
+        color: #000 !important;
+        padding: 5px 6px !important;
+        font-size: 8px !important;
+        border: 0.5px solid #ccc !important;
+    }
+
+    tbody td {
+        padding: 4px 6px !important;
+        border: 0.5px solid #e0e0e0 !important;
+        color: #000 !important;
+    }
+
+    /* Impede que linhas da tabela sejam cortadas
+       no meio ao quebrar de página */
+    tbody tr {
+        page-break-inside: avoid;
+    }
+
+    /* Badge de tipo de atendimento — sem cor na impressão */
+    .badge {
+        background: none !important;
+        color: #000 !important;
+        border: 0.5px solid #999 !important;
+        padding: 1px 4px !important;
+        font-size: 8px !important;
+    }
+
+    /* Cabeçalho de impressão — aparece só no papel */
+    /* Cabeçalho especial que só aparece na impressão.
+       No CSS normal (fora do @media print) está com display:none.
+       Aqui dentro do @media print mudamos para display:block. */
+    .print-header {
+        display: block !important;
+        margin-bottom: 12px !important;
+        padding-bottom: 8px !important;
+        border-bottom: 1.5px solid #333 !important;
+    }
+
+    /* Total de atendimentos */
+    .total-bar {
+        background: none !important;
+        border: 0.5px solid #ccc !important;
+        color: #000 !important;
+        padding: 5px 10px !important;
+        margin-bottom: 8px !important;
+        font-size: 10px !important;
+    }
+
+    /* Título da página */
+    .page-title {
+        font-size: 14px !important;
+        margin-bottom: 8px !important;
+    }
+}
+
+/* Cabeçalho de impressão — escondido na tela normal */
+/* Esconde o cabeçalho de impressão na tela normal.
+   O @media print acima vai mostrar ele só na impressão. */
+.print-header {
+    display: none;
+}
+
+/* ─── 17. RESPONSIVO (MOBILE) ───────────────────────────
+   
+   @media (max-width: 700px) é outra media query.
+   Essa é aplicada quando a tela tem menos de 700px de largura
+   — ou seja, em celulares e tablets pequenos.
+   
+   Adaptamos o layout de múltiplas colunas para coluna única,
+   que funciona melhor em telas estreitas.
+──────────────────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+
+    /* No mobile, os formulários viram uma coluna só.
+       Mais fácil de preencher com o dedo. */
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* span-2 não faz mais sentido em coluna única */
+    .form-group.span-2 {
+        grid-column: span 1;
+    }
+
+    /* Cards de estatísticas empilham verticalmente */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Links da navbar somem no mobile.
+       Uma melhoria futura seria criar um menu hamburguer. */
+    .navbar-links {
+        display: none;
+    }
+}
+
+/* ─── RODAPÉ ────────────────────────────────────────────
+   Barra discreta no final de todas as páginas.
+   Some automaticamente na impressão (classe no-print).
+──────────────────────────────────────────────────────── */
+
+.rodape {
+    margin-top: 3rem;
+    border-top: 1px solid var(--borda);
+    background: var(--branco);
+    padding: 12px 0;
+}
+
+.rodape-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+
+    /* Flexbox para colocar os dois textos nas extremidades */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    font-size: 12px;
+    color: var(--cinza);
+}
+
+/* Em telas pequenas empilha e centraliza */
+@media (max-width: 700px) {
+    .rodape-inner {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+    }
+}
+
+/* ─── DROPDOWN DE BUSCA ─────────────────────────────────
+   Garante que o dropdown de busca de paciente apareça
+   acima de todos os outros elementos sem ser cortado.
+──────────────────────────────────────────────────────── */
+.busca-wrapper {
+    position: relative;
+    z-index: 40;
+    margin-bottom: 1.5rem;
+}
+
+.busca-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 40;
+    max-height: 280px;
+    overflow-y: auto;
+}

@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block titulo %}Tipos de Encaminhamento{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:painel_admin' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <h1 class="page-title" style="margin:0;">📋 Tipos de Encaminhamento</h1>
+    </div>
+    <a href="{% url 'encaminhamentos:admin_tipo_enc_criar' %}" class="btn btn-verde">
+        ➕ Novo tipo
+    </a>
+</div>
+{% comment %}
+{# ── Busca dinâmica ─────────────────────────────────
+    Filtra as linhas da tabela em tempo real enquanto
+    o usuário digita — sem recarregar a página.
+    O filtro de categoria ainda usa o servidor porque
+    precisaria de lógica mais complexa no JS.
+    ──────────────────────────────────────────────────── #}
+    {% endcomment %}
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:1.5rem;">
+
+        <input type="text"
+            id="busca-tipo"
+            placeholder="🔍 Buscar tipo por nome..."
+            autocomplete="off"
+            class="form-input"
+            style="flex:2; min-width:200px;">
+
+        <select id="filtro-categoria" 
+                class="form-input"
+                style="flex:1; min-width:160px;">
+            <option value="">Todas as categorias</option>
+            {% for valor, label in categorias %}
+                <option value="{{ valor }}">
+                    {{ label }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button id="btn-limpar"
+            onclick="limparFiltros()"
+            class="btn btn-cinza"
+            style="display:none;">
+            Limpar
+        </button>
+
+    </div>
+{# Contador de resultados #}
+<p id="contador-tipos"
+   style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
+    {{ tipos|length }} tipo{{ tipos|length|pluralize }} cadastrado{{ tipos|length|pluralize }}
+</p>
+
+<div class="card">
+    {% if tipos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Categoria</th>
+                    <th>Subtipos</th>
+                    <th>Retorno</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tipo in tipos %}
+                <tr>
+                    <td><strong>{{ tipo.nome }}</strong></td>
+                    <td>{{ tipo.get_categoria_display }}</td>
+                    <td>
+                        {% with subs=tipo.subtipos.all %}
+                            {% if subs %}
+                                {{ subs|length }} subtipo{{ subs|length|pluralize }}
+                            {% else %}
+                                <span style="color:#9ca3af;">—</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>
+                        {% if tipo.permite_retorno %}
+                            <span class="badge badge-verde">Sim</span>
+                        {% else %}
+                            <span style="color:#9ca3af; font-size:13px;">Não</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if tipo.ativo %}
+                            <span class="badge badge-verde">Ativo</span>
+                        {% else %}
+                            <span class="badge" style="background:#f3f4f6;color:#6b7280;">
+                                Inativo
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'encaminhamentos:admin_tipo_enc_editar' tipo.pk %}"
+                           style="color:var(--verde); font-size:13px;">
+                            Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color:#9ca3af; text-align:center; padding:2rem;">
+            Nenhum tipo cadastrado.
+        </p>
+    {% endif %}
+</div>
+
+<script>
+/*
+  Filtro dinâmico da tabela de tipos de encaminhamento.
+
+  Funciona assim:
+  1. Escuta o campo de texto e o select de categoria
+  2. Para cada linha da tabela, verifica se bate com os filtros
+  3. Mostra ou esconde a linha com display:'' ou display:'none'
+  4. Atualiza o contador de resultados visíveis
+*/
+
+// Pega os elementos que vamos usar
+const campoBusca       = document.getElementById('busca-tipo');
+const filtroCategoria  = document.getElementById('filtro-categoria');
+const contador         = document.getElementById('contador-tipos');
+
+// Seleciona todas as linhas do tbody da tabela
+// cada linha é um tipo de encaminhamento
+const linhas = document.querySelectorAll('tbody tr');
+
+function filtrar() {
+    // Pega o texto digitado em minúsculas para comparação
+    // toLowerCase() garante que "Cardio" e "cardio" batem
+    const termo     = campoBusca.value.toLowerCase().trim();
+    const categoria = filtroCategoria.value.toLowerCase();
+
+    let visiveis = 0;
+
+    linhas.forEach(function(linha) {
+        // Pega o texto da primeira célula — o nome do tipo
+        // textContent retorna o texto sem tags HTML
+        const nome     = linha.cells[0].textContent.toLowerCase();
+
+        // Pega o texto da segunda célula — a categoria
+        const catLinha = linha.cells[1].textContent.toLowerCase();
+
+        // Verifica se a linha bate com os dois filtros:
+        // - nome contém o texto digitado (includes = contém)
+        // - categoria bate com o filtro (ou filtro está vazio)
+        const bateTermo     = nome.includes(termo);
+        const bateCategoria = categoria === '' || catLinha.includes(categoria);
+
+        if (bateTermo && bateCategoria) {
+            // Mostra a linha — display:'' restaura o display padrão
+            linha.style.display = '';
+            visiveis++;
+        } else {
+            // Esconde a linha
+            linha.style.display = 'none';
+        }
+    });
+
+    // Atualiza o contador com quantos resultados estão visíveis
+    contador.textContent = visiveis + ' tipo' + (visiveis !== 1 ? 's' : '') + ' encontrado' + (visiveis !== 1 ? 's' : '');
+}
+
+// Mostra o botão limpar quando há filtro ativo
+// esconde quando os dois campos estão vazios
+function atualizarBotaoLimpar() {
+    const btnLimpar = document.getElementById('btn-limpar');
+    if (campoBusca.value || filtroCategoria.value) {
+        btnLimpar.style.display = '';
+    } else {
+        btnLimpar.style.display = 'none';
+    }
+}
+
+// Limpa os dois filtros e refaz a busca
+function limparFiltros() {
+    campoBusca.value      = '';
+    filtroCategoria.value = '';
+    filtrar();
+    atualizarBotaoLimpar();
+    campoBusca.focus();
+}
+
+// Atualiza o botão a cada mudança nos filtros
+campoBusca.addEventListener('input', function() {
+    filtrar();
+    atualizarBotaoLimpar();
+});
+
+filtroCategoria.addEventListener('change', function() {
+    filtrar();
+    atualizarBotaoLimpar();
+});
+</script>
+
+{% endblock %}

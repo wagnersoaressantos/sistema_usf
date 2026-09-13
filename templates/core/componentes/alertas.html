@@ -1,0 +1,24 @@
+{# templates/componentes/alertas.html #}
+{# COMPONENTE REUTILIZÁVEL DE ALERTAS GLOBAIS #}
+
+{% if messages %}
+    {# Se o Django enviou alguma mensagem através das Views, este container ganha vida #}
+    <div class="mensagens no-print">
+        
+        {# O laço abaixo percorre cada mensagem da lista enviada pelo servidor #}
+        {% for msg in messages %}
+            
+            {# Mudança dinâmica de classe: se a tag da mensagem for 'error', fica vermelho. Se não, verde #}
+            <div class="mensagem {% if msg.tags == 'error' %}mensagem-erro{% else %}mensagem-sucesso{% endif %}">
+                
+                {# Ícone condicional: mostra um triângulo de aviso para erros ou um check para sucesso #}
+                {% if msg.tags == 'error' %}⚠{% else %}✓{% endif %}
+                
+                {# Aqui o Django imprime o texto real da mensagem (Ex: "Paciente cadastrado com sucesso!") #}
+                {{ msg }}
+                
+            </div>
+        {% endfor %}
+        
+    </div>
+{% endif %}

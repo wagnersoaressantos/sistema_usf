@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'encaminhamentos:admin_tipos_enc' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:1rem;">
+        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
+            Dados do tipo
+        </h2>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome *</label>
+            <input type="text" name="nome" class="form-input"
+                   value="{{ tipo.nome|default:'' }}"
+                   placeholder="Ex: Cardiologista, Laboratório, Ultrassom">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Categoria *</label>
+            <select name="categoria" class="form-input">
+                {% for valor, label in categorias %}
+                    <option value="{{ valor }}"
+                        {% if tipo and tipo.categoria == valor %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" name="permite_retorno"
+                       {% if tipo and tipo.permite_retorno %}checked{% endif %}>
+                Permite encaminhamento de retorno
+                <span style="font-size:12px; color:#9ca3af;">
+                    (somente especialidades médicas)
+                </span>
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not tipo or tipo.ativo %}checked{% endif %}>
+                Tipo ativo
+            </label>
+        </div>
+    </div>
+    <div class="card" style="margin-bottom:1rem;">
+        <h2 style="font-size:15px; font-weight:600; margin-bottom:4px;">
+            Restrições e critérios
+        </h2>
+        <p style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
+            Defina restrições de idade ou condição clínica.
+            O sistema avisará ao cadastrar encaminhamentos fora do perfil.
+        </p>
+
+        {# Faixa etária #}
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>Idade mínima (anos)</label>
+                <input type="number" name="idade_minima" class="form-input"
+                       min="0" max="120"
+                       value="{{ tipo.idade_minima|default:'' }}"
+                       placeholder="Sem restrição">
+                <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
+                    Ex: 18 para adultos, 60 para idosos
+                </p>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Idade máxima (anos)</label>
+                <input type="number" name="idade_maxima" class="form-input"
+                       min="0" max="120"
+                       value="{{ tipo.idade_maxima|default:'' }}"
+                       placeholder="Sem restrição">
+                <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
+                    Ex: 12 para pediatria, 17 para adolescentes
+                </p>
+            </div>
+        </div>
+
+        {# Critério especial #}
+        <div class="form-group">
+            <label>Critério especial</label>
+            <select name="criterio_especial" class="form-input">
+                <option value="nenhum"
+                    {% if not tipo or tipo.criterio_especial == 'nenhum' %}selected{% endif %}>
+                    Nenhum — qualquer paciente
+                </option>
+                <option value="gestante"
+                    {% if tipo and tipo.criterio_especial == 'gestante' %}selected{% endif %}>
+                    🤰 Somente gestantes
+                </option>
+                <option value="historico_familiar"
+                    {% if tipo and tipo.criterio_especial == 'historico_familiar' %}selected{% endif %}>
+                    🧬 Histórico familiar
+                </option>
+            </select>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
+                Ex: USG Obstétrico → gestante · Mamografia precoce → histórico familiar
+            </p>
+        </div>
+    </div>
+{% comment %}
+{# ── Subtipos ─────────────────────────────────────
+    Cada linha é um subtipo. O usuário pode adicionar
+    mais linhas clicando no botão "+ Adicionar subtipo".
+    ──────────────────────────────────────────────────── #}
+    {% endcomment %}
+    <div class="card" style="margin-bottom:1rem;">
+        <h2 style="font-size:15px; font-weight:600; margin-bottom:4px;">
+            Subtipos
+        </h2>
+        <p style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
+            Opcional — use para laboratório e ultrassom.
+            Deixe vazio para tipos simples como cardiologista.
+        </p>
+
+        <div id="lista-subtipos">
+            {% if tipo %}
+                {% for sub in tipo.subtipos.all %}
+                    <div style="display:flex; gap:8px; margin-bottom:8px;">
+                        {# ID hidden — identifica o subtipo existente #}
+                        <input type="hidden" name="subtipo_id" value="{{ sub.pk }}">
+                        <input type="text" name="subtipos" class="form-input"
+                            value="{{ sub.nome }}" placeholder="Nome do subtipo">
+                        <button type="button" onclick="removerSubtipo(this)"
+                                style="background:none; border:none; color:#dc2626;
+                                    cursor:pointer; font-size:18px; padding:0 8px;">
+                            ×
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        <button type="button" onclick="adicionarSubtipo()"
+                class="btn btn-cinza" style="margin-top:8px; font-size:13px;">
+            ➕ Adicionar subtipo
+        </button>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a href="{% url 'encaminhamentos:admin_tipos_enc' %}" class="btn btn-cinza">
+            Cancelar
+        </a>
+        <button type="submit" class="btn btn-verde">{{ acao }}</button>
+    </div>
+</form>
+
+<script>
+function adicionarSubtipo() {
+    const lista = document.getElementById('lista-subtipos');
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex; gap:8px; margin-bottom:8px;';
+    div.innerHTML =
+        {# ID vazio = novo subtipo #}
+        '<input type="hidden" name="subtipo_id" value="">' +
+        '<input type="text" name="subtipos" class="form-input" placeholder="Nome do subtipo">' +
+        '<button type="button" onclick="removerSubtipo(this)" ' +
+        'style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;padding:0 8px;">×</button>';
+    lista.appendChild(div);
+    div.querySelector('input[type="text"]').focus();
+}
+
+function removerSubtipo(btn) {
+    btn.parentElement.remove();
+}
+</script>
+
+{% endblock %}

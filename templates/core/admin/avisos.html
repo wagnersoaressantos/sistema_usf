@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block titulo %}Avisos — Administração{% endblock %}
+
+{% block conteudo %}
+<div style="display:flex;align-items:center;
+            justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin:0;">
+        📢 <span>Mural</span> de avisos
+    </h1>
+    <div style="display:flex;gap:8px;">
+        <a href="{% url 'core:painel_admin' %}" class="btn btn-cinza">
+            ← Voltar
+        </a>
+        <a href="{% url 'core:admin_aviso_criar' %}" class="btn btn-verde">
+            ➕ Novo aviso
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="tabela-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Categoria</th>
+                    <th>Válido até</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for aviso in avisos %}
+                <tr>
+                    <td><strong>{{ aviso.titulo }}</strong></td>
+                    <td>
+                        {% if aviso.categoria == 'aviso' %}
+                        <span class="badge"
+                              style="background:#fef3c7;color:#92400e;">
+                            ⚠ Aviso
+                        </span>
+                        {% elif aviso.categoria == 'evento' %}
+                        <span class="badge"
+                              style="background:#dbeafe;color:#1e40af;">
+                            📅 Evento
+                        </span>
+                        {% else %}
+                        <span class="badge"
+                              style="background:#e0e7ff;color:#3730a3;">
+                            🗓 Cronograma
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:12px;white-space:nowrap;">
+                        {{ aviso.data_validade|date:"d/m/Y" }}
+                        {# Indica visualmente se já venceu #}
+                        {% if aviso.data_validade < hoje %}
+                        <span style="color:#dc2626;font-size:11px;">
+                            — vencido
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if aviso.ativo and aviso.data_validade >= hoje %}
+                        <span class="badge badge-verde">● Ativo</span>
+                        {% else %}
+                        <span class="badge"
+                              style="background:#fee2e2;color:#991b1b;">
+                            ● Inativo
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="display:flex;gap:6px;">
+                        <a href="{% url 'core:admin_aviso_editar' aviso.pk %}"
+                           style="font-size:12px;color:#185FA5;
+                                  text-decoration:none;padding:3px 8px;
+                                  border:1px solid #bfdbfe;border-radius:4px;">
+                            ✏ Editar
+                        </a>
+                        <a href="{% url 'core:admin_aviso_excluir' aviso.pk %}"
+                           style="font-size:12px;color:#dc2626;
+                                  text-decoration:none;padding:3px 8px;
+                                  border:1px solid #fecaca;border-radius:4px;">
+                            🗑
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5"
+                        style="text-align:center;padding:2rem;color:#9ca3af;">
+                        Nenhum aviso cadastrado ainda.
+                        <a href="{% url 'core:admin_aviso_criar' %}">
+                            Criar o primeiro ↗
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

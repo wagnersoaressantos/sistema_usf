@@ -1,0 +1,90 @@
+{% comment %}
+{# ── Busca de paciente ───────────────────────────────
+    Template parcial reutilizado em inicio, fila_tipo e concluidos.
+    Incluído via {% include 'core/pacientes/partials/busca_paciente.html'' %}
+    
+    Faz uma busca em tempo real via JavaScript e redireciona
+    para a página de resultados do paciente.
+    ──────────────────────────────────────────────────── #}
+    {% endcomment %}
+<div class="busca-wrapper">
+    <input type="text"
+           id="busca-paciente-global"
+           placeholder="🔍 Buscar paciente por nome, CPF ou cartão SUS..."
+           autocomplete="off"
+           style="width:100%; padding:10px 14px;
+                  border:1px solid #d1d5db; border-radius:8px;
+                  font-size:14px; box-sizing:border-box;
+                  background:white;">
+
+    <div id="resultados-busca-global"
+         class="busca-dropdown">
+    </div>
+</div>
+<script>
+(function() {
+    const campo      = document.getElementById('busca-paciente-global');
+    const resultados = document.getElementById('resultados-busca-global');
+    let timeout      = null;
+
+    campo.addEventListener('input', function() {
+        clearTimeout(timeout);
+        const termo = this.value.trim();
+
+        if (termo.length < 2) {
+            resultados.style.display = 'none';
+            return;
+        }
+
+        timeout = setTimeout(() => {
+            fetch(`{% url 'encaminhamentos:buscar_paciente' %}?q=${encodeURIComponent(termo)}`)
+                .then(r => r.json())
+                .then(pacientes => {
+                    resultados.innerHTML = '';
+
+                    if (pacientes.length === 0) {
+                        resultados.innerHTML =
+                            '<div style="padding:12px; color:#6b7280; font-size:13px;">' +
+                            'Nenhum paciente encontrado.</div>';
+                    } else {
+                        pacientes.forEach(p => {
+                            const item = document.createElement('div');
+                            item.style.cssText =
+                                'padding:10px 14px; cursor:pointer; font-size:14px;' +
+                                'border-bottom:1px solid #f3f4f6;';
+                            item.innerHTML =
+                                `<strong>${p.nome}</strong>` +
+                                `<span style="color:#6b7280; font-size:12px; margin-left:8px;">` +
+                                `${p.cpf ? 'CPF: ' + p.cpf : ''}` +
+                                `${p.cartao_sus ? ' · SUS: ' + p.cartao_sus : ''}` +
+                                `</span>`;
+
+                            // Ao clicar vai para a página de encaminhamentos do paciente
+                            item.addEventListener('click', () => {
+                                window.location.href =
+                                    `{% url 'encaminhamentos:paciente' 0 %}`.replace('0', p.id);
+                            });
+                            item.addEventListener('mouseenter', () => {
+                                item.style.background = '#f9fafb';
+                            });
+                            item.addEventListener('mouseleave', () => {
+                                item.style.background = 'white';
+                            });
+
+                            resultados.appendChild(item);
+                        });
+                    }
+
+                    resultados.style.display = 'block';
+                });
+        }, 300);
+    });
+
+    // Fecha ao clicar fora
+    document.addEventListener('click', function(e) {
+        if (!campo.contains(e.target) && !resultados.contains(e.target)) {
+            resultados.style.display = 'none';
+        }
+    });
+})();
+</script>

@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% block titulo %}Painel de Indicadores — Financiamento APS{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho e Barra de Filtros ────────────────── #}
+<div style="background:white; border:1px solid #e5e7eb; border-radius:10px; padding:1.25rem; margin-bottom:1.5rem;">
+    <h1 style="font-size:18px; font-weight:600; margin:0 0 12px; color:#111827;">📊 Monitoramento de Indicadores</h1>
+    {# BOTÃO OPERACIONAL DE IMPORTAÇÃO #}
+        <a href="{% url 'indicadores:importar_lista_nominal' %}" class="btn btn-verde" 
+           style="padding:6px 14px; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+            <span>🚀</span> Importar Planilha (PEC / SISAB)
+        </a>
+    {# ── ALERTA DE PACIENTES FANTASMAS (NÃO LOCALIZADOS) ────────────── #}
+{% if total_fantasmas > 0 %}
+<div style="background:#fef2f2; border:1px solid #f87171; border-radius:10px; padding:16px; margin-bottom:1.5rem; display:flex; align-items:flex-start; gap:16px;">
+    <span style="font-size:32px; line-height:1;">👻</span>
+    <div>
+        <h4 style="margin:0; color:#991b1b; font-size:15px; font-weight:700;">
+            Atenção Crítica: {{ total_fantasmas }} cidadãos sem vinculo na USF!
+        </h4>
+        <p style="margin:6px 0 0; color:#b91c1c; font-size:13px; line-height:1.5;">
+            O Ministério da Saúde está a cobrar metas destas pessoas, mas elas <strong>não foram encontradas vinculada a unidade no mês atual</strong>. 
+            Desça até à tabela abaixo, procure os nomes destacados a <span style="color:#b45309; font-weight:bold;">laranja (F.A. / Não Localizado)</span> e verifique o cadastro para evitar possíveis demandas extras .
+        </p>
+    </div>
+</div>
+{% endif %}
+    <form method="get" style="display:grid; grid-template-columns:repeat(4, 1fr) auto; gap:12px; align-items:end; margin-top: 15px;">
+        <div>
+            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:4px;">Indicador</label>
+            <select name="indicador" class="form-input" style="padding:6px 10px; font-size:13px;">
+                {% for ind in lista_codigos %}
+                    <option value="{{ ind.codigo }}" {% if indicador_selecionado == ind.codigo %}selected{% endif %}>{{ ind.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:4px;">Micro-área (ACS)</label>
+            <select name="microarea" class="form-input" style="padding:6px 10px; font-size:13px;">
+                <option value="">Todas as micro-áreas</option>
+                <option value="fora" {% if microarea_selecionada == 'fora' %}selected{% endif %}>Fora de área</option>
+                {% for ma in microareas %}
+                    <option value="{{ ma.id }}" {% if microarea_selecionada == ma.id|stringformat:"s" %}selected{% endif %}>{{ ma.codigo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:4px;">Origem do Dado</label>
+            <select name="tipo_dado" class="form-input" style="padding:6px 10px; font-size:13px;">
+                <option value="preliminar" {% if tipo_relatorio == 'preliminar' %}selected{% endif %}>Preliminar (PEC Local)</option>
+                <option value="oficial" {% if tipo_relatorio == 'oficial' %}selected{% endif %}>Oficial (SISAB)</option>
+            </select>
+        </div>
+
+        <div>
+            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:4px;">Competência</label>
+            <input type="text" name="competencia" class="form-input" style="padding:6px 10px; font-size:13px;" value="{{ competencia }}" placeholder="Ex: 03/2026">
+        </div>
+        {# ADICIONE ESTE NOVO SELECT ANTES DO BOTÃO FILTRAR #}
+        <div>
+            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:4px; white-space:nowrap;">
+                Foco da Busca
+            </label>
+            <select name="pendencia" class="form-input" style="padding:6px 10px; font-size:13px;">
+                <option value="">Todas as pendências</option>
+                
+                {# O Django constrói as opções com base no indicador atual! #}
+                {% for letra, info in criterios_indicador.items %}
+                    <option value="{{ letra }}" {% if pendencia_selecionada == letra %}selected{% endif %}>
+                        Falta: {{ info.descricao }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-verde" style="padding:8px 16px; font-size:13px; font-weight:600;">
+            Filtrar
+        </button>
+    </form>
+</div>
+
+{# ── Painel de Resultados do Indicador ────────────── #}
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:16px; margin-bottom:1.5rem;">
+    
+    {# Card Desempenho Percentual #}
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:10px; padding:1.5rem; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+        <p style="margin:0; font-size:13px; color:#6b7280; font-weight:500; text-transform:uppercase;">ISF da Equipe (Média)</p>
+        <h2 style="font-size:48px; font-weight:800; color:#16a34a; margin:8px 0;">{{ porcentagem_alcance }}%</h2>
+        <p style="margin:0; font-size:12px; color:#9ca3af;">Competência filtrada: {{ competencia|default:"Nenhuma carregada" }}</p>
+    </div>
+
+    {# Card Detalhes Numéricos #}
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:10px; padding:1.5rem; display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div style="border-right:1px solid #e5e7eb; padding-right:16px; display:flex; flex-direction:column; justify-content:center;">
+            <span style="font-size:32px; margin-bottom:4px;">📋</span>
+            <h3 style="margin:0; font-size:24px; font-weight:700; color:#111827;">{{ total_denominador }}</h3>
+            <p style="margin:0; font-size:12px; color:#6b7280; font-weight:500;">População Alvo (Denominador)</p>
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:center; padding-left:16px;">
+            <span style="font-size:32px; margin-bottom:4px;">✅</span>
+            <h3 style="margin:0; font-size:24px; font-weight:700; color:#16a34a;">{{ total_numerador }}</h3>
+            <p style="margin:0; font-size:12px; color:#6b7280; font-weight:500;">Bateram todas as boas praticas (100 pts)</p>
+        </div>
+    </div>
+</div>
+
+{# ── Tabela Nominal de Busca Ativa ────────────────── #}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.05em; margin:0;">
+        Lista Nominal e Situação dos Critérios
+    </h2>
+    <span style="font-size:12px; color:#6b7280; background:#f3f4f6; padding:4px 10px; border-radius:12px; font-weight:500;">
+        {{ acompanhamentos|length }} cidadãos listados
+    </span>
+</div>
+
+<div class="card" style="padding:0; overflow-x:auto;">
+    {% if acompanhamentos %}
+    <table style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr style="background:#f9fafb; text-align:left; font-size:12px; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">
+                <th style="padding:12px 16px; border-bottom:1px solid #e5e7eb;">Cidadão</th>
+                <th style="padding:12px 16px; border-bottom:1px solid #e5e7eb; width:90px;">Micro-área</th>
+                <th style="padding:12px 16px; border-bottom:1px solid #e5e7eb;">Ações Realizadas vs Pendentes</th>
+                <th style="padding:12px 16px; border-bottom:1px solid #e5e7eb; text-align:right; width:120px;">Pontuação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in acompanhamentos %}
+            <tr style="border-bottom:1px solid #f3f4f6; background:{% if not a.no_numerador %}#fffaf0{% endif %};">
+                
+                {# COLUNA 1: NOME (Usando a propriedade nova que criamos) #}
+                <td style="padding:12px 16px;">
+                    <strong style="font-size:14px; {% if not a.paciente %}color:#b45309;{% else %}color:#111827;{% endif %}">
+                        {{ a.nome_exibicao }}
+                    </strong>
+                    <div style="font-size:11px; color:#9ca3af; margin-top:4px;">
+                        {% if a.paciente and a.paciente.cpf %}
+                            CPF: {{ a.paciente.cpf }}
+                        {% elif a.cpf_planilha %}
+                            CPF Planilha: {{ a.cpf_planilha }}
+                        {% endif %}
+                    </div>
+                </td>
+                
+                {# COLUNA 2: MICRO-ÁREA #}
+                <td style="padding:12px 16px; font-size:13px; font-weight:600; color:#374151;">
+                    {% if a.paciente and a.paciente.micro_area %}
+                        {{ a.paciente.micro_area.codigo }}
+                    {% else %}
+                        Fora/Sem ACS
+                    {% endif %}
+                </td>
+                
+                {# COLUNA 3: CRITÉRIOS (O que cumpriu e o que falta) #}
+                <td style="padding:12px 16px; font-size:12px; line-height:1.4;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        {% for letra, info in a.criterios.items %}
+                            
+                            {# A MÁGICA ESTÁ AQUI: Mostra o critério se não houver filtro OU se for exatamente o critério filtrado #}
+                            {% if not pendencia_selecionada or pendencia_selecionada == letra %}
+                                
+                                {% if info.cumpriu %}
+                                    <div style="color:#16a34a; background:#f0fdf4; padding:4px 8px; border-radius:4px; border:1px solid #bbf7d0;">
+                                        <span>✅</span> <strong>+{{ info.pontos_possiveis }}</strong>: {{ info.descricao }}
+                                    </div>
+                                {% else %}
+                                    <div style="color:#b45309; background:#fffbeb; padding:4px 8px; border-radius:4px; border:1px solid #fde68a;">
+                                        <span>❌</span> <strong>0</strong>: {{ info.descricao }}
+                                    </div>
+                                {% endif %}
+                                
+                            {% endif %}
+                            
+                        {% endfor %}
+                    </div>
+                </td>
+                
+                {# COLUNA 4: STATUS FINAL E PONTUAÇÃO #}
+                <td style="padding:12px 16px; text-align:right;">
+                    <div style="font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 4px;">
+                        {{ a.pontuacao }}<span style="font-size:12px; color:#6b7280; font-weight:normal;">/100</span>
+                    </div>
+                    {% if a.no_numerador %}
+                        <span style="background:#16a34a; color:white; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:700;">META OK</span>
+                    {% else %}
+                        <span style="background:#fef3c7; color:#d97706; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:700;">PENDENTE</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align:center; color:#9ca3af; padding:3rem; font-size:13px; margin:0;">
+        Nenhum paciente encontrado para os filtros selecionados na competência atual.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

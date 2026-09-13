@@ -1,0 +1,114 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página não encontrada — Mutirão de Saúde</title>
+
+    {# Favicon #}
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        /*
+            Página de erro centralizada na tela.
+            Mesma técnica da página de login —
+            min-height:100vh ocupa a tela inteira,
+            flexbox centraliza o conteúdo.
+        */
+        .erro-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f4f8;
+        }
+
+        .erro-box {
+            background: white;
+            border-radius: 12px;
+            padding: 3rem 2.5rem;
+            text-align: center;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
+        }
+
+        .erro-numero {
+            font-size: 80px;
+            font-weight: 700;
+            color: #e5e7eb;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .erro-titulo {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .erro-descricao {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .erro-acoes {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="erro-page">
+    <div class="erro-box">
+
+        {# Logo da unidade #}
+        <div style="margin-bottom:1.5rem;">
+            <img src="{% static 'img/logo.png' %}"
+                 alt="Logo da unidade"
+                 style="height:56px;width:auto;">
+        </div>
+
+        {# Número do erro em cinza claro — grande mas discreto #}
+        <div class="erro-numero">404</div>
+
+        <h1 class="erro-titulo">Página não encontrada</h1>
+
+        <p class="erro-descricao">
+            A página que você tentou acessar não existe ou foi movida.<br>
+            Verifique o endereço ou volte para o início do sistema.
+        </p>
+
+        <div class="erro-acoes">
+            {# Link para voltar ao início #}
+            <a href="/atendimentos/" class="btn btn-verde">
+                🏠 Ir para o início
+            </a>
+
+            {# Botão voltar usando o histórico do navegador #}
+            {# onclick="history.back()" é JavaScript nativo do navegador #}
+            {# history.back() = equivale a clicar no botão ← do navegador #}
+            <button onclick="history.back()" class="btn btn-cinza">
+                ← Voltar
+            </button>
+        </div>
+
+        {# Nome do sistema no rodapé da caixa #}
+        <div style="margin-top:2rem;font-size:12px;color:#9ca3af;">
+            Mutirão de Saúde — Sistema de Atendimentos
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

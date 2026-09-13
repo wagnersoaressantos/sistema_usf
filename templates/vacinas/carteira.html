@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block titulo %}Carteira de Vacinação - {{ paciente.nome }}{% endblock %}
+
+{% block conteudo %}
+<div style="margin-bottom:2rem; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <h1 style="font-size:24px; font-weight:700; color:#111827; margin:0;">
+            💉 Carteira Digital de Vacinação
+        </h1>
+        <p style="font-size:14px; color:#6b7280; margin:4px 0 0 0;">
+            Paciente: <strong>{{ paciente.nome }}</strong> | Nasc: {{ paciente.data_nascimento|date:"d/m/Y" }}
+        </p>
+    </div>
+    <a href="{% url 'core:admin_pacientes' %}" style="padding:10px 16px; background:#e5e7eb; color:#374151; text-decoration:none; border-radius:8px; font-weight:600;">
+        Voltar à Lista
+    </a>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 380px; gap:2rem;">
+    
+    {# ─── COLUNA ESQUERDA: A CADERNETA COM ABAS ─── #}
+    <div style="display:flex; flex-direction:column; gap:16px;">
+        
+        <!-- MUDANÇA: Menu de Seleção de Cadernetas -->
+        <div style="display:flex; gap:8px; border-bottom:2px solid #e5e7eb; padding-bottom:8px; overflow-x:auto;">
+            <button onclick="filtrarCaderneta('crianca')" id="btn-crianca" class="aba-btn {% if perfil_atual == 'crianca' %}ativo{% endif %}">👶 Criança</button>
+            <button onclick="filtrarCaderneta('adolescente')" id="btn-adolescente" class="aba-btn {% if perfil_atual == 'adolescente' %}ativo{% endif %}">🛹 Adolescente</button>
+            <button onclick="filtrarCaderneta('adulto')" id="btn-adulto" class="aba-btn {% if perfil_atual == 'adulto' %}ativo{% endif %}">💼 Adulto</button>
+            <button onclick="filtrarCaderneta('idoso')" id="btn-idoso" class="aba-btn {% if perfil_atual == 'idoso' %}ativo{% endif %}">👵 Idoso</button>
+            
+            <!-- A MÁGICA: Só mostra a aba Gestante se o sexo NÃO for masculino (M) -->
+            {% if paciente.sexo != 'M' %}
+                <button onclick="filtrarCaderneta('gestante')" id="btn-gestante" class="aba-btn {% if perfil_atual == 'gestante' %}ativo{% endif %}">🤰 Gestante</button>
+            {% endif %}
+        </div>
+
+        {% if caderneta %}
+            {% for item in caderneta %}
+                
+                <div class="vacina-card" data-categorias="{{ item.categorias|join:',' }}" 
+                     style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:16px;
+                     border-left:4px solid {% if item.status_geral == 'atrasada' %}{% if perfil_atual == 'crianca' or perfil_atual == 'gestante' %}#ef4444{% else %}#f59e0b{% endif %}{% elif item.status_geral == 'concluida' %}#10b981{% else %}#3b82f6{% endif %};">
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h3 style="margin:0; font-size:16px; color:#111827;">{{ item.vacina.nome }}</h3>
+                        
+                        {% if item.status_geral == 'atrasada' %}
+                            {% if perfil_atual == 'crianca' or perfil_atual == 'gestante' %}
+                                <button style="background:#fef2f2; color:#b91c1c; border:1px solid #fca5a5; padding:4px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">
+                                    🚨 Iniciar Busca Ativa
+                                </button>
+                            {% else %}
+                                <span style="background:#fffbeb; color:#b45309; padding:4px 12px; border-radius:6px; font-size:12px; font-weight:700;">
+                                    ⚠️ Reforço Recomendado
+                                </span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <tbody>
+                            {% for dose in item.doses %}
+                                <tr style="border-top:1px solid #f3f4f6;">
+                                    <td style="padding:8px 0; font-weight:600; color:#4b5563; width:120px;">
+                                        {{ dose.regra.get_tipo_dose_display }} {{ dose.regra.numero_dose }}
+                                    </td>
+                                    <td style="padding:8px 0; color:#6b7280;">
+                                        {% if dose.status == 'aplicada' %}
+                                            Aplicada em <strong style="color:#111827;">{{ dose.data_aplicada|date:"d/m/Y" }}</strong>
+                                            {% if dose.eh_transcricao %}<span title="Transcrição">📝</span>{% endif %}
+                                        {% else %}
+                                            {{ dose.mensagem }}
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding:8px 0; text-align:right;">
+                                        {% if dose.status == 'aplicada' %}
+                                            <span style="background:#d1fae5; color:#065f46; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:700;">APLICADA</span>
+                                        {% elif dose.status == 'atrasada' %}
+                                            <span style="background:{% if perfil_atual == 'crianca' or perfil_atual == 'gestante' %}#fee2e2; color:#991b1b{% else %}#fef3c7; color:#92400e{% endif %}; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:700;">ATRASADA</span>
+                                        {% elif dose.status == 'perdida' %}
+                                            <span style="background:#f3f4f6; color:#374151; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:700; text-decoration:line-through;">PERDIDA</span>
+                                        {% else %}
+                                            <span style="background:#dbeafe; color:#075985; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:700;">NO PRAZO</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    {# ─── COLUNA DIREITA: FORMULÁRIO DE REGISTRO (Mantido igual) ─── #}
+    <div>
+        <div style="background:white; border:1px solid #d1d5db; border-radius:8px; padding:20px; position:sticky; top:20px;">
+            <h2 style="font-size:16px; margin:0 0 16px 0; color:#111827;">+ Registrar Dose</h2>
+            
+            <form method="POST">
+                {% csrf_token %}
+                <label style="display:flex; align-items:center; gap:8px; background:#fef3c7; padding:10px; border-radius:6px; cursor:pointer; margin-bottom:16px;">
+                    <input type="checkbox" name="transcricao" id="chkTranscricao" onchange="toggleLote()" style="width:16px; height:16px;">
+                    <span style="font-size:13px; font-weight:700; color:#92400e;">É Transcrição de Caderneta Antiga?</span>
+                </label>
+
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <label style="font-size:13px; font-weight:600; color:#374151;">Qual Vacina / Dose?
+                        <select name="regra_dose" required style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; margin-top:4px;">
+                            <option value="">Selecione...</option>
+                            {% for r in todas_regras %}
+                                <option value="{{ r.id }}">{{ r.vacina.nome }} - {{ r.get_tipo_dose_display }} {{ r.numero_dose }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label style="font-size:13px; font-weight:600; color:#374151;">Data da Aplicação
+                        <input type="date" name="data_aplicacao" required style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; margin-top:4px;">
+                    </label>
+
+                    <div id="blocoLote">
+                        <label style="font-size:13px; font-weight:600; color:#374151;">Lote Utilizado
+                            <select name="lote" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; margin-top:4px;">
+                                <option value="">Selecione o Lote (Opcional)</option>
+                                {% for l in lotes_disponiveis %}
+                                    <option value="{{ l.id }}">{{ l.vacina.sigla }} - {{ l.numero_lote }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                    </div>
+
+                    <label style="font-size:13px; font-weight:600; color:#374151;">Observações (Opcional)
+                        <textarea name="observacao" rows="2" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px; margin-top:4px;"></textarea>
+                    </label>
+
+                    <button type="submit" style="width:100%; background:var(--verde); color:white; border:none; padding:10px; border-radius:6px; font-weight:700; font-size:14px; cursor:pointer; margin-top:8px;">
+                        💾 Salvar na Caderneta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .aba-btn {
+        background: white; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 999px;
+        font-size: 13px; font-weight: 600; color: #4b5563; cursor: pointer; white-space: nowrap;
+    }
+    .aba-btn.ativo {
+        background: #0284c7; color: white; border-color: #0284c7;
+    }
+</style>
+
+<script>
+// Esconde ou mostra os Lotes
+function toggleLote() {
+    document.getElementById('blocoLote').style.display = document.getElementById('chkTranscricao').checked ? 'none' : 'block';
+}
+
+// Lógica de Filtro das Abas
+function filtrarCaderneta(categoriaDesejada) {
+    // 1. Atualiza as cores dos botões
+    document.querySelectorAll('.aba-btn').forEach(btn => btn.classList.remove('ativo'));
+    document.getElementById('btn-' + categoriaDesejada).classList.add('ativo');
+
+    // 2. Esconde ou mostra os cards das vacinas
+    document.querySelectorAll('.vacina-card').forEach(card => {
+        let categoriasDaVacina = card.getAttribute('data-categorias').split(',');
+        
+        if (categoriasDaVacina.includes(categoriaDesejada)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Quando a página carrega, já filtra pela caderneta correta da pessoa (Ex: Abre direto na da Criança)
+window.onload = function() {
+    filtrarCaderneta('{{ perfil_atual }}');
+};
+</script>
+{% endblock %}

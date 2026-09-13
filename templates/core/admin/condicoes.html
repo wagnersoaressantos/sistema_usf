@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block titulo %}Condições de Saúde{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:painel_admin' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <h1 class="page-title" style="margin:0;">🩺 Condições de Saúde</h1>
+    </div>
+    <a href="{% url 'core:admin_condicao_criar' %}" class="btn btn-verde">
+        ➕ Nova condição
+    </a>
+</div>
+
+<div class="card">
+    {% if condicoes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Ícone</th>
+                <th>Nome</th>
+                <th>Código</th>
+                <th>Afeta prioridade</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in condicoes %}
+            <tr>
+                <td style="font-size:20px; text-align:center;">
+                    {{ c.icone|default:"—" }}
+                </td>
+                <td style="font-size:14px; font-weight:500;">
+                    {{ c.nome }}
+                </td>
+                <td style="font-size:12px; color:#9ca3af;">
+                    {{ c.codigo }}
+                </td>
+                <td style="text-align:center;">
+                    {% if c.afeta_prioridade %}
+                        <span class="badge badge-verde">Sim</span>
+                    {% else %}
+                        <span style="font-size:13px; color:#9ca3af;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if c.ativo %}
+                        <span class="badge badge-verde">Ativa</span>
+                    {% else %}
+                        <span class="badge"
+                              style="background:#f3f4f6; color:#6b7280;">
+                            Inativa
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'core:admin_condicao_editar' c.pk %}"
+                       style="color:var(--verde); font-size:13px;">
+                        Editar
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#9ca3af; text-align:center; padding:2rem;">
+        Nenhuma condição cadastrada.
+    </p>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block titulo %}Painel de Fichas SSA2{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho ───────────────────────────────────── #}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:hub' %}" style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <div>
+            <h1 style="font-size:20px; font-weight:600; margin:0; color:#111827;">
+                📊 Gestão de Fichas SSA2
+            </h1>
+            <p style="font-size:13px; color:#6b7280; margin:0;">
+                Preenchimento e Status por Micro-área
+            </p>
+        </div>
+    </div>
+    
+    {# Botões de Ação Rápida #}
+    <div style="display:flex; gap:12px;">
+        {# Agora passamos o Mês e Ano corretos para o botão mágico de Carga Geral #}
+        <a href="{% url 'territorializacao:carga_geral_ssa2' %}?mes={{ mes_filtro }}&ano={{ ano_filtro }}" 
+           style="background:white; color:#0284c7; border:1px solid #0284c7; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px; transition:background 0.2s;"
+           onclick="return confirm('Isso vai pré-preencher os dados de todas as micro-áreas para o período selecionado. Deseja continuar?');">
+            ⚡ Executar Carga Geral
+        </a>
+        <a href="{% url 'territorializacao:consolidado_geral_ssa2' %}" 
+           style="background:var(--verde); color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px; display:inline-block; transition:background 0.2s;">
+            🖨️ Ver Consolidado Geral
+        </a>
+    </div>
+</div>
+
+{# ── Filtro de Mês/Ano (Novo Formulário) ─────────── #}
+<form method="GET" style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:1rem; margin-bottom:1.5rem; display:flex; gap:12px; align-items:center;">
+    <span style="font-size:14px; font-weight:600; color:#374151;">Período de Referência:</span>
+    
+    <!-- Select do Mês -->
+    <select name="mes" style="padding:8px; border-radius:6px; border:1px solid #d1d5db; font-size:14px; font-weight:500; background:#f9fafb; color:#374151; cursor:pointer;">
+        {% for numero, nome in meses_opcoes %}
+            <option value="{{ numero }}" {% if numero == mes_filtro %}selected{% endif %}>
+                {{ nome }}
+            </option>
+        {% endfor %}
+    </select>
+    
+    <!-- Select do Ano -->
+    <select name="ano" style="padding:8px; border-radius:6px; border:1px solid #d1d5db; font-size:14px; font-weight:500; background:#f9fafb; color:#374151; cursor:pointer;">
+        {% for a in anos_opcoes %}
+            <option value="{{ a }}" {% if a == ano_filtro %}selected{% endif %}>
+                {{ a }}
+            </option>
+        {% endfor %}
+    </select>
+    
+    <!-- Botão de submissão do Filtro -->
+    <button type="submit" style="padding:8px 16px; border-radius:6px; text-decoration:none; font-size:14px; font-weight:600; background:var(--verde); color:white; border:none; cursor:pointer; transition:background 0.2s;">
+        🔍 Filtrar
+    </button>
+</form>
+
+{# ── Tabela de Micro-áreas ───────────────────────── #}
+<div style="background:white; border:1px solid #e5e7eb; border-radius:8px; overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; text-align:left;">
+        <thead>
+            <tr style="background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+                <th style="padding:14px 16px; font-size:13px; color:#6b7280; font-weight:600; text-transform:uppercase;">Micro-área</th>
+                <th style="padding:14px 16px; font-size:13px; color:#6b7280; font-weight:600; text-transform:uppercase;">ACS Responsável</th>
+                <th style="padding:14px 16px; font-size:13px; color:#6b7280; font-weight:600; text-transform:uppercase;">Status da Ficha</th>
+                <th style="padding:14px 16px; font-size:13px; color:#6b7280; font-weight:600; text-transform:uppercase; text-align:center;">Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in lista_painel %}
+            <tr style="border-bottom:1px solid #e5e7eb; transition:background 0.15s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='transparent'">
+                
+                <td style="padding:14px 16px; font-weight:700; color:#111827; font-size:15px;">
+                    {{ item.microarea.codigo }}
+                </td>
+                
+                <td style="padding:14px 16px; color:#4b5563; font-size:14px;">
+                    {{ item.microarea.responsavel.user.get_full_name|default:"<span style='color:#dc2626; font-size:12px;'>Sem profissional vinculado</span>"|safe }}
+                </td>
+                
+                <td style="padding:14px 16px;">
+                    {% if item.status == 'preenchido' %}
+                        <span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:700;">
+                            ✅ Entregue
+                        </span>
+                    {% else %}
+                        <span style="background:#fef08a; color:#854d0e; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:700;">
+                            ⏳ Pendente
+                        </span>
+                    {% endif %}
+                </td>
+                
+                <td style="padding:14px 16px; text-align:center;">
+                    <!-- Ação dinâmica recebendo o mês e ano do filtro! -->
+                    <a href="{% url 'territorializacao:ficha_ssa2_preencher' item.microarea.id %}?mes={{ mes_filtro }}&ano={{ ano_filtro }}" 
+                       style="display:inline-block; padding:8px 16px; border-radius:6px; text-decoration:none; font-weight:600; font-size:13px; transition:opacity 0.2s;
+                       {% if item.status == 'preenchido' %} background:#f3f4f6; color:#374151; border:1px solid #d1d5db; {% else %} background:var(--verde); color:white; {% endif %}">
+                        {% if item.status == 'preenchido' %}👁️ Revisar / Editar{% else %}📝 Preencher Ficha{% endif %}
+                    </a>
+                </td>
+                
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align:center; padding:3rem; color:#6b7280;">
+                    <span style="font-size:24px; display:block; margin-bottom:10px;">🗺️</span>
+                    Nenhuma micro-área cadastrada na USF.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

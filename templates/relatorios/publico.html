@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% block titulo %}Transparência — {{ usf.nome }}{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho ───────────────────────────────────── #}
+<div style="margin-bottom:1.5rem;">
+    <h1 style="font-size:20px; font-weight:600; margin:0 0 4px;">
+        📊 Transparência — Encaminhamentos
+    </h1>
+    <p style="font-size:13px; color:#6b7280; margin:0;">
+        {% if usf %}{{ usf.nome }}{% endif %}
+        {% if usf.municipio %} · {{ usf.municipio }}{% endif %}
+        · Dados públicos de desempenho da unidade
+    </p>
+</div>
+
+{# ── Aviso + link para análise completa ─────────────── #}
+<div style="background:#f0fdf4; border:1px solid #86efac;
+            border-radius:8px; padding:12px 16px;
+            margin-bottom:1.5rem; font-size:13px; color:#166534;
+            display:flex; align-items:center;
+            justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <span>
+        ℹ️ Dados agregados — nenhuma informação pessoal de pacientes é exibida.
+    </span>
+    {% if not user.is_authenticated %}
+        <a href="{% url 'core:login' %}"
+           style="color:var(--verde); font-weight:500; white-space:nowrap;">
+            🔐 Login para análise completa →
+        </a>
+    {% else %}
+        <a href="{% url 'relatorios:interno' %}"
+           style="color:var(--verde); font-weight:500; white-space:nowrap;">
+            📈 Ver análise completa →
+        </a>
+    {% endif %}
+</div>
+
+{# ── Filtro de período ───────────────────────────── #}
+<form method="get" style="margin-bottom:1.5rem;">
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:14px 16px;
+                display:flex; gap:12px; align-items:flex-end;
+                flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; min-width:150px;">
+            <label style="font-size:13px; font-weight:500;">Data inicial</label>
+            <input type="date" name="data_inicio"
+                   value="{{ data_inicio }}" class="form-input">
+        </div>
+        <div class="form-group" style="flex:1; min-width:150px;">
+            <label style="font-size:13px; font-weight:500;">Data final</label>
+            <input type="date" name="data_fim"
+                   value="{{ data_fim }}" class="form-input">
+        </div>
+        <button type="submit" class="btn btn-verde">Filtrar</button>
+        <a href="{% url 'relatorios:publico' %}" class="btn btn-cinza">Limpar</a>
+    </div>
+</form>
+
+{# ── Cards de totais ─────────────────────────────── #}
+<div style="display:grid; grid-template-columns:repeat(3,1fr);
+            gap:12px; margin-bottom:2rem;">
+
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:1.25rem; text-align:center;">
+        <p style="font-size:32px; font-weight:700;
+                   color:var(--verde); margin:0;">
+            {{ total_periodo }}
+        </p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">
+            encaminhamentos no período
+        </p>
+    </div>
+
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:1.25rem; text-align:center;">
+        <p style="font-size:32px; font-weight:700;
+                   color:{% if acima_periodo > 0 %}#ef4444{% else %}var(--verde){% endif %};
+                   margin:0;">
+            {{ acima_periodo }}
+        </p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">
+            demanda reprimida
+        </p>
+        {% if total_periodo > 0 and acima_periodo > 0 %}
+            {% widthratio acima_periodo total_periodo 100 as pct_acima %}
+            <p style="font-size:11px; color:#ef4444; margin:2px 0 0;">
+                {{ pct_acima }}% do total
+            </p>
+        {% endif %}
+    </div>
+
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:1.25rem; text-align:center;">
+        <p style="font-size:32px; font-weight:700;
+                   color:#6b7280; margin:0;">
+            {{ tempo_por_tipo|length }}
+        </p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">
+            especialidades monitoradas
+        </p>
+    </div>
+
+</div>
+
+{# ── Evolução mensal ─────────────────────────────── #}
+<h2 style="font-size:14px; font-weight:600; color:#374151;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:1rem;">
+    Evolução mensal
+</h2>
+<div style="background:white; border:1px solid #e5e7eb;
+            border-radius:8px; padding:16px; margin-bottom:2rem;">
+    <div style="position:relative; height:260px;">
+        <canvas id="grafico-mensal"></canvas>
+    </div>
+</div>
+
+{# ── Encaminhamentos por especialidade ───────────── #}
+<h2 style="font-size:14px; font-weight:600; color:#374151;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:1rem;">
+    Encaminhamentos por especialidade
+</h2>
+
+{% if total_por_tipo %}
+    <div style="margin-bottom:2rem;">
+        {% for item in total_por_tipo %}
+        <div style="background:white; border:1px solid #e5e7eb;
+                    border-radius:8px; padding:14px 16px;
+                    margin-bottom:8px;">
+            <div style="display:flex; align-items:center;
+                        justify-content:space-between;
+                        margin-bottom:8px; gap:12px;">
+                <p style="font-size:14px; font-weight:500;
+                           margin:0; flex:1;">
+                    {{ item.tipo.nome }}
+                </p>
+                <div style="display:flex; align-items:center;
+                            gap:12px; flex-shrink:0;">
+                    <span style="font-size:13px; color:#6b7280;">
+                        <strong style="color:#111827;">{{ item.total }}</strong>
+                        no período
+                    </span>
+                    {% if item.acima > 0 %}
+                        <span style="font-size:12px; padding:2px 10px;
+                                     border-radius:20px; background:#fef2f2;
+                                     color:#dc2626;">
+                            +{{ item.acima }} reprimida
+                        </span>
+                    {% else %}
+                        <span style="font-size:12px; padding:2px 10px;
+                                     border-radius:20px; background:#f0fdf4;
+                                     color:#166534;">
+                            ✓ Dentro da cota
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Barra proporcional ao total #}
+            {% if total_periodo > 0 %}
+                {% widthratio item.total total_periodo 100 as pct_tipo %}
+                <div style="height:6px; background:#f3f4f6;
+                            border-radius:3px; overflow:hidden;">
+                    <div style="width:{{ pct_tipo }}%; height:100%;
+                                background:{% if item.acima > 0 %}#ef4444{% else %}var(--verde){% endif %};
+                                border-radius:3px;">
+                    </div>
+                </div>
+                <p style="font-size:11px; color:#9ca3af; margin:4px 0 0;">
+                    {{ pct_tipo }}% do total de encaminhamentos no período
+                </p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:2rem; text-align:center;
+                margin-bottom:2rem; color:#9ca3af;">
+        Nenhum dado no período selecionado.
+    </div>
+{% endif %}
+
+{# ── Tempo médio de espera ───────────────────────── #}
+{% if tempo_por_tipo %}
+<h2 style="font-size:14px; font-weight:600; color:#374151;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:1rem;">
+    Tempo médio de espera
+</h2>
+<div style="margin-bottom:2rem;">
+    {% for item in tempo_por_tipo %}
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:14px 16px;
+                margin-bottom:8px; display:flex;
+                align-items:center; gap:16px;">
+
+        {# Semáforo visual #}
+        <div style="width:12px; height:12px; border-radius:50%; flex-shrink:0;
+                    background:{% if item.media_dias > 30 %}#ef4444
+                               {% elif item.media_dias > 15 %}#f59e0b
+                               {% else %}#22c55e{% endif %};">
+        </div>
+
+        <p style="font-size:14px; font-weight:500; margin:0; flex:1;">
+            {{ item.tipo.nome }}
+        </p>
+
+        <div style="text-align:right; flex-shrink:0;">
+            <p style="font-size:18px; font-weight:700; margin:0;
+                       color:{% if item.media_dias > 30 %}#ef4444
+                             {% elif item.media_dias > 15 %}#f59e0b
+                             {% else %}var(--verde){% endif %};">
+                {{ item.media_dias }} dias
+            </p>
+            <p style="font-size:11px; color:#9ca3af; margin:0;">
+                média de espera
+            </p>
+        </div>
+    </div>
+    {% endfor %}
+
+    {# Legenda do semáforo #}
+    <div style="display:flex; gap:16px; font-size:12px;
+                color:#6b7280; margin-top:8px; flex-wrap:wrap;">
+        <span>🟢 Até 15 dias — adequado</span>
+        <span>🟡 16 a 30 dias — atenção</span>
+        <span>🔴 Acima de 30 dias — crítico</span>
+    </div>
+</div>
+{% endif %}
+
+{# ── Rodapé ──────────────────────────────────────── #}
+<div style="text-align:center; padding:1.5rem 1rem 0.5rem;
+            font-size:12px; color:#9ca3af;
+            border-top:1px solid #f3f4f6; margin-top:1rem;">
+    Dados atualizados em tempo real · {{ usf.nome }}
+    {% if usf.municipio %} · {{ usf.municipio }}{% endif %}
+    · Período: {{ data_inicio }} a {{ data_fim }}
+</div>
+
+{# ── JavaScript ──────────────────────────────────── #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script>
+Chart.register(ChartDataLabels);
+
+document.addEventListener('DOMContentLoaded', function() {
+    const labels = [
+        {% for mes in evolucao_mensal %}
+            "{{ mes.mes_label }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    const dadosTotais = [
+        {% for mes in evolucao_mensal %}
+            {{ mes.total }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    const dadosAcima = [
+        {% for mes in evolucao_mensal %}
+            {{ mes.acima }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    const dadosDentro = [
+        {% for mes in evolucao_mensal %}
+            {{ mes.dentro }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const ctx = document.getElementById('grafico-mensal');
+    if (ctx) {
+        new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Dentro da cota',
+                        data: dadosDentro,
+                        backgroundColor: 'rgba(26,122,76,0.7)',
+                        borderColor: '#1a7a4c',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'total',
+                    },
+                    {
+                        label: 'Demanda reprimida',
+                        data: dadosAcima,
+                        backgroundColor: 'rgba(239,68,68,0.7)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'total',
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { size:12 },
+                            padding: 12,
+                            usePointStyle: true
+                        }
+                    },
+                    datalabels: {
+                        // Mostra só o total no topo da barra empilhada
+                        display: function(context) {
+                            // Só mostra no último dataset (topo da pilha)
+                            return context.datasetIndex === 1 &&
+                                   (dadosTotais[context.dataIndex] > 0);
+                        },
+                        anchor: 'end',
+                        align: 'end',
+                        font: { size:11, weight:'600' },
+                        color: '#374151',
+                        formatter: function(value, context) {
+                            // Mostra o total, não o valor do dataset
+                            return dadosTotais[context.dataIndex];
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, stacked: true },
+                    y: {
+                        beginAtZero: true,
+                        grace: '15%',
+                        stacked: true,
+                        ticks: { stepSize:1, precision:0 },
+                        grid: { color: '#f3f4f6' }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

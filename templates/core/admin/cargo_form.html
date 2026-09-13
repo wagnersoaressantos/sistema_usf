@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'core:admin_cargos' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card" style="margin-bottom:1rem;">
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome do cargo *</label>
+            <input type="text" name="nome" class="form-input"
+                   value="{{ cargo.nome|default:'' }}"
+                   placeholder="Ex: Agente Comunitário de Saúde">
+        </div>
+
+        <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not cargo or cargo.ativo %}checked{% endif %}>
+                Cargo ativo
+            </label>
+        </div>
+
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a href="{% url 'core:admin_cargos' %}" class="btn btn-cinza">Cancelar</a>
+        <button type="submit" class="btn btn-verde">{{ acao }}</button>
+    </div>
+</form>
+
+{% endblock %}

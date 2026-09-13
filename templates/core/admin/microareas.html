@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block titulo %}Micro-áreas{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:painel_admin' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <h1 class="page-title" style="margin:0;">🗺️ Micro-áreas</h1>
+    </div>
+    <a href="{% url 'core:admin_microarea_criar' %}" class="btn btn-verde">
+        ➕ Nova micro-área
+    </a>
+</div>
+
+<div class="card">
+    {% if microareas %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>USF</th>
+                    <th>Responsável</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ma in microareas %}
+                <tr>
+                    <td><strong>{{ ma.codigo }}</strong></td>
+                    <td>{{ ma.usf.nome }}</td>
+                    <td>
+                        {% if ma.responsavel %}
+                            {{ ma.responsavel.user.get_full_name }}
+                            <span style="font-size:11px; color:#9ca3af;">
+                                · {{ ma.responsavel.cargo.nome }}
+                            </span>
+                        {% else %}
+                            <span style="color:#dc2626; font-size:13px;">
+                                ⚠️ Fora de área
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ma.ativo %}
+                            <span class="badge badge-verde">Ativa</span>
+                        {% else %}
+                            <span class="badge" style="background:#f3f4f6;color:#6b7280;">
+                                Inativa
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'core:admin_microarea_editar' ma.pk %}"
+                           style="color:var(--verde); font-size:13px;">
+                            Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color:#9ca3af; text-align:center; padding:2rem;">
+            Nenhuma micro-área cadastrada.
+        </p>
+    {% endif %}
+</div>
+
+{% endblock %}

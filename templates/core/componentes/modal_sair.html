@@ -1,0 +1,53 @@
+{# core/templates/core/componentes/modal_sair.html #}
+{# COMPONENTE ISOLADO: MODAL DE CONFIRMAÇÃO DE LOGOUT #}
+{# ══ MODAL DE CONFIRMAÇÃO DE SAÍDA ══════════════════ #}
+      {# Aparece quando o usuário clica em "Sair". #}
+      {# Começa invisível (display:none). #}
+      {# O JavaScript muda para display:flex para mostrar. #}
+{# ════════════════════════════════════════════════════ #}
+
+<div id="modal-sair"
+     style="display:none;
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,0.5);
+            z-index:200;
+            align-items:center;
+            justify-content:center;">
+
+    {# Caixa Branca Centralizada (O conteúdo do Modal) #}
+    <div style="background:white;
+                border-radius:12px;
+                padding:2rem;
+                max-width:360px;
+                width:90%;
+                text-align:center;
+                box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+
+        {# Emoji indicativo #}
+        <div style="font-size:40px;margin-bottom:12px;">🚪</div>
+
+        <h3 style="font-size:17px;font-weight:600;color:#1f2937;margin-bottom:8px;">
+            Deseja realmente sair?
+        </h3>
+
+        <p style="font-size:13px;color:#6b7280;margin-bottom:1.5rem;">
+            Você será desconectado do sistema.<br>
+            Certifique-se de ter salvo tudo antes de sair.
+        </p>
+
+        {# Botões de Ação do Modal #}
+        <div style="display:flex;gap:10px;justify-content:center;">
+            {# Cancelar — apenas executa a função JS que esconde o modal #}
+            <button onclick="fecharModalSair()" class="btn btn-cinza">
+                Cancelar
+            </button>
+            
+            {# Confirmar — navega para a rota real de logout do Django #}
+            <a href="{% url 'core:logout' %}" class="btn btn-verde">
+                Sim, sair
+            </a>
+        </div>
+
+    </div>
+</div>

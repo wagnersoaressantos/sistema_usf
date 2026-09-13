@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block titulo %}Nova Demanda Espontânea{% endblock %}
+
+{% block conteudo %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+        <a href="{% url 'recepcao:painel' %}" style="color:#6366f1; text-decoration:none; font-size:24px; font-weight:bold;">←</a>
+        <h1 style="font-size:20px; font-weight:700; color:#111827; margin:0;">
+            ➕ Nova Demanda Espontânea
+        </h1>
+    </div>
+
+    <div class="card" style="background:white; border:1px solid #d1d5db; border-radius:8px; padding:24px;">
+        <p style="font-size:13px; color:#6b7280; margin-top:0; margin-bottom:20px;">
+            Preencha os dados abaixo para inserir o paciente imediatamente na Fila de Triagem.
+        </p>
+
+        <form method="post" id="form-fila">
+            {% csrf_token %}
+            
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                
+                <div>
+                    <label style="font-size:13px; font-weight:600; color:#374151;">🧑 Paciente</label>
+                    
+                    <div style="display:none;">{{ form.paciente }}</div>
+                    
+                    <div style="position:relative; margin-top:4px;">
+                        <input type="text" id="busca-paciente-input" placeholder="🔍 Buscar paciente por nome, CPF ou SUS..." autocomplete="off"
+                               style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:14px; box-sizing:border-box;">
+                        
+                        <div id="resultados-busca" style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #d1d5db; border-radius:6px; z-index:1000; max-height:200px; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin-top:4px;"></div>
+                    </div>
+
+                    <div id="paciente-selecionado" style="display:none; margin-top:8px; padding:10px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:14px; color:#166534; font-weight:600;">✅ <span id="nome-selecionado"></span></span>
+                        <button type="button" id="btn-trocar-paciente" style="background:none; border:none; color:#dc2626; font-size:12px; cursor:pointer; font-weight:bold;">Trocar</button>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                    <div>
+                        <label style="font-size:13px; font-weight:600; color:#374151;">🩺 Motivo / Tipo</label>
+                        {{ form.tipo }}
+                    </div>
+                    <div>
+                        <label style="font-size:13px; font-weight:600; color:#374151;">⚠️ Prioridade</label>
+                        {{ form.prioridade }}
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="font-size:13px; font-weight:600; color:#374151;">🧑‍⚕️ Direcionar Profissional (Opcional)</label>
+                    {{ form.profissional }}
+                    <span style="font-size:11px; color:#9ca3af; display:block; margin-top:4px;">Deixe em branco se for para o próximo disponível.</span>
+                </div>
+            </div>
+
+            <div style="margin-top:24px; border-top:1px solid #e5e7eb; padding-top:16px; text-align:right;">
+                <button type="submit" id="btn-submit" class="btn btn-verde" style="font-size:14px; padding:8px 16px; cursor:pointer;" disabled>
+                    ✅ Colocar na Fila de Espera
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const campoBusca = document.getElementById('busca-paciente-input');
+    const resultados = document.getElementById('resultados-busca');
+    const selectDjango = document.getElementById('id_paciente'); // ID padrão gerado pelo Django
+    
+    const divSelecionado = document.getElementById('paciente-selecionado');
+    const spanNome = document.getElementById('nome-selecionado');
+    const btnTrocar = document.getElementById('btn-trocar-paciente');
+    const btnSubmit = document.getElementById('btn-submit');
+    
+    let timeout = null;
+
+    // Remove a exibição flex do div selecionado ao carregar a página
+    divSelecionado.style.display = 'none';
+
+    campoBusca.addEventListener('input', function() {
+        clearTimeout(timeout);
+        const termo = this.value.trim();
+
+        if (termo.length < 2) {
+            resultados.style.display = 'none';
+            return;
+        }
+
+        timeout = setTimeout(() => {
+            // Reaproveitando a rota que você já criou no módulo de encaminhamentos!
+            fetch(`{% url 'encaminhamentos:buscar_paciente' %}?q=${encodeURIComponent(termo)}`)
+                .then(r => r.json())
+                .then(pacientes => {
+                    resultados.innerHTML = '';
+
+                    if (pacientes.length === 0) {
+                        resultados.innerHTML = '<div style="padding:12px; color:#6b7280; font-size:13px;">Nenhum paciente encontrado.</div>';
+                    } else {
+                        pacientes.forEach(p => {
+                            const item = document.createElement('div');
+                            item.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:14px; border-bottom:1px solid #f3f4f6;';
+                            item.innerHTML = `<strong>${p.nome}</strong><br><span style="color:#6b7280; font-size:11px;">${p.cpf ? 'CPF: ' + p.cpf : ''} ${p.cartao_sus ? '· SUS: ' + p.cartao_sus : ''}</span>`;
+
+                            // A MÁGICA: Em vez de redirecionar, seleciona o paciente para o formulário!
+                            item.addEventListener('click', () => {
+                                selectDjango.value = p.id;
+                                spanNome.innerText = p.nome;
+                                
+                                campoBusca.style.display = 'none';
+                                resultados.style.display = 'none';
+                                divSelecionado.style.display = 'flex';
+                                btnSubmit.disabled = false; // Libera o botão de salvar
+                            });
+                            
+                            item.addEventListener('mouseenter', () => item.style.background = '#f9fafb');
+                            item.addEventListener('mouseleave', () => item.style.background = 'white');
+                            resultados.appendChild(item);
+                        });
+                    }
+                    resultados.style.display = 'block';
+                });
+        }, 300);
+    });
+
+    // Botão para trocar de paciente se errou
+    btnTrocar.addEventListener('click', function() {
+        selectDjango.value = '';
+        divSelecionado.style.display = 'none';
+        campoBusca.style.display = 'block';
+        campoBusca.value = '';
+        campoBusca.focus();
+        btnSubmit.disabled = true; // Bloqueia o botão de salvar novamente
+    });
+
+    // Fecha a lista se clicar fora
+    document.addEventListener('click', function(e) {
+        if (!campoBusca.contains(e.target) && !resultados.contains(e.target)) {
+            resultados.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,596 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Dashboard — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+
+{# ── Barra de atualização automática ── #}
+{% comment %}
+{#
+    Barra fina no topo da página que vai preenchendo
+    enquanto conta os 2 minutos até a próxima atualização.
+    Some na impressão pela classe no-print.
+#}
+{% endcomment %}
+<div class="no-print" style="margin-bottom:1rem;">
+
+    {# Container da barra de progresso #}
+    <div style="background:#f0f0f0;
+                border-radius:99px;
+                height:4px;
+                overflow:hidden;
+                margin-bottom:6px;">
+        {% comment %}
+        {#
+            A barra começa em 100% e vai diminuindo até 0%.
+            O JavaScript controla a largura via id="barra-progresso".
+        #}
+        {% endcomment %}
+        <div id="barra-progresso"
+             style="height:100%;
+                    width:100%;
+                    background:linear-gradient(90deg, #1a7a4c, #2e86ab);
+                    border-radius:99px;
+                    transition:width 1s linear;">
+        </div>
+    </div>
+
+    {# Texto com countdown e botão de atualizar agora #}
+    <div style="display:flex;align-items:center;
+                justify-content:space-between;">
+        <span style="font-size:11px;color:#9ca3af;">
+            🔄 Atualização automática em
+            <strong id="contador-texto" style="color:#6b7280;">2:00</strong>
+        </span>
+        <button onclick="atualizarAgora()"
+                style="font-size:11px;color:#1a7a4c;background:none;
+                       border:none;cursor:pointer;text-decoration:underline;
+                       padding:0;">
+            Atualizar agora
+        </button>
+    </div>
+
+</div>
+
+{# ── Cabeçalho com título e filtro de data ── #}
+<div style="display:flex;align-items:center;
+            justify-content:space-between;margin-bottom:1.5rem;
+            flex-wrap:wrap;gap:12px;">
+
+    <h1 class="page-title" style="margin:0;">
+        📈 <span>Dashboard</span>
+    </h1>
+
+    {# Filtro de data com visual melhorado #}
+    <form method="get" action="{% url 'mutirao:dashboard' %}"
+          style="display:flex;align-items:center;gap:8px;">
+
+        <div style="display:flex;align-items:center;gap:6px;
+                    background:white;border:1px solid #e5e7eb;
+                    border-radius:8px;padding:6px 12px;">
+            {# Ícone de calendário #}
+            <span style="font-size:14px;color:#6b7280;">📅</span>
+            <label style="font-size:12px;color:#6b7280;white-space:nowrap;">
+                Visualizando:
+            </label>
+            <input type="date"
+                   name="data"
+                   value="{{ data_filtro|default:hoje }}"
+                   style="border:none;outline:none;font-size:13px;
+                          color:#1f2937;background:transparent;cursor:pointer;">
+        </div>
+
+        <button type="submit" class="btn btn-verde"
+                style="padding:8px 16px;font-size:13px;">
+            Ver
+        </button>
+
+        {# Botão Hoje — volta para a data atual #}
+        {% if data_filtro and data_filtro != hoje|date:"Y-m-d" %}
+        <a href="{% url 'mutirao:dashboard' %}"
+           class="btn btn-cinza"
+           style="padding:8px 16px;font-size:13px;">
+            Hoje
+        </a>
+        {% endif %}
+
+    </form>
+</div>
+
+{# ── Indicador do período sendo exibido ── #}
+<div style="margin-bottom:1.25rem;font-size:13px;color:#6b7280;">
+    {% if data_filtro %}
+        Exibindo dados de
+        <strong style="color:#1f2937;">
+            {{ data_escolhida|date:"d/m/Y" }}
+        </strong>
+        — {{ total_dia_filtrado }} atendimento{{ total_dia_filtrado|pluralize }}
+    {% else %}
+        Exibindo dados de
+        <strong style="color:#1f2937;">hoje,
+            {{ hoje|date:"d \d\e F \d\e Y" }}
+        </strong>
+        — {{ total_hoje }} atendimento{{ total_hoje|pluralize }}
+    {% endif %}
+</div>
+
+{# ── Cards de resumo — 6 cards em duas linhas de 3 ── #}
+<div style="display:grid;grid-template-columns:repeat(3,1fr);
+            gap:1rem;margin-bottom:1.5rem;">
+
+    {# Card 1 — Total geral #}
+    <div class="stat-card">
+        <div style="font-size:11px;font-weight:500;color:#6b7280;
+                    text-transform:uppercase;letter-spacing:.06em;
+                    margin-bottom:8px;">
+            Total geral
+        </div>
+        <div class="stat-num">{{ total_geral }}</div>
+        <div class="stat-label">todos os atendimentos</div>
+    </div>
+
+    {# Card 2 — Hoje #}
+    <div class="stat-card"
+         style="{% if not data_filtro %}border-color:#1a7a4c;{% endif %}">
+        <div style="font-size:11px;font-weight:500;color:#6b7280;
+                    text-transform:uppercase;letter-spacing:.06em;
+                    margin-bottom:8px;">
+            Hoje
+        </div>
+        <div class="stat-num" style="color:#1a7a4c;">{{ total_hoje }}</div>
+        <div class="stat-label">{{ hoje|date:"d/m/Y" }}</div>
+    </div>
+
+    {# Card 3 — Esta semana #}
+    <div class="stat-card">
+        <div style="font-size:11px;font-weight:500;color:#6b7280;
+                    text-transform:uppercase;letter-spacing:.06em;
+                    margin-bottom:8px;">
+            Esta semana
+        </div>
+        <div class="stat-num" style="color:#1a5276;">{{ total_semana }}</div>
+        <div class="stat-label">desde {{ inicio_semana|date:"d/m" }}</div>
+    </div>
+
+    {# Card 4 — Média por dia #}
+    <div class="stat-card">
+        <div style="font-size:11px;font-weight:500;color:#6b7280;
+                    text-transform:uppercase;letter-spacing:.06em;
+                    margin-bottom:8px;">
+            Média diária
+        </div>
+        <div class="stat-num" style="color:#d97706;">{{ media_dia }}</div>
+        <div class="stat-label">atendimentos por dia</div>
+    </div>
+
+    {# Card 5 — USFs ativas #}
+    <div class="stat-card">
+        <div style="font-size:11px;font-weight:500;color:#6b7280;
+                    text-transform:uppercase;letter-spacing:.06em;
+                    margin-bottom:8px;">
+            USFs ativas
+        </div>
+        <div class="stat-num" style="color:#7c3aed;">{{ total_usfs_ativas }}</div>
+        <div class="stat-label">unidades cadastradas</div>
+    </div>
+
+    {# Card 6 — Tipos realizados #}
+    <div class="stat-card">
+        <div style="font-size:11px;font-weight:500;color:#6b7280;
+                    text-transform:uppercase;letter-spacing:.06em;
+                    margin-bottom:8px;">
+            Tipos ativos
+        </div>
+        <div class="stat-num" style="color:#059669;">{{ total_tipos_ativos }}</div>
+        <div class="stat-label">tipos de atendimento</div>
+    </div>
+
+</div>
+
+{# ── Gráficos lado a lado ── #}
+<div style="display:grid;grid-template-columns:1.5fr 1fr;
+            gap:1.5rem;margin-bottom:1.5rem;">
+
+    {# Gráfico de barras horizontais — por tipo de atendimento #}
+    <div class="card">
+        <div class="card-title"
+            style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Atendimentos por tipo</span>
+            <span style="font-size:12px;color:#6b7280;font-weight:400;">
+                Total: {{ total_dia_filtrado|default:total_geral }}
+            </span>
+        </div>
+        {% comment %}
+        {#
+            height é definido dinamicamente pelo JavaScript
+            baseado na quantidade de tipos — cada barra tem ~36px.
+            Um canvas fixo ficaria muito vazio com poucos tipos
+            ou muito pequeno com muitos.
+        #}
+        {% endcomment %}
+        <canvas id="grafico-usf"></canvas>
+    </div>
+
+    {# Gráfico de rosca — por tipo #}
+    <div class="card">
+        <div class="card-title">Proporção por tipo</div>
+        <canvas id="grafico-tipo" height="260"></canvas>
+    </div>
+
+</div>
+
+{# ── Últimos atendimentos — sem identificação de pacientes ── #}
+<div class="card">
+    <div class="card-title"
+         style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Últimos 7 atendimentos registrados</span>
+        <a href="{% url 'mutirao:listar' %}"
+           style="font-size:12px;color:#1a7a4c;text-decoration:none;">
+            Ver todos →
+        </a>
+    </div>
+    <div class="tabela-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>USF</th>
+                    <th>Tipo de atendimento</th>
+                    <th>Horário</th>
+                    <th>Registrado por</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in ultimos %}
+                <tr>
+                    {# Número sequencial — não identifica o paciente #}
+                    <td style="color:#9ca3af;font-size:12px;">
+                        {{ forloop.counter }}
+                    </td>
+                    <td>{{ a.usf.nome|default:"—" }}</td>
+                    <td>
+                        <span class="badge badge-verde">
+                            {{ a.tipo_atendimento.nome|default:"—" }}
+                        </span>
+                    </td>
+                    <td style="font-size:12px;white-space:nowrap;">
+                        {# Só mostra a hora — não a data completa #}
+                        {{ a.criado_em|date:"H:i" }}
+                    </td>
+                    <td style="font-size:12px;color:#6b7280;">
+                        {{ a.criado_por.get_full_name|default:a.criado_por.username }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align:center;
+                                           padding:2rem;color:#9ca3af;">
+                        Nenhum atendimento registrado ainda.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── JavaScript dos gráficos ── #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    /*
+        Lemos os dados passados pela view Django.
+        O filtro |safe impede o Django de escapar
+        os colchetes e aspas do JSON.
+    */
+    const usfLabels       = {{ usf_labels|safe }};
+    const usfValores      = {{ usf_valores|safe }};
+    const usfPercentuais  = {{ usf_percentuais|safe }};
+    const tipoLabels      = {{ tipo_labels|safe }};
+    const tipoValores     = {{ tipo_valores|safe }};
+    const tipoPercentuais = {{ tipo_percentuais|safe }};
+
+    /* Paleta de cores para os gráficos */
+    const cores = [
+        '#1a7a4c', '#2e86ab', '#e84855', '#f9c74f',
+        '#90be6d', '#f3722c', '#577590', '#43aa8b',
+        '#f8961e', '#277da1', '#4d908e', '#f94144',
+    ];
+
+    /* ── Gráfico de barras horizontais — por tipo de atendimento ── */
+
+    /*
+        Ajusta a altura do canvas dinamicamente.
+        Cada barra ocupa ~36px + 40px de margem total.
+        Mínimo de 160px para não ficar muito pequeno.
+    */
+    const alturaBarras = Math.max(160, tipoLabels.length * 36 + 40);
+    document.getElementById('grafico-usf').height = alturaBarras;
+
+    new Chart(document.getElementById('grafico-usf'), {
+        /*
+            type: 'bar' com indexAxis: 'y' vira barras horizontais.
+            indexAxis define qual eixo é o índice (categorias).
+            Por padrão é 'x' (barras verticais).
+            Com 'y' as categorias ficam no eixo Y e as barras crescem para a direita.
+        */
+        type: 'bar',
+        data: {
+            labels: tipoLabels,
+            datasets: [{
+                label: 'Atendimentos',
+                data: tipoValores,
+                backgroundColor: tipoLabels.map((_, i) => cores[i % cores.length]),
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            /*
+                indexAxis: 'y' é a chave para barras horizontais.
+                Inverte os eixos — Y vira o eixo das categorias,
+                X vira o eixo dos valores.
+            */
+            indexAxis: 'y',
+            responsive: true,
+            /*
+                layout.padding.right reserva espaço para o texto
+                com o número e percentual ao lado de cada barra.
+            */
+            layout: {
+                padding: { right: 70 }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const valor = context.raw;
+                            const pct   = tipoPercentuais[context.dataIndex];
+                            return ` ${valor} atendimento${valor !== 1 ? 's' : ''} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        callback: v => Number.isInteger(v) ? v : ''
+                    },
+                    grid: { color: '#f0f0f0' }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 12 },
+                        /*
+                            Trunca nomes muito longos para não
+                            ocupar espaço demais no eixo Y.
+                        */
+                        callback: function(value, index) {
+                            const label = tipoLabels[index];
+                            return label.length > 20
+                                ? label.substring(0, 20) + '…'
+                                : label;
+                        }
+                    }
+                }
+            }
+        },
+        /*
+            Plugin para mostrar número e percentual
+            à direita de cada barra horizontal.
+        */
+        plugins: [{
+            afterDatasetsDraw(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((barra, index) => {
+                        const valor = dataset.data[index];
+                        const pct   = tipoPercentuais[index];
+                        if (valor === 0) return;
+
+                        ctx.save();
+                        ctx.fillStyle    = '#374151';
+                        ctx.font         = '11px Segoe UI, sans-serif';
+                        ctx.textAlign    = 'left';
+                        ctx.textBaseline = 'middle';
+                        /*
+                            barra.x = extremidade direita da barra.
+                            + 8px de espaço entre a barra e o texto.
+                            barra.y = centro vertical da barra.
+                        */
+                        ctx.fillText(`${valor} (${pct}%)`, barra.x + 8, barra.y);
+                        ctx.restore();
+                    });
+                });
+            }
+        }]
+    });
+
+    /* ── Gráfico de rosca — por tipo ── */
+    new Chart(document.getElementById('grafico-tipo'), {
+        type: 'doughnut',
+        data: {
+            labels: tipoLabels,
+            datasets: [{
+                data: tipoValores,
+                backgroundColor: cores,
+                borderWidth: 2,
+                borderColor: '#ffffff',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { size: 11 },
+                        padding: 10,
+                        /*
+                            Personaliza cada item da legenda para mostrar
+                            o nome + quantidade + percentual.
+                        */
+                        generateLabels: function(chart) {
+                            return chart.data.labels.map((label, i) => ({
+                                text: `${label.length > 18 ? label.substring(0,18)+'…' : label} — ${tipoValores[i]} (${tipoPercentuais[i]}%)`,
+                                fillStyle: chart.data.datasets[0].backgroundColor[i],
+                                index: i,
+                            }));
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const valor = context.raw;
+                            const pct   = tipoPercentuais[context.dataIndex];
+                            return ` ${valor} atendimento${valor !== 1 ? 's' : ''} — ${pct}%`;
+                        }
+                    }
+                }
+            }
+        },
+        /*
+            Plugin para mostrar percentual dentro de cada fatia da rosca.
+            Só mostra se a fatia for grande o suficiente (>= 5%).
+        */
+        plugins: [{
+            afterDatasetsDraw(chart) {
+                const ctx = chart.ctx;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((arco, index) => {
+                        const pct = tipoPercentuais[index];
+                        if (pct < 5) return; /* fatia pequena demais */
+
+                        /*
+                            Calcula o ponto central de cada fatia da rosca.
+                            arco.startAngle e arco.endAngle definem os ângulos.
+                            outerRadius e innerRadius definem o raio.
+                        */
+                        const angulo = (arco.startAngle + arco.endAngle) / 2;
+                        const raio   = (arco.outerRadius + arco.innerRadius) / 2;
+                        const x      = arco.x + Math.cos(angulo) * raio;
+                        const y      = arco.y + Math.sin(angulo) * raio;
+
+                        ctx.save();
+                        ctx.fillStyle    = 'white';
+                        ctx.font         = 'bold 11px Segoe UI, sans-serif';
+                        ctx.textAlign    = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(`${pct}%`, x, y);
+                        ctx.restore();
+                    });
+                });
+            }
+        }]
+    });
+</script>
+<script>
+    /*
+        Sistema de atualização automática.
+
+        INTERVALO_SEGUNDOS = tempo total entre cada atualização.
+        120 segundos = 2 minutos.
+        Pode mudar para qualquer valor — ex: 60 para 1 minuto.
+    */
+    const INTERVALO_SEGUNDOS = 120;
+
+    /*
+        segundosRestantes começa com o total e vai diminuindo
+        a cada segundo até chegar em 0, quando a página recarrega.
+    */
+    let segundosRestantes = INTERVALO_SEGUNDOS;
+
+    /* Referências aos elementos que vamos atualizar */
+    const barraProgresso = document.getElementById('barra-progresso');
+    const contadorTexto  = document.getElementById('contador-texto');
+
+    function atualizarAgora() {
+        /*
+            Recarrega a página imediatamente.
+            location.reload() é a forma mais simples —
+            recarrega com os mesmos parâmetros de URL (filtros mantidos).
+        */
+        location.reload();
+    }
+
+    function tick() {
+        /*
+            Essa função é chamada a cada 1 segundo pelo setInterval abaixo.
+            Ela atualiza o contador e a barra de progresso.
+        */
+        segundosRestantes--;
+
+        if (segundosRestantes <= 0) {
+            /* Chegou em zero — recarrega a página */
+            atualizarAgora();
+            return;
+        }
+
+        /* ── Atualiza o texto do contador ──────────────────
+           Converte segundos em formato MM:SS.
+           Math.floor(segundosRestantes / 60) = minutos inteiros
+           segundosRestantes % 60 = segundos restantes após os minutos
+        */
+        const minutos  = Math.floor(segundosRestantes / 60);
+        const segundos = segundosRestantes % 60;
+
+        /*
+            String(segundos).padStart(2, '0') garante dois dígitos.
+            Ex: 5 vira "05", 12 vira "12".
+        */
+        contadorTexto.textContent =
+            `${minutos}:${String(segundos).padStart(2, '0')}`;
+
+        /* ── Atualiza a largura da barra ───────────────────
+           Percentual = segundos restantes / total * 100
+           Começa em 100% e vai diminuindo até 0%.
+        */
+        const percentual = (segundosRestantes / INTERVALO_SEGUNDOS) * 100;
+        barraProgresso.style.width = `${percentual}%`;
+
+        /*
+            Muda a cor da barra conforme o tempo diminui:
+            - Verde (normal): acima de 30 segundos
+            - Laranja (atenção): entre 10 e 30 segundos
+            - Vermelho (urgente): abaixo de 10 segundos
+        */
+        if (segundosRestantes <= 10) {
+            barraProgresso.style.background = '#dc2626';
+        } else if (segundosRestantes <= 30) {
+            barraProgresso.style.background = '#d97706';
+        } else {
+            barraProgresso.style.background =
+                'linear-gradient(90deg, #1a7a4c, #2e86ab)';
+        }
+    }
+
+    /*
+        setInterval(função, milissegundos) chama a função
+        repetidamente a cada X milissegundos.
+        1000ms = 1 segundo.
+        Guardamos o ID do intervalo para poder cancelá-lo se necessário.
+    */
+    const intervalo = setInterval(tick, 1000);
+
+    /*
+        Pausa a atualização automática quando o usuário
+        passa o mouse sobre a página.
+        Evita recarregar enquanto o usuário está lendo os dados.
+    */
+    document.addEventListener('mouseover', function pausar() {
+        /*
+            Aqui apenas salvamos o estado de "pausado".
+            Não cancelamos o intervalo — só ignoramos o tick
+            enquanto o mouse estiver sobre a página.
+        */
+    });
+
+</script>
+
+{% endblock %}

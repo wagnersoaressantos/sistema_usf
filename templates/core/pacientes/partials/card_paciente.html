@@ -1,0 +1,370 @@
+{% comment %}
+Partial reutilizável para exibir dados do paciente.
+
+Modos de exibição controlados pela variável 'modo':
+- 'compacto'  → nome, idade, micro-área, ícones das condições
+               Usado em: fila_tipo.html, card_encaminhamento.html
+- 'medio'     → compacto + contato + histórico familiar
+               Usado em: detalhe.html
+- 'completo'  → tudo + vínculo + editar
+               Usado em: paciente.html
+
+Uso:
+{% include 'core/pacientes/partials/card_paciente.html' with paciente=enc.paciente modo='compacto' %}
+{% include 'core/pacientes/partials/card_paciente.html' with paciente=paciente modo='completo' %}
+{% endcomment %}
+
+{% with condicoes_ativas=paciente.condicoes.all %}
+
+{# ══ MODO COMPACTO ══════════════════════════════════ #}
+{% if modo == 'compacto' %}
+
+<div style="display:flex; align-items:flex-start;
+            justify-content:space-between; gap:8px;">
+    <div style="flex:1;">
+
+        {# Nome + badge óbito + badge responsável #}
+        <p style="font-size:14px; font-weight:600;
+                margin:0 0 2px; color:#111827;">
+            {% with partes=paciente.nome.split %}
+                {{ partes.0 }}
+                {% if partes|length > 1 %} {{ partes.1|first }}.{% endif %}
+            {% endwith %}
+            {% if paciente.obito %}
+                <span style="font-size:10px; background:#1f2937;
+                            color:white; padding:1px 6px;
+                            border-radius:20px; margin-left:4px;">
+                    🪦
+                </span>
+            {% endif %}
+            {% if paciente.responsavel_familiar %}
+                <span style="font-size:10px; background:#f0fdf4;
+                            color:var(--verde); padding:1px 6px;
+                            border-radius:20px; margin-left:4px;
+                            border:1px solid #86efac;">
+                    🏠 Resp.
+                </span>
+            {% endif %}
+        </p>
+
+        {# Idade · sexo · micro-área #}
+        <p style="font-size:12px; color:#6b7280; margin:0 0 4px;">
+            {% if paciente.idade %}{{ paciente.idade }} ano{{ paciente.idade|pluralize }}{% endif %}
+            {% if paciente.sexo != 'I' %} · {{ paciente.get_sexo_display }}{% endif %}
+            {% if paciente.micro_area %}
+                · M.A {{ paciente.micro_area.codigo }}
+            {% else %}
+                · <span style="color:#dc2626;">⚠️ Fora de área</span>
+            {% endif %}
+        </p>
+
+        {# Condições — só ícones para economizar espaço #}
+        {% if condicoes_ativas %}
+        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            {% for pc in condicoes_ativas %}
+                {% if pc.ativa %}
+                <span title="{{ pc.condicao.nome }}"
+                      style="font-size:12px; padding:2px 7px;
+                             border-radius:20px; background:#f0fdf4;
+                             color:#166534; border:1px solid #bbf7d0;">
+                    {{ pc.condicao.icone }} {{ pc.condicao.nome }}
+                </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{# ══ MODO MÉDIO ═════════════════════════════════════ #}
+{% elif modo == 'medio' %}
+
+<div style="background:#f9fafb; border:1px solid #e5e7eb;
+            border-radius:8px; padding:14px 16px;">
+
+    <div style="display:flex; align-items:flex-start;
+                justify-content:space-between; gap:12px;
+                margin-bottom:{% if condicoes_ativas or paciente.historico_familiar.exists %}10px{% else %}0{% endif %};">
+        <div>
+            {# Nome + badge óbito + badge responsável #}
+            <p style="font-size:15px; font-weight:600; margin:0 0 2px;">
+                {{ paciente.nome }}
+                {% if paciente.obito %}
+                    <span style="font-size:11px; background:#1f2937;
+                                color:white; padding:2px 8px;
+                                border-radius:20px; margin-left:6px;">
+                        🪦 Óbito{% if paciente.data_obito %} · {{ paciente.data_obito|date:"d/m/Y" }}{% endif %}
+                    </span>
+                {% endif %}
+                {% if paciente.responsavel_familiar %}
+                    <span style="font-size:11px; background:#f0fdf4;
+                                color:var(--verde); padding:2px 8px;
+                                border-radius:20px; margin-left:6px;
+                                border:1px solid #86efac;">
+                        🏠 Responsável familiar
+                    </span>
+                {% endif %}
+            </p>
+
+            {# Linha de identificação #}
+            <p style="font-size:12px; color:#6b7280; margin:0;">
+                {% if paciente.cpf %}CPF: {{ paciente.cpf }}{% endif %}
+                {% if paciente.cartao_sus %} · SUS: {{ paciente.cartao_sus }}{% endif %}
+                {% if paciente.idade %} · {{ paciente.idade }} anos{% endif %}
+                {% if paciente.sexo != 'I' %} · {{ paciente.get_sexo_display }}{% endif %}
+            </p>
+        </div>
+
+        {# Link para a página do paciente #}
+        <a href="{% url 'encaminhamentos:paciente' paciente.pk %}"
+           style="font-size:12px; color:var(--verde);
+                  text-decoration:none; white-space:nowrap; flex-shrink:0;">
+            Ver todos os encaminhamentos →
+        </a>
+    </div>
+
+    {# Micro-área #}
+    <p style="font-size:12px; color:#6b7280; margin:0 0 8px;">
+        {% if paciente.micro_area %}
+            📍 Micro-área {{ paciente.micro_area.codigo }}
+            {% if paciente.micro_area.responsavel %}
+                · {{ paciente.micro_area.responsavel.user.get_full_name }}
+            {% endif %}
+        {% else %}
+            <span style="color:#dc2626;">⚠️ Fora de área</span>
+        {% endif %}
+        {% if paciente.telefone %} · 📱 {{ paciente.telefone }}{% endif %}
+    </p>
+
+    {# Condições de saúde #}
+    {% if condicoes_ativas %}
+    <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;">
+        {% for pc in condicoes_ativas %}
+            {% if pc.ativa %}
+            <span style="font-size:12px; padding:3px 10px;
+                         border-radius:20px; background:#f0fdf4;
+                         color:#166534; border:1px solid #bbf7d0;">
+                {{ pc.condicao.icone }} {{ pc.condicao.nome }}
+                {% if pc.condicao.codigo == 'gestante' and pc.data_referencia %}
+                    · parto {{ pc.data_referencia|date:"d/m/Y" }}
+                {% endif %}
+            </span>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Histórico familiar — só se o tipo do enc tiver criterio_especial #}
+    {% if paciente.historico_familiar.exists %}
+    <div style="display:flex; flex-wrap:wrap; gap:5px;">
+        {% for item in paciente.historico_familiar.all %}
+        <span style="font-size:12px; padding:3px 10px;
+                     border-radius:20px; background:#faf5ff;
+                     color:#6b21a8; border:1px solid #e9d5ff;">
+            🧬 {{ item.condicao }}
+            <span style="color:#a855f7; font-size:11px;">
+                · {{ item.get_grau_parentesco_display }}
+            </span>
+        </span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+{# ══ MODO COMPLETO ══════════════════════════════════ #}
+{% elif modo == 'completo' %}
+
+<div class="card" style="margin-bottom:1.5rem;">
+
+    <div style="display:grid; grid-template-columns:1fr 1fr;
+                gap:1rem; margin-bottom:1rem;">
+
+        {# Identificação #}
+        <div>
+            <p style="font-size:12px; color:#9ca3af; margin:0 0 4px;">
+                Identificação
+            </p>
+            {% if paciente.cpf %}
+                <p style="font-size:13px; margin:0 0 2px;">
+                    CPF: {{ paciente.cpf }}
+                </p>
+            {% endif %}
+            {% if paciente.cartao_sus %}
+                <p style="font-size:13px; margin:0 0 2px;">
+                    SUS: {{ paciente.cartao_sus }}
+                </p>
+            {% endif %}
+            {% if paciente.data_nascimento %}
+                <p style="font-size:13px; margin:0;">
+                    Nascimento: {{ paciente.data_nascimento|date:"d/m/Y" }}
+                    {% if paciente.idade %}({{ paciente.idade }} anos){% endif %}
+                </p>
+            {% endif %}
+            {% if paciente.sexo != 'I' %}
+                <p style="font-size:13px; margin:0;">
+                    {{ paciente.get_sexo_display }}
+                </p>
+            {% endif %}
+            {% if paciente.responsavel_familiar %}
+        <div style="margin-top:8px;">
+            <span style="font-size:12px; padding:3px 12px;
+                        border-radius:20px; background:#f0fdf4;
+                        color:var(--verde); border:1px solid #86efac;">
+                🏠 Responsável familiar
+                {% if paciente.cpf_responsavel %}
+                    · família {{ paciente.cpf_responsavel }}
+                {% endif %}
+            </span>
+        </div>
+        {% elif paciente.cpf_responsavel %}
+        <div style="margin-top:8px;">
+            <a href="{% url 'core:admin_pacientes' %}?familia={{ paciente.cpf_responsavel }}"
+            style="font-size:12px; padding:3px 12px;
+                    border-radius:20px; background:#f3f4f6;
+                    color:#6b7280; text-decoration:none;
+                    border:1px solid #e5e7eb;">
+                👨‍👩‍👧 Ver família
+            </a>
+        </div>
+        {% endif %}
+        </div>
+
+        {# Contato #}
+        <div>
+            <p style="font-size:12px; color:#9ca3af; margin:0 0 4px;">
+                Contato
+            </p>
+            {% if paciente.telefone %}
+                <p style="font-size:13px; margin:0 0 2px;">
+                    📱 {{ paciente.telefone }}
+                </p>
+            {% endif %}
+            {% if paciente.endereco %}
+                <p style="font-size:13px; margin:0;">
+                    📍 {{ paciente.endereco }}
+                    {% if paciente.numero %}, {{ paciente.numero }}{% endif %}
+                </p>
+            {% endif %}
+            {% if not paciente.telefone and not paciente.endereco %}
+                <p style="font-size:13px; color:#9ca3af; margin:0;">
+                    Não informado
+                </p>
+            {% endif %}
+        </div>
+
+        {# Vínculo #}
+        <div>
+            <p style="font-size:12px; color:#9ca3af; margin:0 0 4px;">
+                Vínculo
+            </p>
+            <p style="font-size:13px; margin:0 0 2px;">
+                {{ paciente.usf.nome }}
+            </p>
+            {% if paciente.micro_area %}
+                <p style="font-size:13px; margin:0;">
+                    Micro-área: {{ paciente.micro_area.codigo }}
+                    {% if paciente.micro_area.responsavel %}
+                        · {{ paciente.micro_area.responsavel.user.get_full_name }}
+                    {% endif %}
+                </p>
+            {% else %}
+                <p style="font-size:13px; color:#dc2626; margin:0;">
+                    ⚠️ Fora de área
+                </p>
+            {% endif %}
+        </div>
+
+        {# Óbito — só mostra se tiver #}
+        {% if paciente.obito %}
+        <div>
+            <p style="font-size:12px; color:#9ca3af; margin:0 0 4px;">
+                Óbito
+            </p>
+            <p style="font-size:13px; margin:0;">
+                🪦
+                {% if paciente.data_obito %}
+                    {{ paciente.data_obito|date:"d/m/Y" }}
+                {% else %}
+                    Data não informada
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+
+    </div>
+
+    {# Condições de saúde #}
+    {% if condicoes_ativas %}
+    <div style="border-top:1px solid #f3f4f6;
+                padding-top:1rem; margin-top:0.5rem;">
+        <p style="font-size:12px; color:#9ca3af; margin:0 0 8px;">
+            Condições de saúde
+        </p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            {% for pc in condicoes_ativas %}
+                {% if pc.ativa %}
+                <span style="font-size:12px; padding:3px 12px;
+                             border-radius:20px; background:#f0fdf4;
+                             color:#166534; border:1px solid #bbf7d0;">
+                    {{ pc.condicao.icone }} {{ pc.condicao.nome }}
+                    {% if pc.condicao.codigo == 'gestante' and pc.data_referencia %}
+                        · parto {{ pc.data_referencia|date:"d/m/Y" }}
+                    {% endif %}
+                    {% if pc.condicao.codigo == 'gestante' and paciente.condicao_maternal %}
+                        · {{ paciente.get_condicao_maternal_display }}
+                    {% endif %}
+                </span>
+                {% endif %}
+            {% endfor %}
+            {# Condições encerradas em cinza #}
+            {% for pc in condicoes_ativas %}
+                {% if not pc.ativa %}
+                <span style="font-size:12px; padding:3px 12px;
+                             border-radius:20px; background:#f3f4f6;
+                             color:#9ca3af; text-decoration:line-through;">
+                    {{ pc.condicao.icone }} {{ pc.condicao.nome }}
+                </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# Histórico familiar #}
+    {% with hf=paciente.historico_familiar.all %}
+    {% if hf %}
+    <div style="border-top:1px solid #f3f4f6;
+                padding-top:1rem; margin-top:1rem;">
+        <p style="font-size:12px; color:#9ca3af; margin:0 0 8px;">
+            🧬 Histórico familiar
+        </p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            {% for item in hf %}
+            <span style="font-size:12px; padding:3px 12px;
+                         border-radius:20px; background:#faf5ff;
+                         color:#6b21a8; border:1px solid #e9d5ff;">
+                {{ item.condicao }}
+                <span style="color:#a855f7; font-size:11px;">
+                    · {{ item.get_grau_parentesco_display }}
+                </span>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {# Link para editar #}
+    <div style="border-top:1px solid #f3f4f6; padding-top:1rem;
+                margin-top:1rem; text-align:right;">
+        <a href="{% url 'core:admin_paciente_editar' paciente.pk %}?next={{ request.get_full_path|urlencode }}" style="font-size:13px; color:var(--verde); text-decoration:none;">
+            ✏️ Editar dados do paciente →
+        </a>
+    </div>
+
+</div>
+
+{% endif %}
+{% endwith %}

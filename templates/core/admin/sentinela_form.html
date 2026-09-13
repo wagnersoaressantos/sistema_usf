@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'core:admin_sentinelas' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:1rem;">
+        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
+            Identificação
+        </h2>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome *</label>
+            <input type="text" name="nome" class="form-input"
+                   value="{{ sentinela.nome|default:'' }}"
+                   placeholder="Ex: Analfabetismo, Moradia precária">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Código *
+                <span style="font-size:12px; color:#9ca3af;">
+                    (sem espaços, não altere após criado)
+                </span>
+            </label>
+            <input type="text" name="codigo" class="form-input"
+                   value="{{ sentinela.codigo|default:'' }}"
+                   placeholder="Ex: analfabetismo, moradia_precaria">
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+            <div class="form-group" style="flex:2;">
+                <label>Tipo *</label>
+                <select name="tipo" id="select-tipo" class="form-input"
+                        onchange="atualizarCampos()">
+                    {% for valor, label in tipos %}
+                        <option value="{{ valor }}"
+                            {% if sentinela and sentinela.tipo == valor %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Peso (pontos) *</label>
+                <input type="number" name="peso" class="form-input"
+                       min="1" max="10"
+                       value="{{ sentinela.peso|default:'1' }}">
+            </div>
+        </div>
+
+        {# Condição de saúde — só para tipo='condicao' #}
+        <div id="bloco-condicao"
+             style="display:{% if sentinela and sentinela.tipo == 'condicao' %}block{% else %}none{% endif %};
+                    margin-bottom:1rem;">
+            <div class="form-group">
+                <label>Condição de saúde vinculada</label>
+                <select name="condicao_saude" class="form-input">
+                    <option value="">Selecione...</option>
+                    {% for c in condicoes %}
+                        <option value="{{ c.pk }}"
+                            {% if sentinela and sentinela.condicao_saude_id == c.pk %}selected{% endif %}>
+                            {{ c.icone }} {{ c.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {# Faixa etária — só para tipo='idade' #}
+        <div id="bloco-idade"
+             style="display:{% if sentinela and sentinela.tipo == 'idade' %}flex{% else %}none{% endif %};
+                    gap:1rem; margin-bottom:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>Idade mínima</label>
+                <input type="number" name="idade_minima" class="form-input"
+                       min="0" max="120"
+                       value="{{ sentinela.idade_minima|default:'' }}"
+                       placeholder="Ex: 0">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Idade máxima</label>
+                <input type="number" name="idade_maxima" class="form-input"
+                       min="0" max="120"
+                       value="{{ sentinela.idade_maxima|default:'' }}"
+                       placeholder="Deixe vazio para sem limite">
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Observação</label>
+            <textarea name="observacao" class="form-input" rows="2"
+                      placeholder="Explica o critério e como identificá-lo">{{ sentinela.observacao|default:'' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label style="display:flex; align-items:center;
+                           gap:8px; cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not sentinela or sentinela.ativo %}checked{% endif %}>
+                Sentinela ativa
+            </label>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a href="{% url 'core:admin_sentinelas' %}" class="btn btn-cinza">
+            Cancelar
+        </a>
+        <button type="submit" class="btn btn-verde">{{ acao }}</button>
+    </div>
+</form>
+
+<script>
+function atualizarCampos() {
+    const tipo = document.getElementById('select-tipo').value;
+    document.getElementById('bloco-condicao').style.display =
+        tipo === 'condicao' ? 'block' : 'none';
+    document.getElementById('bloco-idade').style.display =
+        tipo === 'idade' ? 'flex' : 'none';
+}
+</script>
+
+{% endblock %}

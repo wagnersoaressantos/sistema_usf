@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block titulo %}Sentinelas de Risco{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:painel_admin' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <h1 class="page-title" style="margin:0;">⚠️ Sentinelas de Risco</h1>
+    </div>
+    <a href="{% url 'core:admin_sentinela_criar' %}" class="btn btn-verde">
+        ➕ Nova sentinela
+    </a>
+</div>
+
+{# Agrupa por tipo #}
+{% regroup sentinelas by get_tipo_display as grupos %}
+
+{% for grupo in grupos %}
+<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
+            text-transform:uppercase; letter-spacing:.05em;
+            margin:1.5rem 0 10px;">
+    {{ grupo.grouper }}
+</h2>
+<div class="card" style="margin-bottom:1rem;">
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Código</th>
+                <th>Peso</th>
+                <th>Vínculo</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in grupo.list %}
+            <tr>
+                <td>
+                    <p style="font-size:14px; font-weight:500; margin:0;">
+                        {{ s.nome }}
+                    </p>
+                    {% if s.observacao %}
+                    <p style="font-size:12px; color:#9ca3af; margin:0;">
+                        {{ s.observacao|truncatechars:60 }}
+                    </p>
+                    {% endif %}
+                </td>
+                <td style="font-size:12px; color:#9ca3af;">
+                    {{ s.codigo }}
+                </td>
+                <td style="text-align:center;">
+                    <span style="font-size:14px; font-weight:700;
+                                 color:{% if s.peso >= 2 %}#ef4444{% else %}#f59e0b{% endif %};">
+                        +{{ s.peso }}
+                    </span>
+                </td>
+                <td style="font-size:13px; color:#6b7280;">
+                    {% if s.tipo == 'condicao' and s.condicao_saude %}
+                        {{ s.condicao_saude.icone }} {{ s.condicao_saude.nome }}
+                    {% elif s.tipo == 'idade' %}
+                        {% if s.idade_minima is not None and s.idade_maxima is not None %}
+                            {{ s.idade_minima }}–{{ s.idade_maxima }} anos
+                        {% elif s.idade_minima is not None %}
+                            ≥ {{ s.idade_minima }} anos
+                        {% elif s.idade_maxima is not None %}
+                            ≤ {{ s.idade_maxima }} anos
+                        {% endif %}
+                    {% else %}
+                        <span style="color:#9ca3af;">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if s.ativo %}
+                        <span class="badge badge-verde">Ativa</span>
+                    {% else %}
+                        <span class="badge"
+                              style="background:#f3f4f6; color:#6b7280;">
+                            Inativa
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'core:admin_sentinela_editar' s.pk %}"
+                       style="color:var(--verde); font-size:13px;">
+                        Editar
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+
+{% endblock %}

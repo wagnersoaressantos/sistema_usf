@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% block titulo %}Painel de Imunização{% endblock %}
+
+{% block conteudo %}
+<!-- 
+    BLOCO DE ESTILOS DE IMPRESSÃO
+    Este CSS só é ativado quando a impressora é chamada.
+-->
+<style>
+    /* Oculta por padrão a logo de impressão na tela normal */
+    .cabecalho-impressao { display: none; }
+
+    @media print {
+        /* Esconde o menu lateral, topo do sistema e botões ao imprimir */
+        body { margin: 0; padding: 0; background: white; }
+        .menu-lateral, .header-sistema, .nao-imprimir { display: none !important; }
+        
+        /* Ajusta o conteúdo para ocupar toda a folha A4 */
+        #conteudo-principal { width: 100%; margin: 0; padding: 0; }
+        
+        /* Mostra o cabeçalho oficial com a logo apenas no papel */
+        .cabecalho-impressao { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 20px;
+            margin-bottom: 20px; 
+            border-bottom: 2px solid #000; 
+            padding-bottom: 10px;
+        }
+        
+        /* Remove cores de fundo para economizar tinta */
+        table { border: 1px solid #000; width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+    }
+</style>
+
+<div class="nao-imprimir" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h1>Hub de Imunização</h1>
+    
+    <!-- Botão que aciona a caixa de impressão nativa do navegador -->
+    <button onclick="window.print()" class="btn btn-verde" style="cursor:pointer;">
+        🖨️ Imprimir Tabela de Estoque
+    </button>
+</div>
+
+<!-- CABEÇALHO QUE SÓ APARECE NO PAPEL -->
+<div class="cabecalho-impressao">
+    <!-- Substitua pelo caminho da logo da sua unidade -->
+    <img src="/static/img/logo.png" alt="Logo da Unidade" style="height: 60px;">
+    <div>
+        <h2 style="margin: 0; font-size: 18px;">Unidade de Saúde da Família</h2>
+        <p style="margin: 0; font-size: 14px;">Relatório de Estoque e Validade de Imunobiológicos</p>
+    </div>
+</div>
+
+<!-- TABELA DE ESTOQUE (Visível na tela e no papel) -->
+<div class="card" style="margin-bottom: 2rem;">
+    <h2 class="nao-imprimir" style="font-size: 16px; margin-bottom: 16px;">📦 Estoque Atual de Lotes</h2>
+    
+    <table>
+        <thead>
+            <tr style="background: #f9fafb;">
+                <th>Vacina</th>
+                <th>Lote</th>
+                <th>Validade</th>
+                <th>Quantidade</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lote in lotes %}
+            <tr>
+                <td style="font-weight: bold;">{{ lote.vacina.nome }}</td>
+                <td>{{ lote.numero_lote }}</td>
+                <td>
+                    {{ lote.data_validade|date:"d/m/Y" }}
+                    {% if lote.esta_vencido %} <strong style="color:red;">(VENCIDO)</strong> {% endif %}
+                </td>
+                <td>{{ lote.doses_recebidas }} doses</td>
+                <td>
+                    {% if lote.esta_vencido %}
+                        Descartar
+                    {% elif lote.ativo %}
+                        Em uso
+                    {% else %}
+                        Inativo
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="nao-imprimir card" style="margin-top: 2rem;">
+    <h2 style="font-size: 16px; margin-bottom: 16px;">🔍 Busca Ativa de Pacientes</h2>
+    
+    <form method="GET" onsubmit="mostrarCarregamento()" style="display:flex; flex-direction:column; gap:16px; background:#f9fafb; padding:20px; border-radius:8px; border:1px solid #e5e7eb; margin-bottom:20px;">
+        <input type="hidden" name="buscar" value="sim">
+        
+        <!-- LINHA 1: Filtros Principais -->
+        <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end;">
+            <label style="display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:600; color:#374151; flex:1; min-width:200px;">
+                Público-Alvo Rápido
+                <select name="grupo" style="padding:10px; border:1px solid #d1d5db; border-radius:6px; background:white;">
+                    <option value="">-- Todos ou Filtro Personalizado --</option>
+                    <option value="criancas" {% if request.GET.grupo == 'criancas' %}selected{% endif %}>👶 Crianças (0 a 9 anos)</option>
+                    <option value="adolescentes" {% if request.GET.grupo == 'adolescentes' %}selected{% endif %}>🛹 Adolescentes (10 a 19 anos)</option>
+                    <option value="adultos" {% if request.GET.grupo == 'adultos' %}selected{% endif %}>💼 Adultos (20 a 59 anos)</option>
+                    <option value="idosos" {% if request.GET.grupo == 'idosos' %}selected{% endif %}>👵 Idosos (60+)</option>
+                    <option value="gestantes" {% if request.GET.grupo == 'gestantes' %}selected{% endif %}>🤰 Gestantes</option>
+                </select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:600; color:#374151; flex:1; min-width:200px;">
+                Microárea
+                <select name="microarea" style="padding:10px; border:1px solid #d1d5db; border-radius:6px; background:white;">
+                    <option value="">Todas as microáreas</option>
+                    {% for ma in microareas %}
+                        <option value="{{ ma.id }}" {% if request.GET.microarea == ma.id|stringformat:"s" %}selected{% endif %}>{{ ma.codigo }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            
+            <label style="display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:600; color:#374151; flex:1; min-width:200px;">
+                Ordenar Tabela Por:
+                <select name="ordenar_por" style="padding:10px; border:1px solid #d1d5db; border-radius:6px; background:white;">
+                    <option value="nome" {% if request.GET.ordenar_por == 'nome' %}selected{% endif %}>🔤 Nome (A-Z)</option>
+                    <option value="idade_cres" {% if request.GET.ordenar_por == 'idade_cres' %}selected{% endif %}>👶 Idade (Menor p/ Maior)</option>
+                    <option value="idade_decres" {% if request.GET.ordenar_por == 'idade_decres' %}selected{% endif %}>👵 Idade (Maior p/ Menor)</option>
+                </select>
+            </label>
+        </div>
+
+        <!-- LINHA 2: Filtros Avançados (Idade Personalizada e Atrasados) -->
+        <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; padding-top:12px; border-top:1px dashed #d1d5db;">
+            
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+                <label style="display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:600; color:#374151;">
+                    Idade Min:
+                    <input type="number" name="idade_min" min="0" value="{{ request.GET.idade_min }}" placeholder="Ex: 2" style="padding:10px; border:1px solid #d1d5db; border-radius:6px; width:70px;">
+                </label>
+                <label style="display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:600; color:#374151;">
+                    Idade Max:
+                    <input type="number" name="idade_max" min="0" value="{{ request.GET.idade_max }}" placeholder="Ex: 6" style="padding:10px; border:1px solid #d1d5db; border-radius:6px; width:70px;">
+                </label>
+                <label style="display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:600; color:#374151;">
+                    Unidade:
+                    <select name="unidade_idade" style="padding:10px; border:1px solid #d1d5db; border-radius:6px; background:white;">
+                        <option value="meses" {% if request.GET.unidade_idade == 'meses' %}selected{% endif %}>Meses</option>
+                        <option value="anos" {% if request.GET.unidade_idade == 'anos' or not request.GET.unidade_idade %}selected{% endif %}>Anos</option>
+                    </select>
+                </label>
+            </div>
+
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#991b1b; background:#fee2e2; padding:10px 16px; border-radius:6px; cursor:pointer; margin-left:auto;">
+                <input type="checkbox" name="atrasados" {% if request.GET.atrasados == 'on' %}checked{% endif %} style="width:16px; height:16px;">
+                🚨 Apenas Atrasados
+            </label>
+
+            <button type="submit" id="btn-filtrar" style="background:#0284c7; color:white; border:none; padding:10px 24px; border-radius:6px; font-weight:bold; cursor:pointer;">
+                🔍 Filtrar Pacientes
+            </button>
+        </div>
+    </form>
+
+    <div id="loading-spinner" style="display:none; text-align:center; padding:40px;">
+        <div style="display:inline-block; width:40px; height:40px; border:4px solid #f3f3f3; border-top:4px solid #0284c7; border-radius:50%; animation: spin 1s linear infinite;"></div>
+        <p style="color:#6b7280; font-weight:600; margin-top:12px;">Processando cadernetas, aguarde...</p>
+    </div>
+
+    <div id="resultado-busca">
+        {% if busca_realizada %}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <p style="font-size:14px; color:#4b5563; margin:0;">
+                    Resultados para o filtro selecionado:
+                </p>
+                <span style="background:#dbeafe; color:#1e40af; padding:6px 16px; border-radius:20px; font-size:14px; font-weight:700; border:1px solid #bfdbfe;">
+                    🎯 {{ pacientes|length }} paciente(s) encontrado(s)
+                </span>
+            </div>
+            
+            {% include 'vacinas/partials/tabela_pacientes_hub.html' with lista_pacientes=pacientes %}
+            
+        {% else %}
+            <div style="text-align:center; padding:40px; color:#9ca3af; border:2px dashed #e5e7eb; border-radius:8px;">
+                <p style="font-size:15px;">👆 Utilize os filtros acima para carregar a lista de pacientes.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+
+<script>
+    function mostrarCarregamento() {
+        // Esconde o resultado e mostra o spinner a girar
+        document.getElementById('resultado-busca').style.display = 'none';
+        document.getElementById('loading-spinner').style.display = 'block';
+        
+        // Muda o texto do botão para dar feedback tátil
+        var btn = document.getElementById('btn-filtrar');
+        btn.innerHTML = 'Processando...';
+        btn.style.opacity = '0.7';
+    }
+</script>
+
+<style>
+    .aba-publico {
+        background: white; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 999px;
+        font-size: 13px; font-weight: 600; color: #4b5563; cursor: pointer; white-space: nowrap;
+    }
+    .aba-publico.ativo { background: #0284c7; color: white; border-color: #0284c7; }
+</style>
+
+<script>
+    function mudarAba(abaId) {
+        // Esconde todos os conteúdos e tira a cor de todos os botões
+        document.querySelectorAll('.conteudo-aba').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.aba-publico').forEach(el => el.classList.remove('ativo'));
+        
+        // Mostra o conteúdo certo e pinta o botão clicado
+        document.getElementById('aba-' + abaId).style.display = 'block';
+        document.getElementById('btn-' + abaId).classList.add('ativo');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+{% block titulo %}Relatórios — Análise Interna{% endblock %}
+
+{% block conteudo %}
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'core:hub' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <div>
+        <h1 style="font-size:20px; font-weight:600; margin:0;">
+            📊 Análise de Encaminhamentos
+        </h1>
+        <p style="font-size:13px; color:#6b7280; margin:0;">{{ usf.nome }}</p>
+    </div>
+    <a href="{% url 'relatorios:publico' %}"
+       style="margin-left:auto; font-size:12px; color:#6b7280;
+              text-decoration:none; padding:6px 12px;
+              border:1px solid #e5e7eb; border-radius:6px;">
+        🌐 Ver versão pública
+    </a>
+</div>
+
+{# Filtro de período — action aponta para relatorios:interno #}
+<form method="get" action="{% url 'relatorios:interno' %}" style="margin-bottom:1.5rem;">
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:14px 16px;
+                display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; min-width:150px;">
+            <label style="font-size:13px; font-weight:500;">Data inicial</label>
+            <input type="date" name="data_inicio" value="{{ data_inicio }}" class="form-input">
+        </div>
+        <div class="form-group" style="flex:1; min-width:150px;">
+            <label style="font-size:13px; font-weight:500;">Data final</label>
+            <input type="date" name="data_fim" value="{{ data_fim }}" class="form-input">
+        </div>
+        <button type="submit" class="btn btn-verde">Filtrar</button>
+        <a href="{% url 'relatorios:interno' %}" class="btn btn-cinza">Limpar</a>
+    </div>
+</form>
+
+{# Cards de totais #}
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:1.5rem;">
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:1rem; text-align:center;">
+        <p style="font-size:28px; font-weight:700; color:var(--verde); margin:0;">{{ total_periodo }}</p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">solicitações no período</p>
+    </div>
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:1rem; text-align:center;">
+        <p style="font-size:28px; font-weight:700; color:#ef4444; margin:0;">{{ acima_periodo }}</p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">acima da cota</p>
+    </div>
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:1rem; text-align:center;">
+        <p style="font-size:28px; font-weight:700; color:#f59e0b; margin:0;">{{ duplicatas_periodo }}</p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">duplicatas detectadas</p>
+    </div>
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:1rem; text-align:center;">
+        <p style="font-size:28px; font-weight:700; color:#3b82f6; margin:0;">{{ unificadas_periodo }}</p>
+        <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">guias unificadas</p>
+    </div>
+</div>
+
+{# Abas #}
+<div style="display:flex; gap:4px; margin-bottom:1.5rem; border-bottom:2px solid #e5e7eb;">
+    <button onclick="mostrarAba('visao-geral')" id="btn-visao-geral" class="btn-aba ativo">📈 Visão Geral</button>
+    <button onclick="mostrarAba('pacientes')"   id="btn-pacientes"   class="btn-aba">👤 Pacientes</button>
+    <button onclick="mostrarAba('fila')"        id="btn-fila"        class="btn-aba">📋 Fila</button>
+    <button onclick="mostrarAba('cotas')"       id="btn-cotas"       class="btn-aba">📊 Cotas</button>
+</div>
+
+<style>
+    .btn-aba { background:none; border:none; padding:8px 16px; font-size:13px; cursor:pointer; color:#6b7280; border-bottom:2px solid transparent; margin-bottom:-2px; font-weight:500; transition:color 0.15s; }
+    .btn-aba:hover { color:var(--verde); }
+    .btn-aba.ativo { color:var(--verde); border-bottom-color:var(--verde); }
+    .conteudo-aba { display:none; }
+    .conteudo-aba.ativo { display:block; }
+</style>
+
+{# ══ ABA 1 — VISÃO GERAL ══ #}
+<div id="aba-visao-geral" class="conteudo-aba ativo">
+
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1rem;">Demanda reprimida por tipo</h2>
+    {% if demanda_por_tipo %}
+        {% for item in demanda_por_tipo %}
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px; margin-bottom:8px; display:flex; align-items:center; gap:16px;">
+            <div style="flex:1;">
+                <p style="font-size:14px; font-weight:500; margin:0 0 4px;">{{ item.tipo.nome }}</p>
+                {% if item.cota %}<p style="font-size:12px; color:#9ca3af; margin:0;">Cota: {{ item.cota }} · Na fila: {{ item.total_fila }}</p>{% endif %}
+            </div>
+            {% if item.cota %}
+                <div style="flex:2;">
+                    {% widthratio item.total_fila item.cota 100 as pct %}
+                    <div style="height:8px; background:#f3f4f6; border-radius:4px; overflow:hidden;">
+                        <div style="width:{% if pct > 100 %}100{% else %}{{ pct }}{% endif %}%; height:100%; background:{% if item.acima_cota > 0 %}#ef4444{% else %}var(--verde){% endif %}; border-radius:4px;"></div>
+                    </div>
+                </div>
+            {% endif %}
+            {% if item.acima_cota > 0 %}
+                <div style="text-align:center; flex-shrink:0;">
+                    <p style="font-size:20px; font-weight:700; color:#ef4444; margin:0;">+{{ item.acima_cota }}</p>
+                    <p style="font-size:11px; color:#9ca3af; margin:0;">acima da cota</p>
+                </div>
+            {% else %}
+                <span style="font-size:12px; color:var(--verde); flex-shrink:0;">✓ Dentro da cota</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:2rem; text-align:center; margin-bottom:2rem; color:#9ca3af;">Nenhum encaminhamento na fila no momento.</div>
+    {% endif %}
+
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin:1.5rem 0 1rem;">Evolução mensal</h2>
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:2rem;">
+        <div style="position:relative; height:280px;"><canvas id="grafico-mensal"></canvas></div>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1rem;">Tempo médio por fase</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:2rem;">
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:1.5rem; text-align:center;">
+            <p style="font-size:13px; color:#6b7280; margin:0 0 8px;">🏛 Regulação Municipal</p>
+            <p style="font-size:36px; font-weight:700; margin:0; color:{% if media_regulacao > 30 %}#ef4444{% elif media_regulacao > 15 %}#f59e0b{% else %}var(--verde){% endif %};">{{ media_regulacao }}</p>
+            <p style="font-size:13px; color:#9ca3af; margin:4px 0 0;">dias em média</p>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">{% if total_regulacao > 0 %}baseado em {{ total_regulacao }} encaminhamento{{ total_regulacao|pluralize }}{% else %}sem dados suficientes{% endif %}</p>
+        </div>
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:1.5rem; text-align:center;">
+            <p style="font-size:13px; color:#6b7280; margin:0 0 8px;">🏥 UPAE</p>
+            <p style="font-size:36px; font-weight:700; margin:0; color:{% if media_upae > 30 %}#ef4444{% elif media_upae > 15 %}#f59e0b{% else %}var(--verde){% endif %};">{{ media_upae }}</p>
+            <p style="font-size:13px; color:#9ca3af; margin:4px 0 0;">dias em média</p>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">{% if total_upae > 0 %}baseado em {{ total_upae }} encaminhamento{{ total_upae|pluralize }}{% else %}sem dados suficientes{% endif %}</p>
+        </div>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1rem;">Tipos que mais demoram</h2>
+    {% if ranking_tipos %}
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:2rem;">
+        <table><thead><tr><th>#</th><th>Tipo</th><th>Tempo médio</th><th>Encaminhamentos</th></tr></thead>
+        <tbody>
+        {% for item in ranking_tipos %}
+        <tr>
+            <td style="color:#9ca3af;">{{ forloop.counter }}</td>
+            <td>{{ item.tipo.nome }}</td>
+            <td><span style="font-weight:600; color:{% if item.media_dias > 30 %}#ef4444{% elif item.media_dias > 15 %}#f59e0b{% else %}var(--verde){% endif %};">{{ item.media_dias }} dias</span></td>
+            <td style="color:#6b7280;">{{ item.total }} concluído{{ item.total|pluralize }}</td>
+        </tr>
+        {% endfor %}
+        </tbody></table>
+    </div>
+    {% else %}
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:2rem; text-align:center; margin-bottom:2rem; color:#9ca3af;">Ainda não há encaminhamentos concluídos para calcular o tempo médio.</div>
+    {% endif %}
+</div>
+
+{# ══ ABA 2 — PACIENTES ══ #}
+<div id="aba-pacientes" class="conteudo-aba">
+    <p style="font-size:13px; color:#6b7280; margin-bottom:1.5rem;">Total de pacientes cadastrados: <strong>{{ total_pacientes }}</strong></p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:2rem;">
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:16px;">
+            <h2 style="font-size:14px; font-weight:600; margin-bottom:1rem;">Distribuição por sexo</h2>
+            <div style="position:relative; height:200px;"><canvas id="grafico-sexo"></canvas></div>
+        </div>
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:16px;">
+            <h2 style="font-size:14px; font-weight:600; margin-bottom:1rem;">Distribuição por faixa etária</h2>
+            <div style="position:relative; height:200px;"><canvas id="grafico-faixa"></canvas></div>
+        </div>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1rem;">Encaminhamentos por micro-área no período</h2>
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:2rem;">
+        <table><thead><tr><th>Micro-área</th><th>Encaminhamentos</th><th>Proporção</th></tr></thead>
+        <tbody>
+        {% for item in dist_microarea %}
+        <tr>
+            <td>{% if item.paciente__micro_area__codigo %}{{ item.paciente__micro_area__codigo }}{% else %}<span style="color:#dc2626;">⚠️ Fora de área</span>{% endif %}</td>
+            <td><strong>{{ item.total }}</strong></td>
+            <td style="width:200px;">
+                {% if total_periodo > 0 %}
+                {% widthratio item.total total_periodo 100 as pct_ma %}
+                <div style="height:6px; background:#f3f4f6; border-radius:3px;"><div style="width:{{ pct_ma }}%; height:100%; background:var(--verde); border-radius:3px;"></div></div>
+                <span style="font-size:12px; color:#9ca3af;">{{ pct_ma }}%</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}<tr><td colspan="3" style="text-align:center; color:#9ca3af; padding:2rem;">Nenhum dado no período.</td></tr>
+        {% endfor %}
+        </tbody></table>
+    </div>
+</div>
+
+{# ══ ABA 3 — FILA ══ #}
+<div id="aba-fila" class="conteudo-aba">
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1rem;">Perfil de prioridade na fila</h2>
+    <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:2rem;">
+        {% for item in perfil_prioridade %}
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:1rem; text-align:center;">
+            <p style="font-size:24px; font-weight:700; margin:0; color:{% if item.valor == 1 %}#3b82f6{% elif item.valor == 2 %}#a855f7{% elif item.valor == 3 %}#f59e0b{% elif item.valor == 4 %}#ef4444{% else %}#6b7280{% endif %};">{{ item.total }}</p>
+            <p style="font-size:12px; color:#6b7280; margin:4px 0 0;">{{ item.label }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1rem;">Aguardando há mais tempo</h2>
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:2rem;">
+        <table><thead><tr><th>Paciente</th><th>Tipo</th><th>Solicitado em</th><th>Tempo esperando</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for enc in mais_antigos %}
+        <tr>
+            <td><a href="{% url 'encaminhamentos:detalhe' enc.pk %}" style="color:var(--verde); text-decoration:none;">
+                {% with partes=enc.paciente.nome.split %}{{ partes.0 }}{% if partes|length > 1 %} {{ partes.1|first }}.{% endif %}{% endwith %}
+            </a></td>
+            <td>{{ enc.tipo.nome }}</td>
+            <td>{{ enc.data_solicitacao|date:"d/m/Y" }}</td>
+            <td><strong style="color:#ef4444;">{{ enc.data_solicitacao|timesince }}</strong></td>
+            <td>{{ enc.get_status_display }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="5" style="text-align:center; color:#9ca3af; padding:2rem;">Nenhum encaminhamento na fila.</td></tr>
+        {% endfor %}
+        </tbody></table>
+    </div>
+
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1rem;">Fila por micro-área</h2>
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:2rem;">
+        <table><thead><tr><th>Micro-área</th><th>Na fila</th></tr></thead>
+        <tbody>
+        {% for item in fila_por_microarea %}
+        <tr>
+            <td>{% if item.paciente__micro_area__codigo %}{{ item.paciente__micro_area__codigo }}{% else %}<span style="color:#dc2626;">⚠️ Fora de área</span>{% endif %}</td>
+            <td><strong>{{ item.total }}</strong></td>
+        </tr>
+        {% empty %}<tr><td colspan="2" style="text-align:center; color:#9ca3af; padding:2rem;">Nenhum dado.</td></tr>
+        {% endfor %}
+        </tbody></table>
+    </div>
+</div>
+
+{# ══ ABA 4 — COTAS ══ #}
+<div id="aba-cotas" class="conteudo-aba">
+    <h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:.05em; margin-bottom:1rem;">Aproveitamento das cotas</h2>
+    {% if aproveitamento_cotas %}
+        {% for item in aproveitamento_cotas %}
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <p style="font-size:14px; font-weight:500; margin:0;">{{ item.tipo.nome }}</p>
+                <span style="font-size:13px; font-weight:600; color:{% if item.acima %}#ef4444{% elif item.pct > 80 %}#f59e0b{% else %}var(--verde){% endif %};">{{ item.usado }} / {{ item.cota }} {% if item.acima %}⚠️{% endif %}</span>
+            </div>
+            <div style="height:8px; background:#f3f4f6; border-radius:4px; overflow:hidden;">
+                <div style="width:{{ item.pct }}%; height:100%; background:{% if item.acima %}#ef4444{% elif item.pct > 80 %}#f59e0b{% else %}var(--verde){% endif %}; border-radius:4px;"></div>
+            </div>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">{{ item.pct }}% da cota utilizada</p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:2rem; text-align:center; color:#9ca3af;">Nenhuma cota configurada.</div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script>
+Chart.register(ChartDataLabels);
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    window.mostrarAba = function(nome) {
+        document.querySelectorAll('.conteudo-aba').forEach(el => el.classList.remove('ativo'));
+        document.querySelectorAll('.btn-aba').forEach(el => el.classList.remove('ativo'));
+        document.getElementById('aba-' + nome).classList.add('ativo');
+        document.getElementById('btn-' + nome).classList.add('ativo');
+    };
+
+    // Dados do gráfico mensal
+    const labels       = [{% for m in demanda_por_mes %}"{{ m.mes_label }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    const dadosTotais  = [{% for m in demanda_por_mes %}{{ m.total }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const dadosAcima   = [{% for m in demanda_por_mes %}{{ m.acima }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const dadosDup     = [{% for m in demanda_por_mes %}{{ m.duplicatas }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const dadosUnif    = [{% for m in demanda_por_mes %}{{ m.unificadas }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    const ctxMensal = document.getElementById('grafico-mensal');
+    if (ctxMensal) {
+        new Chart(ctxMensal.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label:'Total solicitados', data:dadosTotais, backgroundColor:'rgba(26,122,76,0.7)', borderColor:'#1a7a4c', borderWidth:1, borderRadius:4 },
+                    { label:'Acima da cota',     data:dadosAcima,  backgroundColor:'rgba(239,68,68,0.7)', borderColor:'#ef4444', borderWidth:1, borderRadius:4 },
+                    { label:'Duplicatas',        data:dadosDup,    backgroundColor:'rgba(245,158,11,0.7)', borderColor:'#f59e0b', borderWidth:1, borderRadius:4 },
+                    { label:'Unificadas',        data:dadosUnif,   backgroundColor:'rgba(59,130,246,0.7)', borderColor:'#3b82f6', borderWidth:1, borderRadius:4 },
+                ]
+            },
+            options: {
+                responsive:true, maintainAspectRatio:false,
+                plugins: {
+                    legend:{ position:'top', labels:{ font:{size:12}, padding:12, usePointStyle:true } },
+                    datalabels:{ anchor:'end', align:'end', font:{size:11,weight:'600'}, color:'#374151', formatter: v => v > 0 ? v : '' }
+                },
+                scales: {
+                    x:{ grid:{display:false} },
+                    y:{ beginAtZero:true, grace:'15%', ticks:{stepSize:1,precision:0}, grid:{color:'#f3f4f6'} }
+                }
+            }
+        });
+    }
+
+    const ctxSexo = document.getElementById('grafico-sexo');
+    if (ctxSexo) {
+        new Chart(ctxSexo.getContext('2d'), {
+            type:'doughnut',
+            data:{
+                labels:['Masculino','Feminino','Não informado'],
+                datasets:[{ data:[{{ dist_sexo.masculino }},{{ dist_sexo.feminino }},{{ dist_sexo.nao_informado }}], backgroundColor:['rgba(59,130,246,0.7)','rgba(168,85,247,0.7)','rgba(156,163,175,0.7)'], borderWidth:1 }]
+            },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{font:{size:11},padding:10}}, datalabels:{formatter: v => v > 0 ? v : '', font:{size:11,weight:'600'}, color:'white'} } }
+        });
+    }
+
+    const ctxFaixa = document.getElementById('grafico-faixa');
+    if (ctxFaixa) {
+        new Chart(ctxFaixa.getContext('2d'), {
+            type:'bar',
+            data:{
+                labels:[{% for label,val in faixas.items %}"{{ label }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+                datasets:[{ label:'Pacientes', data:[{% for label,val in faixas.items %}{{ val }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor:'rgba(26,122,76,0.7)', borderColor:'#1a7a4c', borderWidth:1, borderRadius:4 }]
+            },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, datalabels:{anchor:'end',align:'end',font:{size:11,weight:'600'},color:'#374151',formatter: v => v > 0 ? v : ''} }, scales:{ x:{grid:{display:false}}, y:{beginAtZero:true,grace:'15%',ticks:{precision:0},grid:{color:'#f3f4f6'}} } }
+        });
+    }
+});
+</script>
+{% endblock %}

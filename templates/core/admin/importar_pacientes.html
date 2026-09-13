@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block titulo %}Importar Pacientes{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'core:painel_admin' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">📥 Importar Pacientes</h1>
+</div>
+
+{# ── Instruções ──────────────────────────────────── #}
+<div class="card" style="margin-bottom:1rem;">
+    <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
+        Como exportar do e-SUS
+    </h2>
+    <ol style="font-size:13px; color:#374151; line-height:2; padding-left:1.2rem;">
+        <li>Acesse o e-SUS PEC</li>
+        <li>Vá em <strong>Relatórios → Acompanhamento → Cidadãos vinculados</strong></li>
+        <li>Selecione a equipe e clique em <strong>Exportar CSV</strong></li>
+        <li>Faça o upload do arquivo abaixo</li>
+    </ol>
+    <div style="margin-top:12px; padding:10px 12px;
+                background:#fffbeb; border-radius:6px;
+                font-size:13px; color:#92400e;">
+        ⚠️ Pacientes que não aparecerem no arquivo serão movidos
+        para <strong>Fora de área</strong> automaticamente.
+    </div>
+</div>
+
+{# ── Estatísticas atuais ─────────────────────────── #}
+<div class="card" style="margin-bottom:1rem;">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div>
+            <p style="font-size:28px; font-weight:700;
+                       color:var(--verde); margin:0;">
+                {{ total_pacientes }}
+            </p>
+            <p style="font-size:13px; color:#6b7280; margin:0;">
+                pacientes cadastrados em {{ usf.nome }}
+            </p>
+        </div>
+        <a href="{% url 'core:admin_pacientes' %}"
+           style="font-size:13px; color:var(--verde);">
+            Ver todos →
+        </a>
+    </div>
+</div>
+
+{# ── Formulário de upload ────────────────────────── #}
+<div class="card">
+    <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
+        Enviar arquivo CSV
+    </h2>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group" style="margin-bottom:1.5rem;">
+            <label style="font-size:13px; font-weight:500;">
+                Arquivo CSV do e-SUS *
+            </label>
+            <input type="file" name="arquivo"
+                   accept=".csv"
+                   class="form-input"
+                   style="padding:8px;">
+            <span style="font-size:12px; color:#9ca3af; margin-top:4px; display:block;">
+                Somente arquivos .csv exportados pelo e-SUS PEC
+            </span>
+        </div>
+
+        <div style="background:#fef2f2; border-radius:6px;
+                    padding:12px 14px; margin-bottom:1.5rem;">
+            <p style="font-size:13px; color:#dc2626; font-weight:500; margin:0 0 4px;">
+                ⚠️ Atenção antes de importar
+            </p>
+            <p style="font-size:13px; color:#7f1d1d; margin:0;">
+                Esta operação irá atualizar todos os pacientes da unidade.
+                Pacientes não encontrados no arquivo serão movidos para
+                <strong>Fora de área</strong>. Esta ação não pode ser desfeita.
+            </p>
+        </div>
+
+        <button type="submit" class="btn btn-verde"
+                onclick="return confirm('Confirma a importação? Pacientes não encontrados no arquivo serão movidos para Fora de área.')">
+            📥 Importar pacientes
+        </button>
+
+    </form>
+</div>
+
+{% endblock %}

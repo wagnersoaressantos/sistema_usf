@@ -1,0 +1,389 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {# Título da página — cada template filho pode substituir esse bloco. #}
+    {# Ex: listar.html define {% block titulo %}Atendimentos{% endblock %} #}
+    <title>{% block titulo %}{{ sistema.nome }}{% endblock %}</title>
+
+    {# Favicon — ícone na aba do navegador #}
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+
+    {# CSS principal do sistema #}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        /* ════════════════════════════════════════
+           DRAWER — Menu lateral deslizante
+           ════════════════════════════════════════
+
+           Estrutura:
+           .drawer-overlay  → fundo escuro atrás do drawer
+           .drawer          → painel lateral em si
+           .drawer-header   → cabeçalho verde com logo
+           .drawer-nav      → links de navegação
+           .drawer-footer   → usuário logado + botão sair
+        */
+
+        /* Fundo escuro semitransparente que aparece atrás do drawer.
+           Cobre toda a tela — clicar nele fecha o menu.
+           Começa invisível e não clicável (opacity:0, pointer-events:none). */
+        .drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
+
+        /* Painel lateral.
+           Começa fora da tela à esquerda (translateX(-100%)).
+           Desliza para dentro quando a classe .aberto é adicionada. */
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 260px;
+            background: white;
+            z-index: 101;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+        }
+
+        /* Quando .aberto é adicionado pelo JavaScript:
+           overlay fica visível, drawer desliza para dentro. */
+        .drawer-overlay.aberto {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .drawer.aberto {
+            transform: translateX(0);
+        }
+
+        /* Cabeçalho verde do drawer com logo centralizada */
+        .drawer-header {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--verde);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Botão × para fechar — posicionado no canto superior direito */
+        .drawer-fechar {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 4px;
+        }
+        .drawer-fechar:hover {
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Área de links de navegação — ocupa o espaço restante
+           e permite scroll se houver muitos links */
+        .drawer-nav {
+            flex: 1;
+            padding: 12px 0;
+            overflow-y: auto;
+        }
+
+        /* Cada link de navegação dentro do drawer */
+        .drawer-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            text-decoration: none;
+            color: #1f2937;
+            font-size: 14px;
+            transition: background 0.15s;
+            /* Borda esquerda transparente por padrão —
+               fica verde quando o link está ativo */
+            border-left: 3px solid transparent;
+        }
+        .drawer-nav a:hover {
+            background: #f3f4f6;
+        }
+
+        /* Link da página atual — destaque com fundo e borda verde */
+        .drawer-nav a.ativo {
+            background: #e8f5ee;
+            color: var(--verde);
+            border-left-color: var(--verde);
+            font-weight: 500;
+        }
+
+        /* Linha separadora entre grupos de links */
+        .drawer-separador {
+            border: none;
+            border-top: 1px solid #f0f0f0;
+            margin: 8px 0;
+        }
+
+        /* Rodapé do drawer com usuário logado e botão sair */
+        .drawer-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+        .drawer-footer .usuario {
+            color: #6b7280;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .drawer-footer a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #dc2626;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 0;
+        }
+        .drawer-footer a:hover {
+            color: #991b1b;
+        }
+
+        /* Botão ☰ na navbar para abrir o drawer */
+        .btn-drawer {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.15s;
+            line-height: 1;
+        }
+        .btn-drawer:hover {
+            background: rgba(255,255,255,0.15);
+        }
+    </style>
+</head>
+
+<body>
+
+{# Tudo abaixo só aparece se o usuário estiver logado #}
+{% if user.is_authenticated %}
+
+    {# ─── COMPONENTE: MODAL DE CONFIRMAÇÃO DE SAÍDA ─── #}
+    {% include 'core/componentes/modal_sair.html' %}
+
+    {# ─── COMPONENTE: MENU LATERAL (DRAWER) ─── #}
+        {% include 'core/componentes/menu_lateral.html' %}
+    {% comment %}
+    {# ══ NAVBAR ═════════════════════════════════════════
+       Barra verde no topo com botão ☰ e título centralizado.
+    ════════════════════════════════════════════════════ #}
+    {% endcomment %}
+    <nav class="navbar">
+        <div class="navbar-inner">
+
+            {# Botão ☰ — abre o drawer ao clicar #}
+            <button class="btn-drawer no-print" onclick="abrirDrawer()">☰</button>
+            
+            {% comment %}
+            {# Título centralizado com position:absolute.
+               left:50% + translateX(-50%) centraliza independente
+               do que há nos lados esquerdo e direito. #}
+            {% endcomment %}
+            <a href="{% url 'core:hub' %}"
+            class="navbar-brand"
+            style="position:absolute;
+                    left:50%;
+                    transform:translateX(-50%);">
+                {{ sistema.nome }}
+            </a>
+
+            {# Div vazia para equilibrar o botão ☰ e manter o título centrado #}
+            <div style="width:44px;"></div>
+
+        </div>
+    </nav>
+
+{% endif %}
+{# ══ FIM DO BLOCO AUTENTICADO ════════════════════════ #}
+
+{# ══ CONTEÚDO PRINCIPAL ═════════════════════════════ #}
+    <div class="container">
+
+        {# ─── COMPONENTE: ALERTAS E MENSAGENS GLOBAIS ─── #}
+        {# Usamos a tag 'include' para injetar o arquivo isolado de alertas aqui. #}
+        {# Isso deixa este esqueleto estrutural limpo e fácil de ler! #}
+        {% include 'core\componentes\alertas.html' %}
+
+        {# Bloco que cada página filha preenche com seu próprio conteúdo #}
+        {% block conteudo %}{% endblock %}
+
+    </div>
+{% comment %}
+{# ══ RODAPÉ ═══════════════════════════════════════════
+   Some na impressão pela classe no-print.
+   Informações vêm do context processor automaticamente.
+════════════════════════════════════════════════════ #}
+{% endcomment %}
+{% if user.is_authenticated %}
+<footer class="rodape no-print">
+    <div class="rodape-inner">
+        <span>
+            © {{ ano_atual }} {{ sistema.unidade }} —
+            {{ sistema.municipio }}, {{ sistema.estado }}
+        </span>
+        <span>
+            Desenvolvido por <strong>{{ sistema.desenvolvedor }}</strong>
+            · v{{ sistema.versao }}
+        </span>
+    </div>
+</footer>
+{% endif %}
+
+{# ══ JAVASCRIPT ════════════════════════════════════════ #}
+  {# Fica no final do body para garantir que todo o HTML #}
+  {# já foi carregado antes do script executar. #}
+{# ════════════════════════════════════════════════════ #}
+{% if user.is_authenticated %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Função matemática para validar o CPF no navegador
+    function validarCPFJS(cpf) {
+        cpf = cpf.replace(/[^\d]+/g, '');
+        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+        
+        let soma = 0, resto;
+        for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i-1, i)) * (11 - i);
+        resto = (soma * 10) % 11;
+        if ((resto === 10) || (resto === 11)) resto = 0;
+        if (resto !== parseInt(cpf.substring(9, 10))) return false;
+        
+        soma = 0;
+        for (let i = 1; i <= 10; i++) soma += parseInt(cpf.substring(i-1, i)) * (12 - i);
+        resto = (soma * 10) % 11;
+        if ((resto === 10) || (resto === 11)) resto = 0;
+        if (resto !== parseInt(cpf.substring(10, 11))) return false;
+        
+        return true;
+    }
+
+    // Procura todos os inputs que tenham name="cpf" no sistema inteiro
+    const inputsCPF = document.querySelectorAll('input[name="cpf"]');
+
+    inputsCPF.forEach(input => {
+        // Cria um textinho pequeno abaixo do input para mostrar os avisos
+        const feedback = document.createElement('small');
+        feedback.style.display = 'block';
+        feedback.style.marginTop = '4px';
+        feedback.style.fontWeight = '600';
+        input.parentNode.insertBefore(feedback, input.nextSibling);
+
+        input.addEventListener('input', function(e) {
+            let valor = e.target.value;
+
+            // 1. Aplica a Máscara (000.000.000-00) enquanto digita
+            valor = valor.replace(/\D/g, ""); // Remove tudo que não for número
+            valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
+            valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
+            valor = valor.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+            e.target.value = valor;
+
+            // 2. Valida apenas quando chegar em 14 caracteres (000.000.000-00)
+            if (valor.length === 14) {
+                if (validarCPFJS(valor)) {
+                    input.style.borderColor = '#16a34a'; // Fica verde
+                    input.style.backgroundColor = '#f0fdf4';
+                    feedback.textContent = '✔️ CPF Válido';
+                    feedback.style.color = '#16a34a';
+                } else {
+                    input.style.borderColor = '#dc2626'; // Fica vermelho
+                    input.style.backgroundColor = '#fef2f2';
+                    feedback.textContent = '❌ CPF Inválido. Verifique os números.';
+                    feedback.style.color = '#dc2626';
+                }
+            } else {
+                // Se o usuário apagar, limpa as cores
+                input.style.borderColor = '';
+                input.style.backgroundColor = '';
+                feedback.textContent = '';
+            }
+        });
+    });
+});
+    /* ── Elementos do DOM ── */
+    const drawer    = document.getElementById('drawer');
+    const overlay   = document.getElementById('overlay');
+    const modalSair = document.getElementById('modal-sair');
+
+    /* ── Drawer ── */
+
+    function abrirDrawer() {
+        /* Adiciona .aberto — CSS desliza o drawer para dentro da tela */
+        drawer.classList.add('aberto');
+        overlay.classList.add('aberto');
+        /* Impede scroll da página enquanto o drawer está aberto */
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fecharDrawer() {
+        /* Remove .aberto — CSS desliza o drawer para fora da tela */
+        drawer.classList.remove('aberto');
+        overlay.classList.remove('aberto');
+        document.body.style.overflow = '';
+    }
+
+    /* ── Modal de saída ── */
+
+    function abrirModalSair(event) {
+        /* Cancela a navegação padrão do link de logout */
+        event.preventDefault();
+        /* Mostra o modal centralizado com flexbox */
+        modalSair.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        /* Fecha o drawer se estiver aberto */
+        fecharDrawer();
+    }
+
+    function fecharModalSair() {
+        modalSair.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    /* ── Eventos globais ── */
+
+    /* Fecha modal ao clicar no fundo escuro (fora da caixa branca) */
+    modalSair.addEventListener('click', function(e) {
+        if (e.target === modalSair) fecharModalSair();
+    });
+
+    /* Tecla Escape fecha drawer E modal — unificado em um só listener */
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            fecharDrawer();
+            fecharModalSair();
+        }
+    });
+</script>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'core:admin_equipe' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card" style="margin-bottom:1rem;">
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Profissional *</label>
+            <select name="user" class="form-input">
+                <option value="">Selecione...</option>
+                {% for u in usuarios %}
+                    <option value="{{ u.pk }}"
+                        {% if vinculo and vinculo.user_id == u.pk %}selected{% endif %}>
+                        {{ u.get_full_name|default:u.username }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>USF *</label>
+            <select name="usf" class="form-input">
+                <option value="">Selecione...</option>
+                {% for usf in usfs %}
+                    <option value="{{ usf.pk }}"
+                        {% if vinculo and vinculo.usf_id == usf.pk %}selected{% endif %}>
+                        {{ usf.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Cargo *</label>
+            <select name="cargo" class="form-input">
+                <option value="">Selecione...</option>
+                {% for c in cargos %}
+                    <option value="{{ c.pk }}"
+                        {% if vinculo and vinculo.cargo_id == c.pk %}selected{% endif %}>
+                        {{ c.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>Data de entrada</label>
+                <input type="date" name="data_entrada" class="form-input"
+                       value="{{ vinculo.data_entrada|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Data de saída</label>
+                <input type="date" name="data_saida" class="form-input"
+                       value="{{ vinculo.data_saida|date:'Y-m-d'|default:'' }}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not vinculo or vinculo.ativo %}checked{% endif %}>
+                Vínculo ativo
+            </label>
+        </div>
+
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a href="{% url 'core:admin_equipe' %}" class="btn btn-cinza">Cancelar</a>
+        <button type="submit" class="btn btn-verde">{{ acao }}</button>
+    </div>
+</form>
+
+{% endblock %}

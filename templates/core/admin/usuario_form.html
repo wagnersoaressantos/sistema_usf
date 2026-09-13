@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }} — Administração{% endblock %}
+
+{% block conteudo %}
+<h1 class="page-title">👤 <span>{{ titulo }}</span></h1>
+
+<div class="card" style="max-width:600px;">
+    <div class="card-title">{{ titulo }}</div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label>Nome *</label>
+                <input type="text" name="nome" class="form-input"
+                       value="{{ perfil.user.first_name|default:'' }}"
+                       placeholder="Nome" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label>Sobrenome</label>
+                <input type="text" name="sobrenome" class="form-input"
+                       value="{{ perfil.user.last_name|default:'' }}"
+                       placeholder="Sobrenome">
+            </div>
+
+            <div class="form-group">
+                <label>CPF (só números) *</label>
+                <input type="text" name="cpf" class="form-input"
+                       value="{{ perfil.cpf|default:'' }}"
+                       placeholder="12345678900" maxlength="14" required>
+            </div>
+
+            <div class="form-group">
+                <label>Nível de acesso</label>
+                <select name="nivel" class="form-input">
+                    <option value="comum"
+                        {% if perfil.nivel == 'comum' or not perfil %}selected{% endif %}>
+                        Comum
+                    </option>
+                    <option value="admin"
+                        {% if perfil.nivel == 'admin' %}selected{% endif %}>
+                        Administrador
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group span-2">
+                <label>
+                    {% if perfil %}
+                        Nova senha
+                        <span style="font-size:11px;color:#9ca3af;font-weight:400;">
+                            — deixe em branco para não alterar
+                        </span>
+                    {% else %}
+                        Senha *
+                    {% endif %}
+                </label>
+                <input type="password" name="senha" class="form-input"
+                       placeholder="Mínimo 6 caracteres"
+                       {% if not perfil %}required{% endif %}>
+            </div>
+
+            <div class="form-group span-2">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    {# Checkbox para ativar/inativar o usuário #}
+                    <input type="checkbox" name="ativo"
+                           {% if not perfil or perfil.ativo %}checked{% endif %}
+                           style="width:16px;height:16px;accent-color:var(--verde);">
+                    Usuário ativo
+                    <span style="font-size:12px;color:#6b7280;">
+                        — usuários inativos não conseguem fazer login
+                    </span>
+                </label>
+            </div>
+
+        </div>
+
+        <div style="margin-top:1.5rem;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-verde">✓ {{ acao }}</button>
+            <a href="{% url 'core:admin_usuarios' %}" class="btn btn-cinza">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

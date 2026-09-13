@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block titulo %}Hub de Pacientes{% endblock %}
+
+{% block conteudo %}
+<div style="margin-bottom:2rem; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <h1 style="font-size:24px; font-weight:700; color:#111827; margin:0;">
+            👥 Hub de Pacientes
+        </h1>
+        <p style="font-size:14px; color:#6b7280; margin:4px 0 0 0;">
+            Pesquise e aceda ao perfil, vacinas e histórico de qualquer cidadão da unidade.
+        </p>
+    </div>
+    
+    <a href="{% url 'core:admin_paciente_criar' %}?next={{ request.get_full_path|urlencode }}" style="background:#0284c7; color:white; padding:10px 20px; border-radius:6px; font-weight:600; text-decoration:none;">
+        ➕ Novo Paciente
+    </a>
+</div>
+
+<div class="card" style="background:white; border:1px solid #d1d5db; border-radius:8px; padding:20px; margin-bottom:2rem;">
+    <form method="GET" style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end;">
+        
+        <label style="flex:2; min-width:250px; display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; color:#374151;">
+            🔍 Buscar Cidadão (Nome, CPF ou CNS)
+            <input type="text" name="q" value="{{ termo_busca }}" placeholder="Ex: Maria Silva ou 059.000..." style="padding:10px; border:1px solid #d1d5db; border-radius:6px; width:100%;">
+        </label>
+
+        <label style="flex:1; min-width:150px; display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; color:#374151;">
+            Microárea
+            <select name="microarea" style="padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+                <option value="">Todas</option>
+                
+                <option value="fora" {% if request.GET.microarea == 'fora' %}selected{% endif %}>⚠️ Fora de área</option>
+                
+                {% for ma in microareas %}
+                    <option value="{{ ma.id }}" {% if request.GET.microarea == ma.id|stringformat:"s" %}selected{% endif %}>{{ ma.codigo }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        
+        <label style="flex:1; min-width:150px; display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; color:#374151;">
+            Status do Cadastro
+            <select name="status" style="padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+                <option value="ativo" {% if request.GET.status == 'ativo' %}selected{% endif %}>✅ Ativos</option>
+                <option value="inativo" {% if request.GET.status == 'inativo' %}selected{% endif %}>❌ Inativos</option>
+                <option value="todos" {% if request.GET.status == 'todos' %}selected{% endif %}>Todos</option>
+            </select>
+        </label>
+        <label style="flex:1; min-width:150px; display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; color:#374151;">
+            Condição de Saúde
+            <select name="condicao" style="padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+                <option value="">Todas as condições</option>
+                {% for c in condicoes %}
+                    <option value="{{ c.codigo }}" {% if request.GET.condicao == c.codigo %}selected{% endif %}>
+                        {{ c.icone }} {{ c.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <button type="submit" style="background:#111827; color:white; border:none; padding:10px 24px; border-radius:6px; font-weight:bold; cursor:pointer; height:40px;">
+            Pesquisar
+        </button>
+    </form>
+</div>
+
+<div style="background:white; border:1px solid #d1d5db; border-radius:8px; overflow:hidden;">
+    <div style="padding:16px; background:#f9fafb; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between;">
+        <span style="font-size:14px; font-weight:600; color:#4b5563;">
+            Exibindo página {{ pacientes.number }} de {{ pacientes.paginator.num_pages }} 
+            ({{ total_encontrado }} cidadãos encontrados)
+        </span>
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; text-align:left;">
+        <thead>
+            <tr style="border-bottom:1px solid #e5e7eb;">
+                <th style="padding:12px 16px; font-size:13px; color:#374151;">Nome do Paciente</th>
+                <th style="padding:12px 16px; font-size:13px; color:#374151;">Identificação</th>
+                <th style="padding:12px 16px; font-size:13px; color:#374151;">Idade / Microárea</th>
+                <th style="padding:12px 16px; font-size:13px; color:#374151; text-align:right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in pacientes %}
+                <tr style="border-bottom:1px solid #f3f4f6; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+                    <td style="padding:12px 16px;">
+                        <div style="font-weight:600; font-size:14px; color:#111827;">{{ p.nome }}</div>
+                        <div style="font-size:12px; color:#6b7280; margin-top:2px;">
+                            {% if p.eh_gestante %}<span style="color:#d946ef; font-weight:bold;">🤰 Gestante</span> · {% endif %}
+                            {% if not p.ativo %}<span style="color:#dc2626; font-weight:bold;">Inativo</span>{% else %}<span style="color:#10b981;">Ativo</span>{% endif %}
+                        </div>
+                    </td>
+                    <td style="padding:12px 16px; font-size:13px; color:#4b5563;">
+                        <div>CPF: <strong style="color:#374151;">{{ p.cpf|default:"Não informado" }}</strong></div>
+                        <div>CNS: {{ p.cartao_sus|default:"Não informado" }}</div>
+                    </td>
+                    <td style="padding:12px 16px; font-size:13px; color:#4b5563;">
+                        <div>{{ p.idade_formatada|default:p.idade }}</div>
+                        <div style="color:#0284c7; font-weight:600; margin-top:2px;">
+                            MA: {{ p.micro_area.codigo|default:"Sem MA" }}
+                        </div>
+                    </td>
+                    <td style="padding:12px 16px; text-align:right;">
+                        <a href="{% url 'pacientes:perfil_360' p.id %}" style="background:#f3f4f6; color:#111827; border:1px solid #d1d5db; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; text-decoration:none; display:inline-block;">
+                            Ver Perfil 360º →
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" style="padding:30px; text-align:center; color:#6b7280;">
+                        Nenhum paciente encontrado. Tente procurar por outro nome ou CPF.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+   </table>
+    
+    <!-- 🌟 BOTÕES DE PAGINAÇÃO 🌟 -->
+    {% if pacientes.paginator.num_pages > 1 %}
+    <div style="padding:16px; background:white; border-top:1px solid #e5e7eb; display:flex; justify-content:center; align-items:center; gap:12px;">
+        
+        {% if pacientes.has_previous %}
+            <a href="?pagina={{ pacientes.previous_page_number }}&q={{ request.GET.q|default:'' }}&microarea={{ request.GET.microarea|default:'' }}&status={{ request.GET.status|default:'ativo' }}&condicao={{ request.GET.condicao|default:'' }}" class="btn btn-cinza" style="padding:6px 12px; font-size:13px; text-decoration:none;">
+                ← Página Anterior
+            </a>
+        {% else %}
+            <!-- Botão desativado (transparente) só para manter o alinhamento -->
+            <span style="padding:6px 12px; font-size:13px; color:#9ca3af; border:1px solid #e5e7eb; border-radius:6px; cursor:not-allowed;">← Página Anterior</span>
+        {% endif %}
+
+        <span style="font-size:13px; color:#374151; font-weight:600;">
+            Página {{ pacientes.number }} de {{ pacientes.paginator.num_pages }}
+        </span>
+
+        {% if pacientes.has_next %}
+            <a href="?pagina={{ pacientes.next_page_number }}&q={{ request.GET.q|default:'' }}&microarea={{ request.GET.microarea|default:'' }}&status={{ request.GET.status|default:'ativo' }}&condicao={{ request.GET.condicao|default:'' }}" class="btn btn-cinza" style="padding:6px 12px; font-size:13px; text-decoration:none;">
+                Próxima Página →
+            </a>
+        {% else %}
+            <span style="padding:6px 12px; font-size:13px; color:#9ca3af; border:1px solid #e5e7eb; border-radius:6px; cursor:not-allowed;">Próxima Página →</span>
+        {% endif %}
+        
+    </div>
+    {% endif %}
+    
+</div> <!-- Fim da div principal da tabela -->
+{% endblock %}

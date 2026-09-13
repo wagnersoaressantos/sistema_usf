@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block titulo %}Gerir Atendimento — {{ fila.paciente.nome }}{% endblock %}
+
+{% block conteudo %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+        <a href="{% url 'recepcao:painel' %}" style="color:#6366f1; text-decoration:none; font-size:24px; font-weight:bold;">←</a>
+        <h1 style="font-size:20px; font-weight:700; color:#111827; margin:0;">
+            ⚙️ Gerir Atendimento
+        </h1>
+    </div>
+
+    <div class="card" style="background:white; border:1px solid #d1d5db; border-radius:8px; padding:20px; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+                <h2 style="margin:0; font-size:18px; color:#111827;">{{ fila.paciente.nome }}</h2>
+                <p style="margin:4px 0 0; font-size:13px; color:#6b7280;">
+                    Chegou às <strong>{{ fila.hora_chegada|time:"H:i" }}</strong> · {{ fila.tipo.nome }}
+                </p>
+            </div>
+            <span style="font-size:12px; font-weight:700; padding:4px 12px; border-radius:999px; background:#eff6ff; color:#1d4ed8;">
+                {{ fila.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <div class="card" style="background:white; border:1px solid #d1d5db; border-radius:8px; padding:24px;">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div style="margin-bottom:20px;">
+                <label style="font-size:13px; font-weight:600; color:#374151; display:block; margin-bottom:8px;">1. Avançar Fluxo (Status)</label>
+                <select name="status" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+                    <option value="espera_triagem" {% if fila.status == 'espera_triagem' %}selected{% endif %}>Aguardando Triagem</option>
+                    <option value="espera_atendimento" {% if fila.status == 'espera_atendimento' %}selected{% endif %}>Aguardando Consultório (Triagem Feita)</option>
+                    <option value="em_atendimento" {% if fila.status == 'em_atendimento' %}selected{% endif %}>Entrou em Atendimento</option>
+                    <option value="finalizado" {% if fila.status == 'finalizado' %}selected{% endif %}>Finalizado (Foi embora)</option>
+                    <option value="evadiu" {% if fila.status == 'evadiu' %}selected{% endif %}>Evadiu / Desistiu</option>
+                </select>
+                <p style="font-size:11px; color:#9ca3af; margin-top:6px;">Alterar o status salva o horário exato da etapa automaticamente.</p>
+            </div>
+
+            <div style="margin-bottom:24px;">
+                <label style="font-size:13px; font-weight:600; color:#374151; display:block; margin-bottom:8px;">2. Alterar Prioridade (Se necessário)</label>
+                <select name="prioridade" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+                    <option value="normal" {% if fila.prioridade == 'normal' %}selected{% endif %}>Normal</option>
+                    <option value="preferencial" {% if fila.prioridade == 'preferencial' %}selected{% endif %}>Preferencial (Idoso, Gestante, PCD)</option>
+                    <option value="urgencia" {% if fila.prioridade == 'urgencia' %}selected{% endif %}>Urgência (Passa à frente de todos)</option>
+                </select>
+            </div>
+
+            <div style="border-top:1px solid #e5e7eb; padding-top:16px; text-align:right;">
+                <button type="submit" class="btn btn-verde" style="font-size:14px; padding:8px 16px;">
+                    💾 Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ paciente.nome }} — Encaminhamentos{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho ───────────────────────────────────── #}
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'encaminhamentos:inicio' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <div>
+            <h1 style="font-size:20px; font-weight:600; margin:0;">
+                {{ paciente.nome }}
+                {% if paciente.obito %}
+                    <span style="font-size:14px; background:#1f2937;
+                                 color:white; padding:2px 10px;
+                                 border-radius:20px; margin-left:8px;">
+                        🪦 Óbito
+                    </span>
+                {% endif %}
+            </h1>
+            <p style="font-size:13px; color:#6b7280; margin:0;">
+                {% if paciente.idade %}{{ paciente.idade }} anos{% endif %}
+                {% if paciente.sexo != 'I' %} · {{ paciente.get_sexo_display }}{% endif %}
+                {% if paciente.micro_area %}
+                    · {{ paciente.micro_area.codigo }}
+                {% else %}
+                    · <span style="color:#dc2626;">⚠️ Fora de área</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    
+    {# ── MUDANÇA AQUI: Agrupamos os botões em uma div flexível ── #}
+    <div style="display:flex; gap:10px;">
+        <a href="{% url 'vacinas:carteira' paciente.id %}"
+           class="btn" style="background:#0ea5e9; color:white; border:none;">
+            💉 Ver Caderneta
+        </a>
+
+        <a href="{% url 'encaminhamentos:cadastrar' %}?paciente={{ paciente.pk }}"
+           class="btn btn-verde"
+           {% if paciente.obito %}style="opacity:0.5; pointer-events:none;"{% endif %}>
+            ➕ Novo encaminhamento
+        </a>
+    </div>
+</div>
+
+{# ── Card de dados do paciente ────────────────────── #}
+{# Substitui o card longo pelo partial #}
+{% include 'core/pacientes/partials/card_paciente.html' with paciente=paciente modo='completo' %}
+{# ── Score familiar ───────────────────────────────── #}
+{% if familia %}
+<div class="card" style="margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center;
+                justify-content:space-between; margin-bottom:1rem;">
+        <h2 style="font-size:15px; font-weight:600; margin:0;">
+            👨‍👩‍👧 Família
+        </h2>
+        <div style="display:flex; align-items:center; gap:10px;">
+            {# Badge do score #}
+            <span style="font-size:13px; font-weight:700;
+                         padding:4px 14px; border-radius:20px;
+                         background:{% if familia.classificacao == 'R0' %}#f0fdf4
+                                    {% elif familia.classificacao == 'R1' %}#f7fee7
+                                    {% elif familia.classificacao == 'R2' %}#fffbeb
+                                    {% elif familia.classificacao == 'R3' %}#fef2f2
+                                    {% else %}#f5f3ff{% endif %};
+                         color:{% if familia.classificacao == 'R0' %}#16a34a
+                               {% elif familia.classificacao == 'R1' %}#65a30d
+                               {% elif familia.classificacao == 'R2' %}#d97706
+                               {% elif familia.classificacao == 'R3' %}#dc2626
+                               {% else %}#6d28d9{% endif %};">
+                {{ familia.classificacao }} — score {{ familia.score_total }}
+            </span>
+            <a href="{% url 'core:familia_detalhe' familia.cpf_responsavel %}"
+               style="font-size:12px; color:var(--verde); text-decoration:none;">
+                Ver detalhe →
+            </a>
+        </div>
+    </div>
+
+    {# Endereço do domicílio #}
+    {% if familia.logradouro %}
+    <p style="font-size:13px; color:#6b7280; margin:0 0 10px;">
+        📍 {{ familia.logradouro }}
+        {% if familia.numero %}, {{ familia.numero }}{% endif %}
+        {% if familia.bairro %} · {{ familia.bairro }}{% endif %}
+        {% if familia.ponto_referencia and familia.ponto_referencia != '-' %}
+            · Ref: {{ familia.ponto_referencia }}
+        {% endif %}
+    </p>
+    {% endif %}
+
+    {# Responsável #}
+    <p style="font-size:13px; color:#6b7280; margin:0 0 10px;">
+        🏠 Responsável: <strong>{{ familia.nome_responsavel }}</strong>
+        {% if paciente.responsavel_familiar %}
+            <span style="font-size:11px; background:var(--verde);
+                         color:white; padding:1px 6px;
+                         border-radius:20px; margin-left:4px;">
+                este paciente
+            </span>
+        {% endif %}
+    </p>
+
+    {# Outros membros da família #}
+    {% if membros_familia %}
+    <div>
+        <p style="font-size:12px; color:#9ca3af; margin:0 0 6px;">
+            Outros membros ({{ membros_familia|length }})
+        </p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            {% for membro in membros_familia %}
+            <a href="{% url 'encaminhamentos:paciente' membro.pk %}"
+               style="font-size:12px; padding:4px 12px;
+                      border-radius:20px; background:#f3f4f6;
+                      color:#374151; text-decoration:none;
+                      border:1px solid #e5e7eb;">
+                {% with partes=membro.nome.split %}
+                    {{ partes.0 }}
+                    {% if partes|length > 1 %}{{ partes.1|first }}.{% endif %}
+                {% endwith %}
+                {% if membro.idade %}
+                    <span style="color:#9ca3af;">· {{ membro.idade }}a</span>
+                {% endif %}
+                {# Ícones das condições #}
+                {% for pc in membro.condicoes.all %}
+                    {% if pc.ativa %}{{ pc.condicao.icone }}{% endif %}
+                {% endfor %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# Alertas de condições do domicílio #}
+    {% if familia.desemprego_baixa_renda or familia.condicoes_precarias_moradia or familia.analfabetismo or familia.uso_alcool_drogas or familia.violencia_domestica %}
+    <div style="margin-top:10px; padding-top:10px;
+                border-top:1px solid #f3f4f6;
+                display:flex; flex-wrap:wrap; gap:6px;">
+        {% if familia.desemprego_baixa_renda %}
+            <span style="font-size:11px; padding:2px 8px;
+                         border-radius:20px; background:#fef2f2;
+                         color:#dc2626;">
+                ⚠️ Desemprego/baixa renda
+            </span>
+        {% endif %}
+        {% if familia.condicoes_precarias_moradia %}
+            <span style="font-size:11px; padding:2px 8px;
+                         border-radius:20px; background:#fef2f2;
+                         color:#dc2626;">
+                ⚠️ Moradia precária
+            </span>
+        {% endif %}
+        {% if familia.analfabetismo %}
+            <span style="font-size:11px; padding:2px 8px;
+                         border-radius:20px; background:#fef2f2;
+                         color:#dc2626;">
+                ⚠️ Analfabetismo
+            </span>
+        {% endif %}
+        {% if familia.uso_alcool_drogas %}
+            <span style="font-size:11px; padding:2px 8px;
+                         border-radius:20px; background:#7f1d1d;
+                         color:white;">
+                🚨 Uso de álcool/drogas
+            </span>
+        {% endif %}
+        {% if familia.violencia_domestica %}
+            <span style="font-size:11px; padding:2px 8px;
+                         border-radius:20px; background:#7f1d1d;
+                         color:white;">
+                🚨 Violência doméstica
+            </span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endif %}
+{# ── Resumo dos encaminhamentos ───────────────────── #}
+<div style="display:grid; grid-template-columns:repeat(4,1fr);
+            gap:10px; margin-bottom:1.5rem;">
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:22px; font-weight:700;
+                   color:#374151; margin:0;">
+            {{ em_aberto|length }}
+        </p>
+        <p style="font-size:11px; color:#6b7280; margin:2px 0 0;">
+            na fila
+        </p>
+    </div>
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:22px; font-weight:700;
+                   color:#3b82f6; margin:0;">
+            {{ disponiveis|length }}
+        </p>
+        <p style="font-size:11px; color:#6b7280; margin:2px 0 0;">
+            disponíveis
+        </p>
+    </div>
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:22px; font-weight:700;
+                   color:var(--verde); margin:0;">
+            {{ entregues|length }}
+        </p>
+        <p style="font-size:11px; color:#6b7280; margin:2px 0 0;">
+            entregues
+        </p>
+    </div>
+    <div style="background:white; border:1px solid #e5e7eb;
+                border-radius:8px; padding:12px; text-align:center;">
+        <p style="font-size:22px; font-weight:700;
+                   color:#9ca3af; margin:0;">
+            {{ cancelados|length }}
+        </p>
+        <p style="font-size:11px; color:#6b7280; margin:2px 0 0;">
+            cancelados
+        </p>
+    </div>
+</div>
+
+{# ── Em aberto ───────────────────────────────────── #}
+{% if em_aberto %}
+    <h2 style="font-size:14px; font-weight:600; color:#374151;
+                margin:0 0 10px; text-transform:uppercase;
+                letter-spacing:0.05em;">
+        📋 Em aberto — {{ em_aberto|length }}
+    </h2>
+    {% for enc in em_aberto %}
+        {% include 'encaminhamentos/partials/card_encaminhamento.html' %}
+    {% endfor %}
+{% endif %}
+
+{# ── Disponíveis ─────────────────────────────────── #}
+{% if disponiveis %}
+    <h2 style="font-size:14px; font-weight:600; color:#1d4ed8;
+                margin:1.5rem 0 10px; text-transform:uppercase;
+                letter-spacing:0.05em;">
+        📬 Disponíveis — {{ disponiveis|length }}
+    </h2>
+    {% for enc in disponiveis %}
+        {% include 'encaminhamentos/partials/card_encaminhamento.html' %}
+    {% endfor %}
+{% endif %}
+
+{# ── Entregues ───────────────────────────────────── #}
+{% if entregues %}
+    <h2 style="font-size:14px; font-weight:600; color:#059669;
+                margin:1.5rem 0 10px; text-transform:uppercase;
+                letter-spacing:0.05em;">
+        ✅ Entregues — {{ entregues|length }}
+    </h2>
+    {% for enc in entregues %}
+        {% include 'encaminhamentos/partials/card_encaminhamento.html' %}
+    {% endfor %}
+{% endif %}
+
+{# ── Cancelados ──────────────────────────────────── #}
+{% if cancelados %}
+    <h2 style="font-size:14px; font-weight:600; color:#9ca3af;
+                margin:1.5rem 0 10px; text-transform:uppercase;
+                letter-spacing:0.05em;">
+        ✕ Cancelados — {{ cancelados|length }}
+    </h2>
+    {% for enc in cancelados %}
+        {% include 'encaminhamentos/partials/card_encaminhamento.html' %}
+    {% endfor %}
+{% endif %}
+
+{% if not em_aberto and not disponiveis and not entregues and not cancelados %}
+    <div style="text-align:center; padding:3rem 1rem; color:#9ca3af;">
+        <div style="font-size:48px; margin-bottom:1rem;">📭</div>
+        <p style="font-size:15px; color:#6b7280;">
+            Nenhum encaminhamento encontrado para este paciente.
+        </p>
+        <a href="{% url 'encaminhamentos:cadastrar' %}"
+           class="btn btn-verde" style="margin-top:1rem;">
+            ➕ Novo encaminhamento
+        </a>
+    </div>
+{% endif %}
+
+{% endblock %}

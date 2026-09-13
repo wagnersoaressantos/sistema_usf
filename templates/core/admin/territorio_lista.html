@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block titulo %}Territorialização — {{ usf.nome }}{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho ───────────────────────────────────── #}
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:hub' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <div>
+            <h1 style="font-size:20px; font-weight:600; margin:0;">
+                🗺️ Territorialização
+            </h1>
+            <p style="font-size:13px; color:#6b7280; margin:0;">
+                Mapa de abrangência da {{ usf.nome }}
+            </p>
+        </div>
+    </div>
+</div>
+
+{# ── Cards de Resumo ─────────────────────────────── #}
+<div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; margin-bottom:2rem;">
+    
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:10px; padding:1.5rem; display:flex; align-items:center; gap:16px;">
+        <div style="font-size:36px;">📍</div>
+        <div>
+            <p style="font-size:24px; font-weight:700; color:var(--verde); margin:0;">
+                {{ microareas|length }}
+            </p>
+            <p style="font-size:13px; color:#6b7280; font-weight:500; margin:0;">
+                Micro-áreas mapeadas
+            </p>
+        </div>
+    </div>
+
+    <div style="background:white; border:1px solid #e5e7eb; border-radius:10px; padding:1.5rem; display:flex; align-items:center; gap:16px;">
+        <div style="font-size:36px;">⚠️</div>
+        <div>
+            <p style="font-size:24px; font-weight:700; color:#dc2626; margin:0;">
+                {{ pacientes_fora_de_area }}
+            </p>
+            <p style="font-size:13px; color:#6b7280; font-weight:500; margin:0;">
+                Pacientes fora de área
+            </p>
+        </div>
+    </div>
+
+</div>
+
+{# ── Grade de Micro-áreas ────────────────────────── #}
+<h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;">
+    Equipe de Área
+</h2>
+
+<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
+    {% for ma in microareas %}
+    <a href="{% url 'territorializacao:territorio_detalhe' ma.id %}" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid var(--verde); border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer;"
+             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
+             onmouseout="this.style.boxShadow='none'">
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <h3 style="font-size:18px; font-weight:700; color:#111827; margin:0;">
+                    {{ ma.codigo }}
+                </h3>
+            </div>
+
+            <p style="font-size:13px; color:#6b7280; margin:0 0 4px;">
+                <strong>ACS:</strong> 
+                {% if ma.responsavel %}
+                    {{ ma.responsavel.user.get_full_name }}
+                {% else %}
+                    <span style="color:#dc2626;">Sem responsável</span>
+                {% endif %}
+            </p>
+
+            <div style="background:#f0fdf4; border-radius:6px; padding:6px 12px; margin-top:12px; display:inline-block;">
+                <span style="font-size:13px; font-weight:600; color:var(--verde);">
+                    👤 {{ ma.total_pacientes }} pacientes ativos
+                </span>
+            </div>
+            
+        </div>
+    </a>
+    {% empty %}
+    <div style="grid-column: 1 / -1; background:white; border:1px solid #e5e7eb; border-radius:8px; padding:2rem; text-align:center; color:#9ca3af;">
+        Nenhuma micro-área encontrada para esta USF.
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

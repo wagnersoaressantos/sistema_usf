@@ -1,0 +1,51 @@
+# Logs
+logs/
+
+# Cache do Python
+# Ignorar pastas de cache do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arquivos estáticos coletados
+staticfiles/
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Variáveis de ambiente (segurança)
+# Ignorar a pasta do ambiente virtual
+.env
+.venv/
+env/
+
+# Banco de dados
+db.sqlite3
+
+# Ambiente Virtual
+.venv/
+venv/
+env/
+
+# Arquivos de Cache do Python
+__pycache__/
+*.py[cod]
+
+# Arquivos estáticos de produção
+staticfiles/
+
+# Logs do Servidor WinSW / Waitress
+*.log
+*.log.old
+PortalUSF-Service.wrapper.log
+PortalUSF-Service.out.log
+PortalUSF-Service.err.log
+
+# Executáveis e Configurações Locais do Servidor
+PortalUSF-Service.exe
+PortalUSF-Service.xml

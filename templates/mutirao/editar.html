@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Editar Atendimento — Mutirão de Saúde{% endblock %}
+
+{% block conteudo %}
+<h1 class="page-title">✏ <span>Editar</span> Atendimento</h1>
+
+<div style="background:#f3f4f6;border-radius:6px;padding:10px 14px;
+            margin-bottom:1.25rem;font-size:13px;color:#6b7280;">
+    Registrado originalmente por
+    <strong>{{ atendimento.criado_por.get_full_name|default:atendimento.criado_por.username }}</strong>
+    em <strong>{{ atendimento.criado_em|date:"d/m/Y \à\s H:i" }}</strong>
+</div>
+
+<div class="card">
+    <div class="card-title">Dados do paciente</div>
+
+    <form method="post" action="{% url 'mutirao:editar' atendimento.pk %}">
+        {% csrf_token %}
+        <div class="form-grid">
+
+            <div class="form-group span-2">
+                <label for="id_nome_paciente">Nome do paciente *</label>
+                <input type="text"
+                       name="nome_paciente"
+                       id="id_nome_paciente"
+                       class="form-input {% if form.nome_paciente.errors %}erro{% endif %}"
+                       value="{{ form.nome_paciente.value|default:'' }}"
+                       autofocus>
+                {% if form.nome_paciente.errors %}
+                <div class="form-errors">{{ form.nome_paciente.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_cpf_sus">CPF ou Cartão SUS *</label>
+                <input type="text"
+                       name="cpf_sus"
+                       id="id_cpf_sus"
+                       class="form-input {% if form.cpf_sus.errors %}erro{% endif %}"
+                       value="{{ form.cpf_sus.value|default:'' }}">
+                {% if form.cpf_sus.errors %}
+                <div class="form-errors">{{ form.cpf_sus.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_data_nascimento">Data de nascimento *</label>
+                   {# No formulário de edição, o Django preenche #}
+                   {# automaticamente o campo com a data do registro #}
+                   {# quando passamos instance=atendimento na view. #}
+                   {# Usando {{ form.data_nascimento }} isso funciona corretamente. #}
+                {{ form.data_nascimento }}
+                {% if form.data_nascimento.errors %}
+                <div class="form-errors">{{ form.data_nascimento.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group span-2">
+                <label for="id_nome_mae">Nome da mãe *</label>
+                <input type="text"
+                       name="nome_mae"
+                       id="id_nome_mae"
+                       class="form-input {% if form.nome_mae.errors %}erro{% endif %}"
+                       value="{{ form.nome_mae.value|default:'' }}">
+                {% if form.nome_mae.errors %}
+                <div class="form-errors">{{ form.nome_mae.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_usf">USF *</label>
+                   {# No formulário de edição, o Django já sabe qual USF #}
+                   {# estava selecionada — porque passamos instance=atendimento #}
+                   {# na view. O {{ form.usf }} renderiza o select #}
+                   {# com a opção correta já marcada como selected. #}
+                {{ form.usf }}
+                {% if form.usf.errors %}
+                <div class="form-errors">{{ form.usf.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_tipo_atendimento">Tipo de atendimento *</label>
+                {{ form.tipo_atendimento }}
+                {% if form.tipo_atendimento.errors %}
+                <div class="form-errors">{{ form.tipo_atendimento.errors.as_text }}</div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <div style="margin-top:1.5rem;display:flex;gap:10px;">
+            <button type="submit" class="btn btn-verde">✓ Salvar alterações</button>
+            <a href="{% url 'mutirao:listar' %}" class="btn btn-cinza">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

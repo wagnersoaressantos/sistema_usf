@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block titulo %}Equipe da USF{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'core:painel_admin' %}"
+           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+        <h1 class="page-title" style="margin:0;">🧑‍⚕️ Equipe da USF</h1>
+    </div>
+    <a href="{% url 'core:admin_equipe_criar' %}" class="btn btn-verde">
+        ➕ Novo vínculo
+    </a>
+</div>
+
+<div class="card">
+    {% if equipe %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Profissional</th>
+                    <th>Cargo</th>
+                    <th>USF</th>
+                    <th>Entrada</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in equipe %}
+                <tr>
+                    <td>{{ v.user.get_full_name|default:v.user.username }}</td>
+                    <td>{{ v.cargo.nome }}</td>
+                    <td>{{ v.usf.nome }}</td>
+                    <td>{{ v.data_entrada|date:"d/m/Y"|default:"—" }}</td>
+                    <td>
+                        {% if v.ativo %}
+                            <span class="badge badge-verde">Ativo</span>
+                        {% else %}
+                            <span class="badge" style="background:#f3f4f6;color:#6b7280;">
+                                Inativo
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="display:flex; gap:12px;">
+                        <a href="{% url 'core:admin_equipe_editar' v.pk %}"
+                           style="color:var(--verde); font-size:13px;">
+                            Editar
+                        </a>
+                        {% if v.ativo %}
+                            <form method="post"
+                                  action="{% url 'core:admin_equipe_desativar' v.pk %}">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        style="background:none; border:none;
+                                               color:#dc2626; font-size:13px;
+                                               cursor:pointer; padding:0;">
+                                    Desativar
+                                </button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color:#9ca3af; text-align:center; padding:2rem;">
+            Nenhum membro na equipe.
+        </p>
+    {% endif %}
+</div>
+
+{% endblock %}

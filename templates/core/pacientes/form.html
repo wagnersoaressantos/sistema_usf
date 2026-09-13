@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+   <a href="{% if request.GET.next %}{{ request.GET.next }}{% else %}{% url 'core:admin_pacientes' %}{% endif %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.GET.next }}">
+
+    <div class="card" style="margin-bottom:1rem;">
+        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
+            Identificação
+        </h2>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome completo *</label>
+            <input type="text" name="nome" class="form-input"
+                   value="{{ paciente.nome|default:'' }}">
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>CPF</label>
+                <input type="text" name="cpf" class="form-input"
+                       value="{{ paciente.cpf|default:'' }}"
+                       placeholder="Somente números">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Cartão SUS (CNS)</label>
+                <input type="text" name="cartao_sus" class="form-input"
+                       value="{{ paciente.cartao_sus|default:'' }}"
+                       placeholder="15 dígitos">
+            </div>
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>Data de nascimento</label>
+                <input type="date" name="data_nascimento" class="form-input"
+                       value="{{ paciente.data_nascimento|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Sexo</label>
+                <select name="sexo" class="form-input">
+                    <option value="M" {% if paciente.sexo == 'M' %}selected{% endif %}>
+                        Masculino
+                    </option>
+                    <option value="F" {% if paciente.sexo == 'F' %}selected{% endif %}>
+                        Feminino
+                    </option>
+                    <option value="I" {% if not paciente or paciente.sexo == 'I' %}selected{% endif %}>
+                        Não informado
+                    </option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;">
+        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
+            Vínculo e endereço
+        </h2>
+
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+            <div class="form-group" style="flex:1;">
+                <label>USF *</label>
+                <select name="usf" class="form-input">
+                    <option value="">Selecione...</option>
+                    {% for usf in usfs %}
+                        <option value="{{ usf.pk }}"
+                            {% if paciente and paciente.usf_id == usf.pk %}selected{% endif %}>
+                            {{ usf.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Micro-área</label>
+                <select name="micro_area" class="form-input">
+                    <option value="">Sem micro-área</option>
+                    {% for ma in microareas %}
+                        <option value="{{ ma.pk }}"
+                            {% if paciente and paciente.micro_area_id == ma.pk %}selected{% endif %}>
+                            {{ ma.codigo }} — {{ ma.usf.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Telefone</label>
+            <input type="text" name="telefone" class="form-input"
+                   value="{{ paciente.telefone|default:'' }}"
+                   placeholder="Somente números">
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+            <div class="form-group" style="flex:2;">
+                <label>Endereço</label>
+                <input type="text" name="endereco" class="form-input"
+                       value="{{ paciente.endereco|default:'' }}">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Número</label>
+                <input type="text" name="numero" class="form-input"
+                       value="{{ paciente.numero|default:'' }}">
+            </div>
+        </div>
+    </div>
+    <div class="card" style="margin-bottom:1rem;">
+        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
+            Situação do paciente
+        </h2>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" name="ativo"
+                       {% if not paciente or paciente.ativo %}checked{% endif %}>
+                Paciente ativo
+            </label>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0 24px;">
+                Desative para pacientes que se mudaram ou foram transferidos.
+            </p>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" name="obito" id="id_obito"
+                       {% if paciente.obito %}checked{% endif %}
+                       onchange="toggleDataObito(this)">
+                <span style="color:#1f2937; font-weight:500;">🪦 Óbito registrado</span>
+            </label>
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0 24px;">
+                Marque apenas em caso de falecimento confirmado.
+                Impede novos encaminhamentos para este paciente.
+            </p>
+        </div>
+
+        {# Campo de data — só aparece quando óbito está marcado #}
+        <div id="campo-data-obito"
+             style="margin-left:24px; display:{% if paciente.obito %}block{% else %}none{% endif %};">
+            <div class="form-group">
+                <label style="font-size:13px;">Data do óbito</label>
+                <input type="date" name="data_obito" class="form-input"
+                       style="max-width:200px;"
+                       value="{{ paciente.data_obito|date:'Y-m-d'|default:'' }}">
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;">
+    <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
+        Condições de saúde
+    </h2>
+    <p style="font-size:12px; color:#9ca3af; margin-bottom:1rem;">
+        Selecione as condições ativas do paciente.
+        Condições encerradas podem ser gerenciadas pelo admin.
+    </p>
+
+    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        {% for condicao in condicoes %}
+        <label style="display:flex; align-items:center; gap:8px;
+                      padding:8px 14px; border:1.5px solid #e5e7eb;
+                      border-radius:8px; cursor:pointer;
+                      background:white; transition:border-color 0.15s;"
+               id="label-condicao-{{ condicao.pk }}">
+            <input type="checkbox"
+                   name="condicoes"
+                   value="{{ condicao.pk }}"
+                   {% if condicao.pk in condicoes_ativas_ids %}checked{% endif %}
+                   onchange="toggleCondicao(this, {{ condicao.pk }})">
+            <span>{{ condicao.icone }} {{ condicao.nome }}</span>
+        </label>
+        {% endfor %}
+    </div>
+    <div class="card" style="margin-bottom:1rem;">
+    <h2 style="font-size:15px; font-weight:600; margin-bottom:4px;">
+        Histórico familiar
+    </h2>
+    <p style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
+        Registre condições de saúde em familiares de primeiro grau.
+        Usado para elegibilidade de encaminhamentos como mamografia precoce.
+    </p>
+
+    <div id="lista-historico">
+        {% if paciente %}
+            {% for hf in paciente.historico_familiar.all %}
+            <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+                <input type="hidden" name="hf_id" value="{{ hf.pk }}">
+                <input type="text" name="hf_condicao" class="form-input"
+                       style="flex:2; min-width:150px;"
+                       value="{{ hf.condicao }}"
+                       placeholder="Ex: Câncer de mama">
+                <select name="hf_grau" class="form-input" style="flex:1; min-width:130px;">
+                    {% for valor, label in graus_parentesco %}
+                        <option value="{{ valor }}"
+                            {% if hf.grau_parentesco == valor %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="hf_observacao" class="form-input"
+                       style="flex:2; min-width:150px;"
+                       value="{{ hf.observacao }}"
+                       placeholder="Observação (opcional)">
+                <button type="button" onclick="removerHistorico(this)"
+                        style="background:none; border:none; color:#dc2626;
+                               cursor:pointer; font-size:18px; padding:0 8px;">
+                    ×
+                </button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <button type="button" onclick="adicionarHistorico()"
+            class="btn btn-cinza" style="margin-top:8px; font-size:13px;">
+        ➕ Adicionar histórico familiar
+    </button>
+</div>
+
+
+    {# Campo oculto para data prevista do parto — só aparece se gestante marcada #}
+    <div id="campo-gestante"
+         style="margin-top:1rem; display:{% if gestante_ativa %}block{% else %}none{% endif %};">
+        <div class="form-group">
+            <label style="font-size:13px;">🤰 Data prevista do parto</label>
+            <input type="date" name="data_prevista_parto" class="form-input"
+                   style="max-width:220px;"
+                   value="{{ gestante_ativa.data_referencia|date:'Y-m-d'|default:'' }}">
+            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
+                Usada para calcular prioridade e encerrar a condição automaticamente.
+            </p>
+        </div>
+    </div>
+</div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <a href="{% if request.GET.next %}{{ request.GET.next }}{% else %}{% url 'core:admin_pacientes' %}{% endif %}" class="btn btn-cinza">Cancelar</a>
+        <button type="submit" class="btn btn-verde">{{ acao }}</button>
+    </div>
+</form>
+
+<script>
+// Opções de grau de parentesco para o select dinâmico
+const grausParentesco = [
+    {% for valor, label in graus_parentesco %}
+        {valor: "{{ valor }}", label: "{{ label }}"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+function adicionarHistorico() {
+    const lista = document.getElementById('lista-historico');
+    const div   = document.createElement('div');
+    div.style.cssText = 'display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;';
+
+    // Monta as options do select
+    let options = grausParentesco.map(function(g) {
+        return '<option value="' + g.valor + '">' + g.label + '</option>';
+    }).join('');
+
+    div.innerHTML =
+        '<input type="hidden" name="hf_id" value="">' +
+        '<input type="text" name="hf_condicao" class="form-input" ' +
+            'style="flex:2;min-width:150px;" placeholder="Ex: Câncer de mama">' +
+        '<select name="hf_grau" class="form-input" style="flex:1;min-width:130px;">' +
+            options +
+        '</select>' +
+        '<input type="text" name="hf_observacao" class="form-input" ' +
+            'style="flex:2;min-width:150px;" placeholder="Observação (opcional)">' +
+        '<button type="button" onclick="removerHistorico(this)" ' +
+            'style="background:none;border:none;color:#dc2626;' +
+            'cursor:pointer;font-size:18px;padding:0 8px;">×</button>';
+
+    lista.appendChild(div);
+    div.querySelector('input[name="hf_condicao"]').focus();
+}
+
+function removerHistorico(btn) {
+    btn.parentElement.remove();
+}
+function toggleDataObito(checkbox) {
+    // Mostra ou esconde o campo de data conforme o checkbox
+    var campo = document.getElementById('campo-data-obito');
+    campo.style.display = checkbox.checked ? 'block' : 'none';
+
+    // Se marcou óbito, desativa automaticamente o paciente
+    // faz sentido — paciente falecido não pode estar ativo
+    if (checkbox.checked) {
+        var ativoCheckbox = document.querySelector('input[name="ativo"]');
+        if (ativoCheckbox) ativoCheckbox.checked = false;
+    }
+}
+// Destaca visualmente o card da condição selecionada
+function toggleCondicao(checkbox, id) {
+    var label = document.getElementById('label-condicao-' + id);
+    if (checkbox.checked) {
+        label.style.borderColor = 'var(--verde)';
+        label.style.background  = '#f0fdf4';
+    } else {
+        label.style.borderColor = '#e5e7eb';
+        label.style.background  = 'white';
+    }
+
+    // Mostra campo de data do parto se gestante for marcada
+    // O valor 'gestante' vem do data-codigo que colocamos no input
+    if (checkbox.dataset.codigo === 'gestante') {
+        document.getElementById('campo-gestante').style.display =
+            checkbox.checked ? 'block' : 'none';
+    }
+}
+
+// Inicializa o estilo dos checkboxes já marcados ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[name="condicoes"]').forEach(function(cb) {
+        if (cb.checked) {
+            var label = document.getElementById('label-condicao-' + cb.value);
+            if (label) {
+                label.style.borderColor = 'var(--verde)';
+                label.style.background  = '#f0fdf4';
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}

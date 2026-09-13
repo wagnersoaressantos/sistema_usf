@@ -1,0 +1,46 @@
+<div style="padding-bottom:8px; border-bottom:1px solid #e5e7eb; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+    <span style="font-size:13px; font-weight:600; color:#4b5563; text-transform:uppercase; letter-spacing:0.5px;">
+        📋 Resumo da Caderneta: <span style="color:#0284c7;">{{ perfil }}</span>
+    </span>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px;">
+    {% for item in vacinas %}
+        
+        {% if perfil in item.categorias %}
+            
+            <div style="background:white; border:1px solid #e5e7eb; border-left:4px solid {% if item.status_geral == 'atrasada' %}#ef4444{% elif item.status_geral == 'concluida' %}#10b981{% else %}#3b82f6{% endif %}; border-radius:6px; padding:10px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                
+                <strong style="font-size:13px; color:#111827; display:block; margin-bottom:6px; border-bottom:1px solid #f3f4f6; padding-bottom:4px;">
+                    {{ item.vacina.nome }}
+                </strong>
+                
+                <ul style="margin:0; padding-left:16px; font-size:12px; color:#4b5563;">
+                {% for dose in item.doses %}
+                    <li style="margin-bottom:4px;">
+                        <span style="font-weight:600;">{{ dose.regra.get_tipo_dose_display }} {{ dose.regra.numero_dose }}:</span>
+                        
+                        {% if dose.status == 'aplicada' %}
+                            <span style="color:#059669; font-weight:700;">Aplicada em {{ dose.data_aplicada|date:"d/m/Y" }}</span>
+                        {% elif dose.status == 'atrasada' %}
+                            <span style="color:#dc2626; font-weight:700;">Atrasada</span> <br>
+                            <span style="font-size:10px; color:#991b1b;">(Recomendado: {{ dose.regra.idade_recomendada_formatada }})</span>
+                        {% elif dose.status == 'perdida' %}
+                            <span style="text-decoration:line-through; color:#9ca3af;">Perdida por idade</span>
+                        {% else %}
+                            <span style="color:#0284c7;">Aguardar</span> <br>
+                            <span style="font-size:10px; color:#0369a1;">(Aos {{ dose.regra.idade_recomendada_formatada }})</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+            
+        {% endif %}
+        
+    {% empty %}
+        <div style="grid-column: 1 / -1; color:#6b7280; font-size:13px; text-align:center; padding:10px;">
+            Nenhuma vacina do PNI cadastrada.
+        </div>
+    {% endfor %}
+</div>

@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% block titulo %}Administração — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+<h1 class="page-title">⚙ <span>Administração</span> do sistema</h1>
+
+{# Cards de acesso rápido para cada seção #}
+{# ── Seção: Sistema ──────────────────────────────── #}
+<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:10px;">
+    Sistema
+</h2>
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
+                                margin-bottom:2rem;">
+    <div class="stat-card" style="cursor:pointer;"
+        onclick="window.location='{% url 'core:admin_tipos' %}'">
+        <div class="stat-num">{{ total_tipos }}</div>
+        <div class="stat-label">Tipos de atendimento</div>
+            <div style="margin-top:12px;">
+                <a href="{% url 'core:admin_tipos' %}" class="btn btn-verde"
+                    style="font-size:12px;padding:6px 14px;">
+                    🩺 Atendimentos
+                </a>
+            </div>
+    </div>
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_configuracao' %}'">
+        <div class="stat-num">⚙️</div>
+        <div class="stat-label">Configuração do sistema</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'core:admin_configuracao' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                Configurações
+            </a>
+        </div>
+    </div>
+
+
+    <div class="stat-card" style="cursor:pointer;"
+        onclick="window.location='{% url 'core:admin_avisos' %}'">
+        <div class="stat-num" style="color:#d97706;">📢</div>
+        <div class="stat-label">Mural de avisos</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'core:admin_avisos' %}" class="btn btn-verde"
+            style="font-size:12px;padding:6px 14px;">
+                Gerenciar avisos
+            </a>
+        </div>
+    </div>
+    {# Cole este bloco dentro do seu template de gerenciamento do core #}
+    <div style="background:#fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 1.5rem; margin-top: 2rem;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <span style="font-size:20px;">⚙️</span>
+            <h3 style="margin:0; font-size:14px; color:#9f1239; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">
+                Manutenção Estrutural do Servidor
+            </h3>
+        </div>
+        <p style="font-size:13px; color:#4b5563; margin:0 0 16px; line-height:1.5;">
+            Utilize esta ferramenta para sincronizar o computador servidor do posto de saúde com a versão mais recente do sistema disponível no GitHub. O processo preservará integralmente todos os encaminhamentos, pacientes e dados reais cadastrados na unidade.
+        </p>
+        
+        <a href="{% url 'core:executar_git_pull' %}" 
+        onclick="return confirm('Confirma a busca ativa por atualizações no GitHub? Este processo atualizará os códigos da unidade.')"
+        class="btn" 
+        style="background:#e11d48; color:white; padding:8px 16px; font-size:13px; font-weight:600; text-decoration:none; border-radius:6px; display:inline-block; transition: background 0.2s;">
+            🔄 Buscar e Aplicar Atualizações do Sistema
+        </a>
+    </div>
+
+</div>
+
+{# ── Seção: Usuários e equipe ────────────────────── #}
+<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:10px;">
+    Usuários e equipe
+</h2>
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:2rem;">
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_usuarios' %}'">
+        <div class="stat-num">{{ total_usuarios }}</div>
+        <div class="stat-label">Usuários ativos</div>
+        {% if total_inativos %}
+        <div style="font-size:11px;color:#dc2626;margin-top:4px;">
+            {{ total_inativos }} inativo{{ total_inativos|pluralize }}
+        </div>
+        {% endif %}
+        <div style="margin-top:12px;">
+            <a href="{% url 'core:admin_usuarios' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                👥 Gerenciar usuários
+            </a>
+        </div>
+    </div>
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_equipe' %}'">
+        <div class="stat-num">{{ total_equipe }}</div>
+        <div class="stat-label">Membros da equipe</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'core:admin_equipe' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                🧑‍⚕️ Gerenciar equipe
+            </a>
+        </div>
+    </div>
+
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_cargos' %}'">
+        <div class="stat-num">{{ total_cargos }}</div>
+        <div class="stat-label">Cargos cadastrados</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'core:admin_cargos' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                📋 Gerenciar cargos
+            </a>
+        </div>
+    </div>
+
+    
+</div>
+
+    {# ── Seção: Unidade ──────────────────────────────── #}
+<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:10px;">
+    Unidade
+</h2>
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
+                                margin-bottom:2rem;">
+
+
+        <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_usfs' %}'">
+        <div class="stat-num">{{ total_usfs }}</div>
+        <div class="stat-label">USFs cadastradas</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'core:admin_usfs' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                🏥 Gerenciar USFs
+            </a>
+        </div>
+    </div>
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_microareas' %}'">
+        <div class="stat-num">{{ total_microareas }}</div>
+        <div class="stat-label">Micro-áreas</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'core:admin_microareas' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                🗺️ <br> Gerenciar  micro-áreas
+            </a>
+        </div>
+    </div>
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_pacientes' %}'">
+        <div class="stat-num">{{ total_pacientes }}</div>
+        <div class="stat-label">Pacientes cadastrados</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'core:admin_pacientes' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                👤 Gerenciar pacientes
+            </a>
+        </div>
+    </div> 
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:familias_score' %}'">
+        <div class="stat-num">👨‍👩‍👧</div>
+        <div class="stat-label">Score familiar</div>
+        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
+            Escala de Coelho e Savassi
+        </p>
+        <a href="{% url 'core:familias_score' %}" class="btn btn-verde"
+           style="font-size:12px; padding:6px 14px;">
+            Ver famílias
+        </a>
+    </div>
+</div>
+
+{# ── Seção: Importações ──────────────────────────── #}
+<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:10px;">
+    Importações
+</h2>
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
+                                margin-bottom:2rem;">
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:importar_pacientes' %}'">
+        <div class="stat-num">📥</div>
+        <div class="stat-label">Importar pacientes</div>
+        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
+            CSV do e-SUS — vinculados da equipe
+        </p>
+        <a href="{% url 'core:importar_pacientes' %}" class="btn btn-verde"
+           style="font-size:12px; padding:6px 14px;">
+            Importar CSV
+        </a>
+    </div>
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:importar_condicoes' %}'">
+        <div class="stat-num">🩺</div>
+        <div class="stat-label">Importar condições de saúde</div>
+        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
+            Hipertensão, diabetes e gestantes
+        </p>
+        <a href="{% url 'core:importar_condicoes' %}" class="btn btn-verde"
+           style="font-size:12px; padding:6px 14px;">
+            Importar condições
+        </a>
+    </div>
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:importar_territorio' %}'">
+        <div class="stat-num">🗺️</div>
+        <div class="stat-label">Importar território</div>
+        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
+            Logradouros e vínculos familiares
+        </p>
+        <a href="{% url 'core:importar_territorio' %}" class="btn btn-verde"
+           style="font-size:12px; padding:6px 14px;">
+            Importar território
+        </a>
+    </div>
+
+</div>
+
+{# ── Seção: Configurações clínicas ──────────────── #}
+<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:10px;">
+    Configurações clínicas
+</h2>
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
+                                margin-bottom:2rem;">
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_condicoes' %}'">
+        <div class="stat-num">🩺</div>
+        <div class="stat-label">Condições de saúde</div>
+        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
+            Hipertensão, diabetes, gestante...
+        </p>
+        <a href="{% url 'core:admin_condicoes' %}" class="btn btn-verde"
+           style="font-size:12px; padding:6px 14px;">
+            Gerenciar condições
+        </a>
+    </div>
+
+    <div class="stat-card" style="cursor:pointer;"
+         onclick="window.location='{% url 'core:admin_sentinelas' %}'">
+        <div class="stat-num">⚠️</div>
+        <div class="stat-label">Sentinelas de risco</div>
+        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
+            Escala de Coelho e Savassi
+        </p>
+        <a href="{% url 'core:admin_sentinelas' %}" class="btn btn-verde"
+           style="font-size:12px; padding:6px 14px;">
+            Gerenciar sentinelas
+        </a>
+    </div>
+
+</div>
+
+{# ── Seção: Encaminhamentos ──────────────────────── #}
+<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
+            text-transform:uppercase; letter-spacing:0.05em;
+            margin-bottom:10px;">
+    Encaminhamentos
+</h2>
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
+                                margin-bottom:2rem;">
+
+        <div class="stat-card" style="cursor:pointer;"
+          onclick="window.location= '{% url 'encaminhamentos:admin_tipos_enc' %}'" > 
+        <div class="stat-num">{{ total_tipos_enc }}</div>
+        <div class="stat-label">Tipos de encaminhamento</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'encaminhamentos:admin_tipos_enc' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                📋 Gerenciar tipos
+            </a>
+        </div>
+    </div>
+
+    <div class="stat-card" style="cursor:pointer;"
+        onclick="window.location='{% url 'encaminhamentos:admin_cotas' %}'"> 
+        <div class="stat-num">{{ total_cotas }}</div>
+        <div class="stat-label">Cotas configuradas</div>
+        <div style="margin-top:12px;">
+            <a href="{% url 'encaminhamentos:admin_cotas' %}" class="btn btn-verde"
+               style="font-size:12px;padding:6px 14px;">
+                📊 Gerenciar cotas
+            </a>
+        </div>
+    </div>                                
+</div>
+{% endblock %}

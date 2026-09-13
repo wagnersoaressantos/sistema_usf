@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block titulo %}Mapa de Ocupação da Agenda{% endblock %}
+
+{% block conteudo %}
+<div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <h1 style="font-size:22px; font-weight:700; color:#111827; margin:0;">📅 Controle e Ocupação de Agendas</h1>
+        <p style="font-size:13px; color:#6b7280; margin:4px 0 0;">Gerenciamento de vagas e listagem nominal por dia</p>
+    </div>
+    
+    <form method="get" style="display:flex; gap:10px; align-items:center; background:white; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px;">
+        <label style="font-size:12px; font-weight:600; color:#374151;">Mudar Data:</label>
+        <input type="date" name="data" value="{{ data_selecionada|date:'Y-m-d' }}" style="padding:4px 8px; border:1px solid #d1d5db; border-radius:4px;">
+        <button type="submit" class="btn btn-cinza" style="padding:4px 10px; font-size:12px;">🔍 Ver Dia</button>
+    </form>
+</div>
+
+<h2 style="font-size:15px; color:#4f46e5; margin-bottom:16px;">
+    📋 Diagnóstico do Dia: {{ data_selecionada|date:"d/m/Y (l)" }}
+</h2>
+
+<div style="display:grid; grid-template-columns: 1fr; gap:20px;">
+    {% for item in mapa_profissionais %}
+        <div class="card" style="background:white; border:1px solid #e5e7eb; border-radius:8px; padding:20px;">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f3f4f6; padding-bottom:12px; margin-bottom:12px;">
+                <div>
+                    <h3 style="margin:0; font-size:16px; color:#111827;">🧑‍⚕️ {{ item.profissional.user.get_full_name|default:item.profissional.user.username }}</h3>
+                    <span style="font-size:11px; color:#6b7280;">Vínculo: {{ item.profissional.get_papel_display }}</span>
+                </div>
+                
+                <div style="display:flex; gap:16px; text-align:right;">
+                    <div>
+                        <span style="font-size:11px; color:#6b7280; display:block;">OCUPAÇÃO</span>
+                        <strong style="font-size:15px; color:#111827;">{{ item.preenchidas }} / {{ item.totais }} Vagas</strong>
+                    </div>
+                    <div>
+                        <span style="font-size:11px; color:#6b7280; display:block;">STATUS</span>
+                        <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; {% if item.restantes > 0 %}background:#ecfdf5; color:#047857;{% else %}#fef2f2; color:#b91c1c;{% endif %}">
+                            {{ item.status_texto }} ({% if item.restantes > 0 %}{{ item.restantes }} livres{% else %}0{% endif %})
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:12px; font-weight:600; color:#4b5563;">Pacientes Agendados:</span>
+                {% for agenda in item.pacientes %}
+                    <div style="display:flex; justify-content:space-between; background:#f9fafb; padding:8px 12px; border-radius:6px; font-size:13px;">
+                        <span>⏰ <strong>{{ agenda.hora_consulta|time:"H:i"|default:"--" }}</strong> — {{ agenda.paciente.nome }}</span>
+                        <span style="color:#6b7280;">{{ agenda.tipo.nome }}</span>
+                    </div>
+                {% empty %}
+                    <p style="font-size:12px; color:#9ca3af; margin:4px 0 0; font-style:italic;">Nenhuma consulta marcada para este profissional nesta data.</p>
+                {% endfor %}
+            </div>
+
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Atendimentos — Mutirão de Saúde{% endblock %}
+
+{% block conteudo %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 class="page-title" style="margin:0;">📋 <span>Atendimentos</span> registrados</h1>
+    <div style="display:flex;gap:8px;" class="no-print">
+        <a href="{% url 'mutirao:exportar_csv' %}{% if busca %}?busca={{ busca }}{% endif %}"
+           class="btn btn-cinza">
+            📥 Exportar CSV
+        </a>
+        <a href="{% url 'mutirao:cadastrar' %}" class="btn btn-verde">
+            ➕ Novo atendimento
+        </a>
+    </div>
+</div>
+
+{# ── Campo de busca ─────────────────────────────── #}
+<form method="get" action="{% url 'mutirao:listar' %}"
+      style="margin-bottom:1.25rem;" class="no-print">
+    <div style="display:flex;gap:8px;align-items:center;">
+
+        <div style="position:relative;flex:1;">
+            {# O input recebe o valor da busca atual para manter o texto #}
+            <input type="text"
+                   name="busca"
+                   value="{{ busca }}"
+                   class="form-input"
+                   placeholder="🔍 Buscar por nome do paciente ou CPF/SUS..."
+                   autofocus>
+        </div>
+
+        <button type="submit" class="btn btn-verde">Buscar</button>
+
+        {# Botão limpar só aparece quando há uma busca ativa #}
+        {% if busca %}
+        <a href="{% url 'mutirao:listar' %}" class="btn btn-cinza">✕ Limpar</a>
+        {% endif %}
+
+    </div>
+
+    {# Mensagem informando o resultado da busca #}
+    {% if busca %}
+    <div style="margin-top:8px;font-size:13px;color:#6b7280;">
+        {# pluralize adiciona "s" quando o número é diferde 1 #}
+        {{ total }} resultado{{ total|pluralize }} para
+        <strong>"{{ busca }}"</strong>
+        — <a href="{% url 'mutirao:listar' %}" style="color:var(--verde);">ver todos</a>
+    </div>
+    {% endif %}
+
+</form>
+
+{# ── Cards de resumo ─────────────────────────────── #}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-num">{{ total }}</div>
+        <div class="stat-label">
+            {# Texto muda conforme há busca ativa ou não #}
+            {% if busca %}Resultados encontrados{% else %}Total de atendimentos{% endif %}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-num">{{ atendimentos.paginator.num_pages }}</div>
+        <div class="stat-label">Páginas</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-num">{{ atendimentos.object_list|length }}</div>
+        <div class="stat-label">Nesta página</div>
+    </div>
+</div>
+
+{# ── Tabela de atendimentos ──────────────────────── #}
+<div class="card">
+    <div class="tabela-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nome do paciente</th>
+                    <th>CPF / SUS</th>
+                    <th>USF</th>
+                    <th>Tipo de atendimento</th>
+                    <th>Data do cadastro</th>
+                    <th>Registrado por</th>
+                    <th class="no-print">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in atendimentos %}
+                
+                <tr>
+                    <td style="color:#9ca3af;font-size:12px;">{{ forloop.counter }}</td>
+                    <td><strong>{{ a.nome_paciente }}</strong></td>
+                    <td style="font-family:monospace;font-size:12px;">{{ a.cpf_sus }}</td>
+                    <td>
+                        {# a.usf é agora um objeto USF — acessamos o nome com .nome #}
+                        {# O filtro |default mostra "—" se não tiver USF cadastrada #}
+                        {{ a.usf.nome|default:"—" }}
+                    </td>
+                    <td>
+                        <span class="badge badge-verde">
+                            {# a.tipo_atendimento é um objeto TipoAtendimento #}
+                            {{ a.tipo_atendimento.nome|default:"—" }}
+                        </span>
+                    </td>
+                    <td style="font-size:12px;">{{ a.criado_em|date:"d/m/Y H:i" }}</td>
+                    <td style="font-size:12px;color:#6b7280;">
+                        {{ a.criado_por.get_full_name|default:a.criado_por.username }}
+                    </td>
+                    {# Célula de ações — some na impressão pela classe no-print #}
+                <td class="no-print" style="white-space:nowrap;">
+                    <a href="{% url 'mutirao:editar' a.pk %}"
+                    style="font-size:12px;color:#185FA5;text-decoration:none;
+                            padding:3px 8px;border:1px solid #bfdbfe;border-radius:4px;
+                            margin-right:4px;">
+                        ✏ Editar
+                    </a>
+                    <a href="{% url 'mutirao:excluir' a.pk %}"
+                    style="font-size:12px;color:#dc2626;text-decoration:none;
+                            padding:3px 8px;border:1px solid #fecaca;border-radius:4px;">
+                        🗑 Excluir
+                    </a>
+                </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:2rem;color:#9ca3af;">
+                        {# Mensagem diferente se há busca ativa ou lista vazia #}
+                        {% if busca %}
+                            Nenhum atendimento encontrado para "{{ busca }}".
+                            <a href="{% url 'mutirao:listar' %}">Ver todos ↗</a>
+                        {% else %}
+                            Nenhum atendimento registrado ainda.
+                            <a href="{% url 'mutirao:cadastrar' %}">Cadastrar o primeiro ↗</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                
+                {% endfor %}
+                
+                
+            </tbody>
+        </table>
+    </div>
+
+    {# ── Paginação ─────────────────────────────────── #}
+    {% if atendimentos.has_other_pages %}
+    <div class="paginacao no-print">
+
+        {% if atendimentos.has_previous %}
+        {# Mantém o termo de busca na URL ao trocar de página #}
+        {# Ex: ?busca=Maria&page=2 #}
+        <a href="?{% if busca %}busca={{ busca }}&{% endif %}page={{ atendimentos.previous_page_number }}">
+            ‹ Anterior
+        </a>
+        {% endif %}
+
+        {% for i in atendimentos.paginator.page_range %}
+            {% if atendimentos.number == i %}
+                <span class="atual">{{ i }}</span>
+            {% else %}
+                <a href="?{% if busca %}busca={{ busca }}&{% endif %}page={{ i }}">{{ i }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if atendimentos.has_next %}
+        <a href="?{% if busca %}busca={{ busca }}&{% endif %}page={{ atendimentos.next_page_number }}">
+            Próxima ›
+        </a>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

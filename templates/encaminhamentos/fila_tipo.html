@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block titulo %}{{ tipo.nome }} — Fila{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho ───────────────────────────────────── #}
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1rem;">
+    <a href="{% url 'encaminhamentos:inicio' %}"
+       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <div style="flex:1;">
+        <h1 style="font-size:20px; font-weight:600; margin:0;">
+            {{ tipo.nome }}
+        </h1>
+        <p style="font-size:13px; color:#6b7280; margin:0;">
+            {{ usf.nome }} · {{ encaminhamentos|length }} na fila
+        </p>
+    </div>
+    <a href="{% url 'encaminhamentos:cadastrar' %}?tipo={{ tipo.pk }}"
+       class="btn btn-verde">
+        ➕ Novo
+    </a>
+</div>
+{% comment %}
+{# ── Resumo da cota ──────────────────────────────────
+    Painel com a situação da cota do mês atual.
+    ──────────────────────────────────────────────────── #}
+    {% endcomment %}
+{% if resumo.cota %}
+    <div style="background:{% if resumo.acima %}#fef2f2{% else %}white{% endif %};
+                border:1px solid {% if resumo.acima %}#fca5a5{% else %}#e5e7eb{% endif %};
+                border-radius:8px; padding:14px 16px; margin-bottom:1.5rem;">
+
+        <div style="display:flex; align-items:center;
+                    justify-content:space-between; margin-bottom:10px;">
+            <p style="font-size:14px; font-weight:600; margin:0;
+                       color:{% if resumo.acima %}#dc2626{% else %}#111827{% endif %};">
+                📊 Cota do mês
+                {% if resumo.acima %}— ⚠️ Acima da cota{% endif %}
+            </p>
+            <span style="font-size:13px; color:#6b7280;">
+                Cota: {{ resumo.cota }}
+            </span>
+        </div>
+
+        {# Barra de progresso — fila vs cota #}
+        {% widthratio resumo.na_fila resumo.cota 100 as pct_fila %}
+        <div style="height:8px; background:#f3f4f6; border-radius:4px;
+                    overflow:hidden; margin-bottom:10px;">
+            <div style="width:{% if pct_fila > 100 %}100{% else %}{{ pct_fila }}{% endif %}%;
+                        height:100%;
+                        background:{% if resumo.acima %}#ef4444{% else %}var(--verde){% endif %};
+                        border-radius:4px;">
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr;
+                    gap:4px; font-size:13px; color:#6b7280;">
+            <span>
+                🔵 Na fila: <strong style="color:#111827;">{{ resumo.na_fila }}</strong>
+            </span>
+            <span>
+                Cota: <strong style="color:#111827;">{{ resumo.cota }}</strong>
+            </span>
+            <span>
+                📅 Solicitados no mês: <strong style="color:#111827;">{{ resumo.solicitados }}</strong>
+            </span>
+            <span>
+                ✅ Marcados no mês: <strong style="color:#111827;">{{ resumo.marcados }}</strong>
+            </span>
+        </div>
+
+    </div>
+{% else %}
+    <div style="background:#f9fafb; border:1px solid #e5e7eb;
+                border-radius:8px; padding:12px 16px; margin-bottom:1.5rem;">
+        <p style="font-size:13px; color:#9ca3af; margin:0;">
+            Sem cota definida para este tipo.
+        </p>
+        {% if resumo.solicitados %}
+            <p style="font-size:13px; color:#6b7280; margin:4px 0 0;">
+                📅 {{ resumo.solicitados }} solicitado{{ resumo.solicitados|pluralize }} este mês
+            </p>
+        {% endif %}
+    </div>
+{% endif %}
+{# ── Filtro por status ───────────────────────────── #}
+<style>
+    .btn-filtro {
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        text-decoration: none;
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: #374151;
+        display: inline-block;
+    }
+    .btn-filtro.ativo {
+        background: var(--verde);
+        color: white;
+        border-color: var(--verde);
+    }
+</style>
+
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:1rem;">
+
+    <a href="{% url 'encaminhamentos:fila_tipo' tipo.pk %}"
+       class="btn-filtro {% if not status_filtro %}ativo{% endif %}">
+        Todos
+    </a>
+
+    <a href="{% url 'encaminhamentos:fila_tipo' tipo.pk %}?status=aguardando"
+       class="btn-filtro {% if status_filtro == 'aguardando' %}ativo{% endif %}">
+        📋 Aguardando
+    </a>
+
+    <a href="{% url 'encaminhamentos:fila_tipo' tipo.pk %}?status=regulacao"
+       class="btn-filtro {% if status_filtro == 'regulacao' %}ativo{% endif %}">
+        🏛 Em regulação
+    </a>
+
+    <a href="{% url 'encaminhamentos:fila_tipo' tipo.pk %}?status=upae"
+       class="btn-filtro {% if status_filtro == 'upae' %}ativo{% endif %}">
+        🏥 Na UPAE
+    </a>
+
+</div>
+
+{# ── Fila de encaminhamentos ──────────────────────── #}
+{% if encaminhamentos %}
+
+    {% for enc in encaminhamentos %}
+        <div style="background:white;
+                    border:1px solid #e5e7eb;
+                    border-left:4px solid
+                        {% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#3b82f6{% else %}#9ca3af{% endif %}
+                        {% elif enc.prioridade == 2 %}#a855f7
+                        {% elif enc.prioridade == 3 %}#f59e0b
+                        {% elif enc.prioridade == 4 %}#ef4444
+                        {% else %}#e5e7eb{% endif %};
+                    border-radius:8px;
+                    padding:14px 16px;
+                    margin-bottom:10px;">
+
+            
+
+            <div style="display:flex; align-items:flex-start;
+                        justify-content:space-between; gap:12px;">
+
+                <div style="flex:1;">
+    {% include 'core/pacientes/partials/card_paciente.html' with paciente=enc.paciente modo='compacto' %}
+
+    {# Subtipos se houver #}
+    {% with subs=enc.subtipos.all %}
+        {% if subs %}
+        <p style="font-size:13px; color:#6b7280; margin:4px 0;">
+            {% for s in subs %}
+                {{ s.subtipo.nome }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+    {% endwith %}
+
+    <p style="font-size:12px; color:#9ca3af; margin:0;">
+        Solicitado em {{ enc.data_solicitacao|date:"d/m/Y" }}
+    </p>
+</div>
+
+                <div style="display:flex; flex-direction:column;
+                            align-items:flex-end; gap:6px; flex-shrink:0;">
+
+                    {# Badge prioridade #}
+                    <span style="font-size:11px; font-weight:500;
+                                 padding:3px 10px; border-radius:20px;
+                                 background:
+                                     {% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#eff6ff{% else %}#f3f4f6{% endif %}
+                                     {% elif enc.prioridade == 2 %}#faf5ff
+                                     {% elif enc.prioridade == 3 %}#fffbeb
+                                     {% elif enc.prioridade == 4 %}#fef2f2
+                                     {% else %}#f9fafb{% endif %};
+                                 color:
+                                     {% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#1d4ed8{% else %}#6b7280{% endif %}
+                                     {% elif enc.prioridade == 2 %}#7e22ce
+                                     {% elif enc.prioridade == 3 %}#92400e
+                                     {% elif enc.prioridade == 4 %}#991b1b
+                                     {% else %}#374151{% endif %};">
+                        {{ enc.get_prioridade_display }}
+                        {% if enc.prioridade == 1 and enc.mes_retorno %}
+                            · {{ enc.mes_retorno }}/{{ enc.ano_retorno }}
+                        {% endif %}
+                    </span>
+
+                    {# Badge status #}
+                    <span style="font-size:11px; padding:3px 10px;
+                                 border-radius:20px; background:#f3f4f6;
+                                 color:#374151;">
+                        {{ enc.get_status_display }}
+                    </span>
+
+                    {# Badge duplicata #}
+                    {% if enc.duplicata_de %}
+                        <span style="font-size:11px; padding:3px 10px;
+                                     border-radius:20px; background:#fef2f2;
+                                     color:#dc2626;">
+                            ⚠️ Duplicata
+                        </span>
+                    {% endif %}
+
+                </div>
+            </div>
+
+            <div style="margin-top:10px; border-top:1px solid #f3f4f6;
+                        padding-top:10px;">
+                <a href="{% url 'encaminhamentos:detalhe' enc.pk %}"
+                   style="font-size:13px; color:var(--verde);
+                          text-decoration:none; font-weight:500;">
+                    Ver detalhes →
+                </a>
+            </div>
+
+        </div>
+    {% endfor %}
+
+{% else %}
+    <div style="text-align:center; padding:3rem 1rem;">
+        <div style="font-size:48px; margin-bottom:1rem;">✅</div>
+        <p style="font-size:15px; font-weight:500; color:#6b7280;">
+            Nenhum encaminhamento na fila.
+        </p>
+        <a href="{% url 'encaminhamentos:cadastrar' %}"
+           class="btn btn-verde" style="margin-top:1rem;">
+            ➕ Novo encaminhamento
+        </a>
+    </div>
+{% endif %}
+
+{% endblock %}

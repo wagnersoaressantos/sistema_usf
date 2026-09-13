@@ -1,0 +1,553 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — {{ sistema.nome }}</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        /* ════════════════════════════════════════
+           PÁGINA DE LOGIN — Layout duas colunas
+           ════════════════════════════════════════
+
+           Estrutura:
+           .login-page        → container full screen
+           ├── .login-painel  → lado esquerdo (verde)
+           └── .login-form    → lado direito (branco)
+        */
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Container principal — divide a tela em duas colunas */
+        .login-page {
+            display: grid;
+            /* 1.2fr = lado esquerdo um pouco maior que o direito (1fr) */
+            grid-template-columns: 1.2fr 1fr;
+            min-height: 100vh;
+        }
+
+        /* ── LADO ESQUERDO — Painel da unidade ── */
+        .login-painel {
+            background: var(--verde, #1a7a4c);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2.5rem;
+            overflow: hidden;
+
+            /* Garante que os elementos fiquem acima do padrão geométrico */
+            z-index: 0;
+        }
+
+        /*
+            Padrão geométrico sutil no fundo do lado esquerdo.
+            Criado com CSS puro usando ::before — sem imagem extra.
+
+            ::before é um pseudo-elemento — um elemento virtual
+            criado pelo CSS antes do conteúdo real do .login-painel.
+
+            Usamos dois gradientes lineares cruzados para criar
+            um efeito de grade geométrica sutil.
+        */
+        .login-painel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            /* Dois gradientes sobrepostos formam um padrão de grade */
+            background-image:
+                linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+            /* background-size define o tamanho de cada célula da grade */
+            background-size: 40px 40px;
+            z-index: -1;
+        }
+
+        /*
+            Círculo decorativo no canto superior direito.
+            Dá profundidade e movimento visual sem pesar a página.
+        */
+        .login-painel::after {
+            content: '';
+            position: absolute;
+            top: -80px;
+            right: -80px;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            z-index: -1;
+        }
+
+        /* Logo da unidade — centralizada no painel */
+        .painel-logo {
+            background: white;
+            border-radius: 99px;
+            padding: 10px 10px;
+            margin-bottom: 2rem;
+            /* box-shadow suave para dar profundidade */
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+
+        .painel-logo img {
+            height: 125px;
+            width: auto;
+            display: block;
+        }
+
+        /* Nome e informações da unidade */
+        .painel-info {
+            text-align: center;
+            color: white;
+            margin-bottom: 2.5rem;
+        }
+
+        .painel-info h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .painel-info p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.5;
+        }
+
+        /*
+            Área de placeholder para o conteúdo futuro.
+            Borda tracejada indica visualmente que é um espaço
+            reservado para funcionalidade futura.
+        */
+        .painel-placeholder {
+            width: 100%;
+            max-width: 380px;
+            border: 1.5px dashed rgba(255,255,255,0.25);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .painel-placeholder .icone {
+            font-size: 36px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .painel-placeholder h3 {
+            font-size: 15px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+        }
+
+        .painel-placeholder p {
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            line-height: 1.5;
+        }
+
+        /* Rodapé do painel esquerdo */
+        .painel-rodape {
+            position: absolute;
+            bottom: 20px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.35);
+            text-align: center;
+        }
+
+        /* ── LADO DIREITO — Formulário de login ── */
+        .login-form {
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2.5rem;
+            position: relative;
+        }
+
+        /* Caixa interna do formulário — largura máxima para não esticar demais */
+        .form-box {
+            width: 100%;
+            max-width: 360px;
+        }
+
+        /* Cabeçalho do formulário — logo pequena + título */
+        .form-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .form-header img {
+            height: 150px;
+            width: auto;
+            margin-bottom: 16px;
+        }
+
+        .form-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 6px;
+        }
+
+        .form-header p {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        /* Label dos campos */
+        .campo-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        /* Campo de input */
+        .campo-input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1f2937;
+            background: #fafafa;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            margin-bottom: 1.1rem;
+        }
+
+        .campo-input:focus {
+            outline: none;
+            border-color: #1a7a4c;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(26,122,76,0.1);
+        }
+
+        /* Botão de entrar — ocupa a largura toda */
+        .btn-entrar {
+            width: 100%;
+            padding: 12px;
+            background: #1a7a4c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-entrar:hover {
+            background: #145c38;
+        }
+
+        /* Efeito de pressionar o botão */
+        .btn-entrar:active {
+            transform: scale(0.98);
+        }
+
+        /* Mensagem de erro */
+        .form-erro {
+            background: #fee2e2;
+            border-left: 3px solid #dc2626;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #991b1b;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Rodapé do formulário */
+        .form-rodape {
+            position: absolute;
+            bottom: 20px;
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: center;
+        }
+
+        /* ── RESPONSIVO ──────────────────────────────
+           Em telas menores que 768px (celular/tablet),
+           o layout vira uma coluna só — painel some
+           e só o formulário fica visível.
+        ─────────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .login-page {
+                grid-template-columns: 1fr;
+            }
+            /* Esconde o painel esquerdo no celular */
+            .login-painel {
+                display: none;
+            }
+            .login-form {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body style="padding: 0%;">
+
+<div class="login-page">
+
+    {# ── LADO ESQUERDO — Painel público da unidade ── #}
+    <div class="login-painel">
+
+        {# Logo da unidade — maior e com fundo branco arredondado #}
+        <div class="painel-logo">
+            <img src="{% static 'img/logo.png' %}" alt="Logo da unidade">
+        </div>
+
+        {# Nome e localização da unidade — vêm do context processor #}
+        <div class="painel-info">
+            <h1>{{ sistema.unidade }}</h1>
+            <p>
+                {{ sistema.municipio }}, {{ sistema.estado }}<br>
+                {{ sistema.descricao }}
+            </p>
+        </div>
+        {% comment %}
+        {#
+            Placeholder para conteúdo futuro.
+            Aqui virão: mural de avisos, cronograma,
+            dashboard público e mapa de cobertura.
+        #}
+        {% endcomment %}
+        {# ── Mural de avisos ── #}
+    {# avisos vem do context processor automaticamente #}
+    {% if avisos %}
+    <div style="width:100%;max-width:380px;">
+
+        {# Lista de avisos ativos #}
+        {% for aviso in avisos %}
+        <div style="background:rgba(255,255,255,0.1);
+                    border-radius:10px;
+                    padding:14px 16px;
+                    margin-bottom:10px;
+                    border-left:3px solid;
+                    {% if aviso.categoria == 'aviso' %}#f9c74f
+                    {% elif aviso.categoria == 'evento' %}#90be6d
+                    {% else %}#a9d6e5{% endif %};">
+
+            {# Badge da categoria #}
+            <div style="display:flex;align-items:center;
+                        justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:10px;font-weight:500;
+                            color:rgba(255,255,255,0.6);
+                            text-transform:uppercase;letter-spacing:.06em;">
+                    {% if aviso.categoria == 'aviso' %}⚠ Aviso
+                    {% elif aviso.categoria == 'evento' %}📅 Evento
+                    {% else %}🗓 Cronograma{% endif %}
+                </span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.4);">
+                    até {{ aviso.data_validade|date:"d/m" }}
+                </span>
+            </div>
+
+            {# Título do aviso #}
+            <div style="font-size:13px;font-weight:600;
+                        color:white;margin-bottom:4px;">
+                {{ aviso.titulo }}
+            </div>
+
+            {# Mensagem do aviso #}
+            <div style="font-size:12px;color:rgba(255,255,255,0.75);
+                        line-height:1.5;">
+                {{ aviso.mensagem }}
+            </div>
+
+        </div>
+        {% endfor %}
+
+    </div>
+
+    {% else %}
+    {# Placeholder quando não há avisos cadastrados #}
+    <div class="painel-placeholder">
+        <span class="icone">📋</span>
+        <h3>Painel da Unidade</h3>
+        <p>
+            Em breve: mural de avisos,<br>
+            cronograma de atendimentos<br>
+            e mapa de cobertura da unidade.
+        </p>
+    </div>
+{% endif %}
+        <!-- <div class="painel-placeholder">
+            <span class="icone">📋</span>
+            <h3>Painel da Unidade</h3>
+            <p>
+                Em breve: mural de avisos,<br>
+                cronograma de atendimentos<br>
+                e mapa de cobertura da unidade.
+            </p>
+        </div> -->
+        {# Link para o relatório público — acima do rodapé do painel #}
+<a href="{% url 'relatorios:publico' %}"
+   style="margin-top:1.5rem;
+          font-size:12px;
+          color:rgba(255,255,255,0.55);
+          text-decoration:none;
+          display:flex;
+          align-items:center;
+          gap:6px;
+          transition:color 0.15s;"
+   onmouseover="this.style.color='rgba(255,255,255,0.9)'"
+   onmouseout="this.style.color='rgba(255,255,255,0.55)'">
+    📊 Ver relatórios públicos da unidade
+</a>
+
+        {# Rodapé discreto no canto inferior #}
+        <div class="painel-rodape">
+            Desenvolvido por {{ sistema.desenvolvedor }} · v{{ sistema.versao }}
+        </div>
+
+    </div>
+
+    {# ── LADO DIREITO — Formulário de login ── #}
+    <div class="login-form">
+
+        <div class="form-box">
+
+            {# Cabeçalho com logo menor e título #}
+            <div class="form-header">
+                <img src="{% static 'img/logo.png' %}" alt="Logo">
+                <h2>Bem-vindo</h2>
+                <p>Acesse o sistema com seu CPF e senha</p>
+            </div>
+
+            {# Mensagens de erro vindas da view #}
+            {% if messages %}
+                {% for msg in messages %}
+                <div class="form-erro">
+                    ⚠ {{ msg }}
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            {# Formulário de login #}
+            <form method="post" action="{% url 'core:login' %}">
+                {% csrf_token %}
+
+                <label class="campo-label" for="id_cpf">CPF</label>
+                <input type="text"
+                       name="cpf"
+                       id="id_cpf"
+                       class="campo-input"
+                       placeholder="000.000.000-00"
+                       maxlength="14"
+                       autofocus>
+
+                <label class="campo-label" for="id_senha">Senha</label>
+                <input type="password"
+                       name="senha"
+                       id="id_senha"
+                       class="campo-input"
+                       placeholder="••••••••">
+
+                <button type="submit" class="btn-entrar">
+                    Entrar no sistema →
+                </button>
+
+            </form>
+
+        </div>
+
+        {# Rodapé do lado direito #}
+        <div class="form-rodape">
+            © {{ ano_atual }} {{ sistema.unidade }} —
+            {{ sistema.municipio }}, {{ sistema.estado }}
+        </div>
+
+    </div>
+
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Função matemática para validar o CPF no navegador
+    function validarCPFJS(cpf) {
+        cpf = cpf.replace(/[^\d]+/g, '');
+        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+        
+        let soma = 0, resto;
+        for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i-1, i)) * (11 - i);
+        resto = (soma * 10) % 11;
+        if ((resto === 10) || (resto === 11)) resto = 0;
+        if (resto !== parseInt(cpf.substring(9, 10))) return false;
+        
+        soma = 0;
+        for (let i = 1; i <= 10; i++) soma += parseInt(cpf.substring(i-1, i)) * (12 - i);
+        resto = (soma * 10) % 11;
+        if ((resto === 10) || (resto === 11)) resto = 0;
+        if (resto !== parseInt(cpf.substring(10, 11))) return false;
+        
+        return true;
+    }
+
+    // Procura todos os inputs que tenham name="cpf" no sistema inteiro
+    const inputsCPF = document.querySelectorAll('input[name="cpf"]');
+
+    inputsCPF.forEach(input => {
+        // Cria um textinho pequeno abaixo do input para mostrar os avisos
+        const feedback = document.createElement('small');
+        feedback.style.display = 'block';
+        feedback.style.marginTop = '4px';
+        feedback.style.fontWeight = '600';
+        input.parentNode.insertBefore(feedback, input.nextSibling);
+
+        input.addEventListener('input', function(e) {
+            let valor = e.target.value;
+
+            // 1. Aplica a Máscara (000.000.000-00) enquanto digita
+            valor = valor.replace(/\D/g, ""); // Remove tudo que não for número
+            valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
+            valor = valor.replace(/(\d{3})(\d)/, "$1.$2");
+            valor = valor.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+            e.target.value = valor;
+
+            // 2. Valida apenas quando chegar em 14 caracteres (000.000.000-00)
+            if (valor.length === 14) {
+                if (validarCPFJS(valor)) {
+                    input.style.borderColor = '#16a34a'; // Fica verde
+                    input.style.backgroundColor = '#f0fdf4';
+                    feedback.textContent = '✔️ CPF Válido';
+                    feedback.style.color = '#16a34a';
+                } else {
+                    input.style.borderColor = '#dc2626'; // Fica vermelho
+                    input.style.backgroundColor = '#fef2f2';
+                    feedback.textContent = '❌ CPF Inválido. Verifique os números.';
+                    feedback.style.color = '#dc2626';
+                }
+            } else {
+                // Se o usuário apagar, limpa as cores
+                input.style.borderColor = '';
+                input.style.backgroundColor = '';
+                feedback.textContent = '';
+            }
+        });
+    });
+});
+</script>
+</body>
+</html>

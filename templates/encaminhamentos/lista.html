@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Encaminhamentos{% endblock %}
+
+{% block conteudo %}
+
+{# ── Cabeçalho ───────────────────────────────────── #}
+<div style="display:flex; align-items:center;
+            justify-content:space-between; margin-bottom:1.5rem;">
+    <div>
+        <h1 style="font-size:20px; font-weight:600; margin:0;">
+            📋 Encaminhamentos
+        </h1>
+        <p style="font-size:13px; color:#6b7280; margin:0;">
+            {{ usf.nome }}
+        </p>
+    </div>
+    <a href="{% url 'encaminhamentos:cadastrar' %}" class="btn btn-verde">
+        ➕ Novo
+    </a>
+</div>
+{% comment %}
+{# ── Filtros ─────────────────────────────────────────
+    Filtros por tipo e status via GET.
+    Ao submeter o form, a URL fica:
+    /encaminhamentos/?tipo=1&status=aguardando
+    ──────────────────────────────────────────────────── #}
+    {% endcomment %}
+<form method="get" style="margin-bottom:1.5rem;">
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+        <select name="tipo"
+                style="flex:1; min-width:160px; padding:8px 10px;
+                       border:1px solid #d1d5db; border-radius:8px;
+                       font-size:13px;">
+            <option value="">Todos os tipos</option>
+            {% for tipo in tipos %}
+                <option value="{{ tipo.pk }}"
+                    {% if tipo_selecionado == tipo.pk|stringformat:"s" %}
+                        selected
+                    {% endif %}>
+                    {{ tipo.nome }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select name="status"
+                style="flex:1; min-width:160px; padding:8px 10px;
+                       border:1px solid #d1d5db; border-radius:8px;
+                       font-size:13px;">
+            <option value="">Todos os status</option>
+            {% for valor, label in status_choices %}
+                <option value="{{ valor }}"
+                    {% if status_selecionado == valor %}selected{% endif %}>
+                    {{ label }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-verde">
+            Filtrar
+        </button>
+
+        {% if tipo_selecionado or status_selecionado %}
+            <a href="{% url 'encaminhamentos:lista' %}"
+               class="btn btn-cinza">
+                Limpar
+            </a>
+        {% endif %}
+
+    </div>
+</form>
+
+{# ── Lista de encaminhamentos ─────────────────────── #}
+{% if encaminhamentos %}
+
+    {# Contador de resultados #}
+    <p style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
+        {{ encaminhamentos|length }} encaminhamento{{ encaminhamentos|length|pluralize }}
+    </p>
+
+    {# Cada card é um encaminhamento na fila #}
+    {% for enc in encaminhamentos %}
+    <div style="background:white;
+                border:1px solid #e5e7eb;
+                border-left:4px solid {% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#3b82f6{% else %}#9ca3af{% endif %}{% elif enc.prioridade == 2 %}#a855f7{% elif enc.prioridade == 3 %}#f59e0b{% elif enc.prioridade == 4 %}#ef4444{% else %}#e5e7eb{% endif %};
+                border-radius:8px;
+                padding:14px 16px;
+                margin-bottom:10px;">
+
+        <div style="display:flex; align-items:flex-start;
+                    justify-content:space-between; gap:12px;">
+
+            <div style="flex:1;">
+                <p style="font-size:15px; font-weight:600;
+                           margin:0 0 4px; color:#111827;">
+                    {{ enc.paciente.nome }}
+                </p>
+                <p style="font-size:13px; color:#6b7280; margin:0 0 6px;">
+                    {{ enc.tipo.nome }}
+                    {% with subs=enc.subtipos.all %}
+                        {% if subs %}
+                            —
+                            {% for s in subs %}
+                                {{ s.subtipo.nome }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </p>
+                <p style="font-size:12px; color:#9ca3af; margin:0;">
+                    Solicitado em {{ enc.data_solicitacao|date:"d/m/Y" }}
+                </p>
+            </div>
+
+            <div style="display:flex; flex-direction:column;
+                        align-items:flex-end; gap:6px; flex-shrink:0;">
+
+                <span style="font-size:11px; font-weight:500;
+                             padding:3px 10px; border-radius:20px;
+                             background:{% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#eff6ff{% else %}#f3f4f6{% endif %}{% elif enc.prioridade == 2 %}#faf5ff{% elif enc.prioridade == 3 %}#fffbeb{% elif enc.prioridade == 4 %}#fef2f2{% else %}#f9fafb{% endif %};
+                             color:{% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#1d4ed8{% else %}#6b7280{% endif %}{% elif enc.prioridade == 2 %}#7e22ce{% elif enc.prioridade == 3 %}#92400e{% elif enc.prioridade == 4 %}#991b1b{% else %}#374151{% endif %};">
+                    {{ enc.get_prioridade_display }}
+                    {% if enc.prioridade == 1 and enc.mes_retorno %}
+                        · {{ enc.mes_retorno }}/{{ enc.ano_retorno }}
+                    {% endif %}
+                </span>
+
+                <span style="font-size:11px; padding:3px 10px;
+                             border-radius:20px; background:#f3f4f6;
+                             color:#374151;">
+                    {{ enc.get_status_display }}
+                </span>
+
+                {% if enc.duplicata_de %}
+                    <span style="font-size:11px; padding:3px 10px;
+                                 border-radius:20px; background:#fef2f2;
+                                 color:#dc2626;">
+                        ⚠️ Duplicata
+                    </span>
+                {% endif %}
+
+                {% if enc.acima_da_cota %}
+                    <span style="font-size:11px; padding:3px 10px;
+                                 border-radius:20px; background:#fffbeb;
+                                 color:#92400e;">
+                        📊 Acima da cota
+                    </span>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <div style="margin-top:10px; border-top:1px solid #f3f4f6;
+                    padding-top:10px;">
+            <a href="{% url 'encaminhamentos:detalhe' enc.pk %}"
+               style="font-size:13px; color:var(--verde);
+                      text-decoration:none; font-weight:500;">
+                Ver detalhes →
+            </a>
+        </div>
+
+    </div>
+{% endfor %}
+
+{% else %}
+    {# Estado vazio #}
+    <div style="text-align:center; padding:3rem 1rem; color:#9ca3af;">
+        <div style="font-size:48px; margin-bottom:1rem;">📭</div>
+        <p style="font-size:15px; font-weight:500; color:#6b7280;">
+            Nenhum encaminhamento encontrado.
+        </p>
+        <a href="{% url 'encaminhamentos:cadastrar' %}"
+           class="btn btn-verde" style="margin-top:1rem;">
+            ➕ Cadastrar primeiro encaminhamento
+        </a>
+    </div>
+{% endif %}
+
+{% endblock %}

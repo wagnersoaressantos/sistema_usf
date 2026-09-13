@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block titulo %}Importar Lista Nominal{% endblock %}
+
+{% block conteudo %}
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
+    <a href="{% url 'indicadores:dashboard' %}" style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+    <h1 style="font-size:20px; font-weight:600; margin:0;">📊 Importar Lista Nominal</h1>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label style="font-weight:600;">Indicador *</label>
+            <select name="indicador" class="form-input" required>
+                <option value="">Selecione o indicador...</option>
+                <option value="C2">C2 - Desenvolvimento Infantil</option>
+                <option value="C3">C3 - Gestação e Puerpério</option>
+                <option value="C4">C4 - Diabetes</option>
+                <option value="C5">C5 - Hipertensão</option>
+                <option value="C6">C6 - Pessoa Idosa</option>
+                <option value="C7">C7 - Prevenção de Câncer</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label style="font-weight:600;">Competência (Mês/Ano) *</label>
+            <input type="text" name="competencia" class="form-input" placeholder="Ex: 03/2026" required maxlength="7">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label style="font-weight:600;">Tipo de Relatório *</label>
+            <select name="tipo_dado" class="form-input" required>
+                <option value="preliminar">Preliminar (Extraído do PEC da Unidade)</option>
+                <option value="oficial">Oficial (Baixado do SISAB)</option>
+            </select>
+            <p style="font-size:11px; color:#6b7280; margin-top:4px;">
+                As listas preliminares servem para guiar o ACS durante o mês atual.
+            </p>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1.5rem;">
+            <label style="font-weight:600;">Ficheiro (CSV ou XLSX) *</label>
+            <input type="file" name="arquivo" accept=".csv, .xlsx" required style="display:block; width:100%; padding:8px; border:1px dashed #d1d5db; border-radius:6px; background:#f9fafb;">
+        </div>
+
+        <button type="submit" class="btn btn-verde" style="width:100%;">
+            🚀 Iniciar Importação
+        </button>
+    </form>
+</div>
+{% endblock %}
