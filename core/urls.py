@@ -1,4 +1,4 @@
-from django.urls import path,include
+from django.urls import path, include
 from . import views
 
 app_name = 'core'
@@ -49,8 +49,8 @@ urlpatterns = [
     path('administracao/importar-pacientes/',           views.importar_pacientes,                  name='importar_pacientes'),
     path('administracao/importar-condicoes/',           views.importar_condicoes,                  name='importar_condicoes'),
     path('administracao/importar-territorio/',          views.importar_territorio,                 name='importar_territorio'),
-   
-    # Tipos de atendimento (mutirão)
+    
+    # Tipos de atendimento
     path('administracao/tipos/',                        views.admin_tipos,             name='admin_tipos'),
     path('administracao/tipos/novo/',                   views.admin_tipo_salvar,       name='admin_tipo_criar'),
     path('administracao/tipos/<int:pk>/',               views.admin_tipo_salvar,       name='admin_tipo_editar'),
@@ -61,8 +61,7 @@ urlpatterns = [
     path('administracao/avisos/<int:pk>/',              views.admin_aviso_salvar,      name='admin_aviso_editar'),
     path('administracao/avisos/<int:pk>/excluir/',      views.admin_aviso_excluir,     name='admin_aviso_excluir'),
 
-    # Configuração do sistema
-    path('administracao/configuracao/',                 views.admin_configuracao,      name='admin_configuracao'),
+    # A Configuração de Sistema foi substituída pelos Módulos Dinâmicos, por isso apagámos a rota admin_configuracao!
 
     # Território
     path('administracao/familias/',                views.familias_score,        name='familias_score'),
@@ -70,20 +69,18 @@ urlpatterns = [
 
     # Sentinelas de risco
     path('administracao/sentinelas/',          views.admin_sentinelas,       name='admin_sentinelas'),
-    # path('administracao/sentinelas/novo/',     views.admin_sentinela_salvar, name='admin_sentinela_criar'),
-    # path('administracao/sentinelas/<int:pk>/', views.admin_sentinela_salvar, name='admin_sentinela_editar'),
+    path('administracao/sentinelas/novo/',     views.admin_sentinela_salvar, name='admin_sentinela_criar'),
+    path('administracao/sentinelas/<int:pk>/', views.admin_sentinela_salvar, name='admin_sentinela_editar'),
 
     # Condições de saúde
     path('administracao/condicoes/',          views.admin_condicoes,       name='admin_condicoes'),
     path('administracao/condicoes/novo/',     views.admin_condicao_salvar, name='admin_condicao_criar'),
     path('administracao/condicoes/<int:pk>/', views.admin_condicao_salvar, name='admin_condicao_editar'),
 
-    # # Rotas do Módulo de Territorialização
+    # Rotas comentadas temporariamente para evitar Crash (até criarmos essas pastas!)
     # path('territorializacao/', include('territorializacao.urls')),
-
-    # # Rotas do Módulo de Vacinas (NOVO)
     # path('vacinas/', include('vacinas.urls')),
 
-    #Manutenção do sistema/atualização via git pull
+    # Manutenção do sistema/atualização via git pull
     path('manutencao/atualizar-git/', views.executar_git_pull, name='executar_git_pull'),
 ]
