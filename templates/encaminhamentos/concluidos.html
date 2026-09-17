@@ -1,118 +1,84 @@
 {% extends 'base.html' %}
 
-{% block titulo %}Encaminhamentos Concluídos{% endblock %}
-
 {% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Histórico de Guias</h1>
+            <p class="text-gray-600 mt-1">Guias entregues, unificadas ou canceladas (últimas 200).</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'encaminhamentos:inicio' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg">
+                Voltar
+            </a>
+        </div>
+    </div>
 
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
-    <a href="{% url 'encaminhamentos:inicio' %}"
-       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
-    <div>
-        <h1 style="font-size:20px; font-weight:600; margin:0;">
-            📁 Concluídos
-        </h1>
-        <p style="font-size:13px; color:#6b7280; margin:0;">
-            Disponíveis, entregues e cancelados
-        </p>
+    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold">Paciente</th>
+                        <th class="px-6 py-4 font-semibold">Procedimento</th>
+                        <th class="px-6 py-4 font-semibold">Data da Guia</th>
+                        <th class="px-6 py-4 font-semibold">Status Final</th>
+                        <th class="px-6 py-4 font-semibold text-right">Ver</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    
+                    {% for enc in encaminhamentos %}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <!-- Paciente -->
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-gray-800">{{ enc.paciente.nome }}</div>
+                            <div class="text-xs text-gray-500 mt-1">CPF: {{ enc.paciente.cpf|default:"-" }}</div>
+                        </td>
+
+                        <!-- Procedimento -->
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-gray-800">{{ enc.tipo.nome }}</div>
+                        </td>
+
+                        <!-- Data Solicitacao -->
+                        <td class="px-6 py-4 text-gray-600">
+                            {{ enc.data_solicitacao|date:"d/m/Y" }}
+                        </td>
+
+                        <!-- Status Final -->
+                        <td class="px-6 py-4">
+                            {% if enc.status == 'entregue' %}
+                                <span class="px-2 py-1 rounded bg-green-100 text-green-700 font-semibold text-xs border border-green-200">Entregue</span>
+                            {% elif enc.status == 'cancelado' %}
+                                <span class="px-2 py-1 rounded bg-red-100 text-red-700 font-semibold text-xs border border-red-200">Cancelado</span>
+                            {% elif enc.status == 'unificada' %}
+                                <span class="px-2 py-1 rounded bg-gray-100 text-gray-700 font-semibold text-xs border border-gray-200">Unificada</span>
+                            {% else %}
+                                <span class="px-2 py-1 rounded bg-blue-100 text-blue-700 font-semibold text-xs">{{ enc.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Ações -->
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'encaminhamentos:detalhe' enc.pk %}" class="inline-flex items-center gap-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold py-1.5 px-3 rounded shadow-sm transition">
+                                Detalhes
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center text-gray-500">
+                                <p class="text-lg font-medium text-gray-600">Nenhum histórico encontrado.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-{# ── Filtros ─────────────────────────────────────── #}
-<form method="get" style="margin-bottom:1.5rem;">
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-
-        <select name="tipo"
-                style="flex:1; min-width:160px; padding:8px 10px;
-                       border:1px solid #d1d5db; border-radius:8px;
-                       font-size:13px;">
-            <option value="">Todos os tipos</option>
-            {% for tipo in tipos %}
-                <option value="{{ tipo.pk }}"
-                    {% if tipo_selecionado == tipo.pk|stringformat:"s" %}selected{% endif %}>
-                    {{ tipo.nome }}
-                </option>
-            {% endfor %}
-        </select>
-
-        <select name="status"
-                style="flex:1; min-width:160px; padding:8px 10px;
-                       border:1px solid #d1d5db; border-radius:8px;
-                       font-size:13px;">
-            <option value="">Todos</option>
-            <option value="disponivel" {% if status_selecionado == 'disponivel' %}selected{% endif %}>
-                Disponível
-            </option>
-            <option value="entregue" {% if status_selecionado == 'entregue' %}selected{% endif %}>
-                Entregue
-            </option>
-            <option value="cancelado" {% if status_selecionado == 'cancelado' %}selected{% endif %}>
-                Cancelado
-            </option>
-        </select>
-
-        <button type="submit" class="btn btn-verde">Filtrar</button>
-
-        {% if tipo_selecionado or status_selecionado %}
-            <a href="{% url 'encaminhamentos:concluidos' %}"
-               class="btn btn-cinza">Limpar</a>
-        {% endif %}
-
-    </div>
-</form>
-
-{# ── Lista ───────────────────────────────────────── #}
-{% if encaminhamentos %}
-    <p style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
-        {{ encaminhamentos|length }} registro{{ encaminhamentos|length|pluralize }}
-    </p>
-
-    {% for enc in encaminhamentos %}
-        <div style="background:white; border:1px solid #e5e7eb;
-                    border-radius:8px; padding:14px 16px;
-                    margin-bottom:10px;
-                    opacity:{% if enc.status == 'cancelado' %}0.6{% else %}1{% endif %};">
-
-            <div style="display:flex; align-items:flex-start;
-                        justify-content:space-between; gap:12px;">
-                <div style="flex:1;">
-                    <p style="font-size:15px; font-weight:600;
-                               margin:0 0 4px; color:#111827;">
-                        {{ enc.paciente.nome }}
-                    </p>
-                    <p style="font-size:13px; color:#6b7280; margin:0 0 4px;">
-                        {{ enc.tipo.nome }}
-                    </p>
-                    <p style="font-size:12px; color:#9ca3af; margin:0;">
-                        {{ enc.data_solicitacao|date:"d/m/Y" }}
-                    </p>
-                </div>
-
-                <span style="font-size:11px; padding:3px 10px;
-                             border-radius:20px; flex-shrink:0;
-                             background:{% if enc.status == 'entregue' %}#e8f5ee{% elif enc.status == 'disponivel' %}#eff6ff{% else %}#f3f4f6{% endif %};
-                             color:{% if enc.status == 'entregue' %}var(--verde){% elif enc.status == 'disponivel' %}#1d4ed8{% else %}#6b7280{% endif %};">
-                    {{ enc.get_status_display }}
-                </span>
-            </div>
-
-            <div style="margin-top:10px; border-top:1px solid #f3f4f6;
-                        padding-top:10px;">
-                <a href="{% url 'encaminhamentos:detalhe' enc.pk %}"
-                   style="font-size:13px; color:var(--verde);
-                          text-decoration:none; font-weight:500;">
-                    Ver detalhes →
-                </a>
-            </div>
-        </div>
-    {% endfor %}
-
-{% else %}
-    <div style="text-align:center; padding:3rem 1rem; color:#9ca3af;">
-        <div style="font-size:48px; margin-bottom:1rem;">📭</div>
-        <p style="font-size:15px; color:#6b7280;">
-            Nenhum registro encontrado.
-        </p>
-    </div>
-{% endif %}
-
 {% endblock %}

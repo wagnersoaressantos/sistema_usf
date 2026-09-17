@@ -1,36 +1,24 @@
 from django.conf import settings
 from django.utils import timezone
 
-
 def sistema_info(request):
     """
-    Injeta informações do sistema em todos os templates.
-
-    Além das infos básicas, injeta:
-    - avisos: avisos ativos da unidade
-    - mutirao_ativo: se o módulo de mutirão está visível no menu
-    - usuario_usf: a USF do usuário logado (para filtros)
-
-    O Django chama essa função em toda requisição automaticamente
-    porque está registrada em TEMPLATES > context_processors
-    no settings.py.
+    Injeta informações do sistema em todas as telas HTML automaticamente.
+    O Django chama essa função em toda requisição porque ela está 
+    registrada em TEMPLATES > context_processors no settings.py.
     """
-    from core.models import Aviso, ConfiguracaoSistema, EquipeUSF
+    # Importamos aqui dentro para evitar "Dependência Circular"
+    from core.models import Aviso, EquipeUSF, ModuloSistema
 
     hoje = timezone.now().date()
 
-    # Busca avisos ativos dentro da validade
+    # 1. Busca avisos ativos dentro da validade
     avisos = Aviso.objects.filter(
         ativo=True,
         data_validade__gte=hoje
     ).order_by('data_validade')
 
-    # Busca configuração do sistema com valores padrão seguros
-    # get_or_create garante que nunca vai dar erro se não existir
-    config = ConfiguracaoSistema.get()
-
-    # Descobre a USF do usuário logado via vínculo na equipe
-    # Usado para filtrar dados por unidade em todo o sistema
+    # 2. Descobre a USF do usuário logado via vínculo na equipe
     usuario_usf = None
     if request.user.is_authenticated:
         vinculo = EquipeUSF.objects.filter(
@@ -40,17 +28,14 @@ def sistema_info(request):
         if vinculo:
             usuario_usf = vinculo.usf
 
+    # 3. MÁGICA DOS MÓDULOS (Substituiu a ConfiguracaoSistema)
+    # Lista com o nome dos módulos ativados no painel (Ex: ['encaminhamentos', 'mutirao'])
+    modulos_ativos = list(ModuloSistema.objects.filter(ativo=True).values_list('slug_app', flat=True))
+
     return {
-        'sistema':       settings.SISTEMA,
-        'ano_atual':     timezone.now().year,
-        'avisos':        avisos,
-        # True se admin ativou o mutirão OU se o usuário é admin
-        # Admin sempre vê todos os módulos
-        'mutirao_ativo': (
-            config.mutirao_ativo or
-            (request.user.is_authenticated and
-             hasattr(request.user, 'perfil') and
-             request.user.perfil.is_admin_sistema)
-        ),
-        'usuario_usf':   usuario_usf,
+        'sistema':        settings.SISTEMA,
+        'ano_atual':      hoje.year,
+        'avisos':         avisos,
+        'usuario_usf':    usuario_usf,
+        'modulos_ativos': modulos_ativos, # Ajuda o Menu a esconder ou mostrar botões!
     }

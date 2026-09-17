@@ -1,783 +1,106 @@
 {% extends 'base.html' %}
 
-{% block titulo %}Novo Encaminhamento{% endblock %}
-
 {% block conteudo %}
-
-{# ── Cabeçalho da página ─────────────────────────── #}
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
-    <a href="{% url 'encaminhamentos:inicio' %}"
-       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
-    <div>
-        <h1 style="font-size:20px; font-weight:600; margin:0;">
-            Novo Encaminhamento
-        </h1>
-        <p style="font-size:13px; color:#6b7280; margin:0;">
-            {{ usf.nome }}
-        </p>
-    </div>
-</div>
-
-{# ── Formulário ──────────────────────────────────── #}
-<form method="post" id="form-encaminhamento">
-    {% csrf_token %}
-
-{% comment %}
-{# ── Busca de paciente ───────────────────────────
-    Em vez de um select com 3000 itens, usamos um
-    campo de texto com busca em tempo real via JS.
-    O id do paciente selecionado vai num campo hidden.
-    ──────────────────────────────────────────────── #}
-    {% endcomment %}
-    <div class="card" style="margin-bottom:1rem;">
-        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
-            👤 Paciente
-        </h2>
-
-        {# Campo de texto visível — para o usuário digitar #}
-        <div class="busca-wrapper">
-            <input type="text"
-                   id="busca-paciente"
-                   placeholder="Digite o nome, CPF ou cartão SUS..."
-                   autocomplete="off"
-                   style="width:100%; padding:10px 12px;
-                          border:1px solid #d1d5db; border-radius:8px;
-                          font-size:14px; box-sizing:border-box;">
-
-            {# Lista de resultados que aparece enquanto digita #}
-            <div id="resultados-paciente"
-                 class="busca-dropdown">
-            </div>
-        </div>
-
-        {# Campo hidden que guarda o ID do paciente selecionado #}
-        {# É esse valor que vai para o servidor no POST #}
-        <input type="hidden" name="paciente" id="paciente-id">
-
-        {# Mostra o paciente selecionado #}
-        <div id="paciente-selecionado"
-             style="display:none;
-                    margin-top:10px;
-                    padding:10px 12px;
-                    background:#f0fdf4;
-                    border:1px solid #86efac;
-                    border-radius:8px;
-                    font-size:14px;">
-        </div>
-    </div>
-{% comment %}
-    {# ── Tipo e subtipo ──────────────────────────────
-       Ao selecionar o tipo, o JS busca os subtipos
-       via /api/subtipos/<id>/ e monta o seletor.
-    ──────────────────────────────────────────────── #}
-    {% endcomment %}
-    <div class="card" style="margin-bottom:1rem;">
-        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
-            🏥 Tipo de Encaminhamento
-        </h2>
-
-        <div style="margin-bottom:1rem;">
-            <label style="font-size:13px; font-weight:500; color:#374151;">
-                Tipo *
-            </label>
-            {{ form.tipo }}
-            {% if form.tipo.errors %}
-                <p style="color:#dc2626; font-size:12px; margin-top:4px;">
-                    {{ form.tipo.errors.0 }}
-                </p>
-            {% endif %}
-        </div>
-
-        {# Área de subtipos — aparece só se o tipo tiver subtipos #}
-        <div id="area-subtipos" style="display:none;">
-            <label style="font-size:13px; font-weight:500; color:#374151;">
-                Exames / Subtipos *
-            </label>
-            <div id="lista-subtipos"
-                 style="margin-top:8px;
-                        display:flex;
-                        flex-wrap:wrap;
-                        gap:8px;">
-                {# Checkboxes gerados pelo JavaScript #}
-            </div>
-            <p style="font-size:12px; color:#6b7280; margin-top:6px;">
-                Selecione um ou mais itens.
-            </p>
-        </div>
-
-    </div>
-    {# Alertas de restrição — preenchidos pelo JavaScript #}
-    <div id="area-alertas-tipo" style="display:none; margin-bottom:1rem;"></div>
-{% comment %}
-    {# ── Prioridade e retorno ────────────────────────
-       Ao selecionar "Retorno", campos de mês/ano aparecem.
-    ──────────────────────────────────────────────── #}
-    {% endcomment %}
-    <div class="card" style="margin-bottom:1rem;">
-        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
-            ⚡ Prioridade
-        </h2>
-
-        <div style="margin-bottom:1rem;">
-            {{ form.prioridade }}
-            {% if form.prioridade.errors %}
-                <p style="color:#dc2626; font-size:12px; margin-top:4px;">
-                    {{ form.prioridade.errors.0 }}
-                </p>
-            {% endif %}
-        </div>
-
-        {# Campos de retorno — aparecem só quando prioridade = Retorno #}
-        <div id="area-retorno" style="display:none;">
-            <p style="font-size:13px; color:#6b7280; margin-bottom:10px;">
-                Informe o mês e ano em que o paciente deve retornar.
-            </p>
-            <div style="display:flex; gap:12px;">
-                <div style="flex:1;">
-                    <label style="font-size:13px; font-weight:500;">Mês *</label>
-                    {{ form.mes_retorno }}
-                </div>
-                <div style="flex:1;">
-                    <label style="font-size:13px; font-weight:500;">Ano *</label>
-                    {{ form.ano_retorno }}
-                </div>
-            </div>
-            {% if form.mes_retorno.errors %}
-                <p style="color:#dc2626; font-size:12px; margin-top:4px;">
-                    {{ form.mes_retorno.errors.0 }}
-                </p>
-            {% endif %}
-        </div>
-
-    </div>
-
-    {# ── Data e observações ──────────────────────── #}
-    <div class="card" style="margin-bottom:1.5rem;">
-        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
-            📅 Data e Observações
-        </h2>
-
-        <div style="margin-bottom:1rem;">
-            <label style="font-size:13px; font-weight:500;">
-                Data de solicitação *
-            </label>
-            {{ form.data_solicitacao }}
-            {% if form.data_solicitacao.errors %}
-                <p style="color:#dc2626; font-size:12px; margin-top:4px;">
-                    {{ form.data_solicitacao.errors.0 }}
-                </p>
-            {% endif %}
-        </div>
-
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    
+    <!-- Cabeçalho da Página -->
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
         <div>
-            <label style="font-size:13px; font-weight:500;">
-                Observações
-            </label>
-            {{ form.observacoes }}
+            <h1 class="text-3xl font-bold text-gray-800">Nova Guia de Encaminhamento</h1>
+            <p class="text-gray-600 mt-1">Insira o paciente na fila de regulação municipal.</p>
         </div>
-
-    </div>
-
-    {# ── Botões ──────────────────────────────────── #}
-    <div style="display:flex; gap:10px; justify-content:flex-end;">
-        <a href="{% url 'encaminhamentos:inicio' %}"
-           class="btn btn-cinza">
-            Cancelar
+        <a href="{% url 'encaminhamentos:inicio' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+            Voltar
         </a>
-        <button type="submit" class="btn btn-verde" id="btn-salvar">
-            Salvar encaminhamento
-        </button>
     </div>
-    {% comment %}
-    {# ── Modal de cadastro rápido de paciente ────────────
-        Aparece quando o paciente não é encontrado na busca.
-        Cadastra o paciente sem sair da tela de encaminhamento.
-    ──────────────────────────────────────────────────── #}
-    {% endcomment %}
-<div id="modal-paciente"
-     style="display:none; position:fixed; inset:0;
-            background:rgba(0,0,0,0.5); z-index:200;
-            align-items:center; justify-content:center;">
 
-    <div style="background:white; border-radius:12px;
-                padding:2rem; max-width:480px; width:90%;
-                box-shadow:0 10px 40px rgba(0,0,0,0.2);
-                max-height:90vh; overflow-y:auto;">
-
-        <div style="display:flex; align-items:center;
-                    justify-content:space-between; margin-bottom:1.5rem;">
-            <h3 style="font-size:17px; font-weight:600;
-                       color:#1f2937; margin:0;">
-                👤 Cadastrar paciente
-            </h3>
-            <button type="button"
-                    onclick="fecharModalPaciente()"
-                    style="background:none; border:none;
-                           font-size:22px; cursor:pointer;
-                           color:#6b7280; line-height:1;">
-                ×
-            </button>
-        </div>
-
-        {# Mensagem de erro do modal #}
-        <div id="modal-erro"
-             style="display:none; background:#fef2f2;
-                    border:1px solid #fecaca; border-radius:6px;
-                    padding:10px 12px; margin-bottom:1rem;
-                    font-size:13px; color:#dc2626;">
-        </div>
-
-        {# Campos do mini formulário #}
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label style="font-size:13px; font-weight:500;">
-                Nome completo *
-            </label>
-            <input type="text" id="modal-nome" class="form-input"
-                   placeholder="Nome do paciente">
-        </div>
-
-        <div style="display:flex; gap:12px; margin-bottom:1rem;">
-            <div class="form-group" style="flex:1;">
-                <label style="font-size:13px; font-weight:500;">CPF</label>
-                <input type="text" id="modal-cpf" class="form-input"
-                       placeholder="Somente números" maxlength="11">
+    <form method="POST" class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            
+            <!-- Seleção de Paciente -->
+            <div class="col-span-1 md:col-span-2">
+                <label for="paciente" class="block text-sm font-semibold text-gray-700 mb-2">Paciente</label>
+                <select name="paciente" id="paciente" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition bg-gray-50">
+                    <option value="">Selecione um paciente cadastrado...</option>
+                    {% for paciente in pacientes %}
+                        <option value="{{ paciente.pk }}">{{ paciente.nome }} (CPF: {{ paciente.cpf|default:"Não informado" }} | CNS: {{ paciente.cartao_sus|default:"Não informado" }})</option>
+                    {% empty %}
+                        <option value="" disabled>Nenhum paciente ativo encontrado na sua unidade.</option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-2">Dica: Se o paciente não estiver na lista, vá ao menu principal e cadastre-o primeiro.</p>
             </div>
-            <div class="form-group" style="flex:1;">
-                <label style="font-size:13px; font-weight:500;">
-                    Cartão SUS
-                </label>
-                <input type="text" id="modal-sus" class="form-input"
-                       placeholder="15 dígitos" maxlength="15">
+
+            <!-- Seleção do Procedimento / Exame (Agrupado por Subcategoria) -->
+            <div class="col-span-1">
+                <label for="tipo" class="block text-sm font-semibold text-gray-700 mb-2">Especialidade / Procedimento</label>
+                <select name="tipo" id="tipo" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition bg-gray-50">
+                    <option value="">Selecione...</option>
+                    
+                    {# A mágica do Django para agrupar as opções de acordo com a Categoria! #}
+                    {% for tipo in tipos %}
+                        {% ifchanged tipo.subcategoria.nome %}
+                            {# Fecha o optgroup anterior se não for o primeiro #}
+                            {% if not forloop.first %}</optgroup>{% endif %}
+                            <optgroup label="{{ tipo.subcategoria.nome }}">
+                        {% endifchanged %}
+                        
+                        <option value="{{ tipo.pk }}">{{ tipo.nome }}</option>
+                        
+                        {# Fecha o último optgroup #}
+                        {% if forloop.last %}</optgroup>{% endif %}
+                    {% endfor %}
+                </select>
             </div>
+
+            <!-- Nível de Prioridade -->
+            <div class="col-span-1">
+                <label for="prioridade" class="block text-sm font-semibold text-gray-700 mb-2">Prioridade Clínica</label>
+                <select name="prioridade" id="prioridade" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-gray-50">
+                    <option value="1">Prioridade Normal (Fila Padrão)</option>
+                    <option value="2">Prioridade 2 (Idoso, Gestante, PNE)</option>
+                    <option value="3">Urgência / Fura-Fila (Requer justificativa médica)</option>
+                </select>
+            </div>
+            
+            <!-- Data da Solicitação (Permite Retroativo) -->
+            <div class="col-span-1">
+                <label for="data_solicitacao" class="block text-sm font-semibold text-gray-700 mb-2">Data do Pedido Original</label>
+                <input type="date" name="data_solicitacao" id="data_solicitacao" value="{% now 'Y-m-d' %}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition bg-gray-50">
+                <p class="text-xs text-gray-500 mt-1">Altere apenas se estiver a cadastrar uma guia antiga de gaveta.</p>
+            </div>
+
+            <!-- Justificativa Clínica e Observações -->
+            <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="motivo" class="block text-sm font-semibold text-gray-700 mb-2">Motivo Médico (Guia) <span class="text-xs font-normal text-gray-400">(Opcional)</span></label>
+                    <textarea name="motivo" id="motivo" rows="3" placeholder="O que o médico escreveu..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"></textarea>
+                </div>
+                <div>
+                    <label for="observacao" class="block text-sm font-semibold text-gray-700 mb-2">Observações da Regulação <span class="text-xs font-normal text-gray-400">(Opcional)</span></label>
+                    <textarea name="observacao" id="observacao" rows="3" placeholder="Ex: Paciente sem telefone, deixar recado com ACS..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 bg-yellow-50"></textarea>
+                </div>
+            </div>
+
         </div>
 
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label style="font-size:13px; font-weight:500;">Telefone</label>
-            <input type="text" id="modal-telefone" class="form-input"
-                   placeholder="Somente números" maxlength="11">
-        </div>
-
-        <div style="display:flex; gap:12px; margin-bottom:1.5rem;">
-            <div class="form-group" style="flex:2;">
-                <label style="font-size:13px; font-weight:500;">
-                    Endereço
-                </label>
-                <input type="text" id="modal-endereco" class="form-input"
-                       placeholder="Rua, Avenida...">
-            </div>
-            <div class="form-group" style="flex:1;">
-                <label style="font-size:13px; font-weight:500;">
-                    Número
-                </label>
-                <input type="text" id="modal-numero" class="form-input"
-                       placeholder="Nº">
-            </div>
-        </div>
-
-        <div style="display:flex; gap:10px; justify-content:flex-end;">
-            <button type="button"
-                    onclick="fecharModalPaciente()"
-                    class="btn btn-cinza">
+        <!-- Botões de Ação -->
+        <div class="flex items-center justify-end gap-4 mt-6 pt-6 border-t border-gray-100">
+            <a href="{% url 'encaminhamentos:inicio' %}" class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
                 Cancelar
-            </button>
-            <button type="button"
-                    onclick="salvarPaciente()"
-                    class="btn btn-verde"
-                    id="btn-salvar-paciente">
-                Cadastrar paciente
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-md transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                Registrar Guia
             </button>
         </div>
-
-    </div>
+    </form>
 </div>
-
-</form>
-{% comment %}
-{# ── JavaScript ──────────────────────────────────────
-    Toda a lógica dinâmica do formulário:
-    1. Busca de paciente em tempo real
-    2. Subtipos filtrados por tipo
-    3. Campos de retorno condicionais
-──────────────────────────────────────────────────── #}
-{% endcomment %}
-{{ tipos_com_subtipos|json_script:"dados-subtipos" }}
-{{ tipos_restricoes|json_script:"dados-restricoes" }}
-<script>
-// Dados dos tipos e seus subtipos — vêm do servidor
-// Evita uma requisição extra ao carregar a página
-const tiposComSubtipos = JSON.parse(document.getElementById('dados-subtipos').textContent);
-const tiposRestricoes  = JSON.parse(document.getElementById('dados-restricoes').textContent); //talvez esteja atrapalhando a dinamina da pagina
-
-
-// ── 1. BUSCA DE PACIENTE ────────────────────────────
-
-const campoBusca      = document.getElementById('busca-paciente');
-const resultadosDiv   = document.getElementById('resultados-paciente');
-const pacienteIdInput = document.getElementById('paciente-id');
-const pacienteSel     = document.getElementById('paciente-selecionado');
-
-let timeoutBusca = null;
-
-campoBusca.addEventListener('input', function() {
-    // Espera 300ms depois que o usuário parar de digitar
-    // para não fazer uma requisição a cada tecla pressionada
-    clearTimeout(timeoutBusca);
-    const termo = this.value.trim();
-
-    if (termo.length < 2) {
-        resultadosDiv.style.display = 'none';
-        return;
-    }
-
-    timeoutBusca = setTimeout(() => {
-        fetch(`{% url 'encaminhamentos:buscar_paciente' %}?q=${encodeURIComponent(termo)}`)
-            .then(r => r.json())
-            .then(pacientes => {
-                resultadosDiv.innerHTML = '';
-
-                if (pacientes.length === 0) {
-                    resultadosDiv.innerHTML =
-                        '<div style="padding:12px; font-size:13px;">' +
-                        '<span style="color:#6b7280;">Nenhum paciente encontrado.</span> ' +
-                        '<button type="button" onclick="abrirModalPaciente()" ' +
-                        'style="background:none; border:none; color:var(--verde); ' +
-                        'font-size:13px; font-weight:500; cursor:pointer; ' +
-                        'text-decoration:underline; padding:0;">' +
-                        'Cadastrar novo paciente' +
-                        '</button>' +
-                        '</div>';
-                
-                } else {
-                    pacientes.forEach(p => {
-                        const item = document.createElement('div');
-                        item.style.cssText =
-                            'padding:10px 12px; cursor:pointer; font-size:14px;' +
-                            'border-bottom:1px solid #f3f4f6;';
-                        item.innerHTML =
-                            `<strong>${p.nome}</strong>` +
-                            `<span style="color:#6b7280; font-size:12px; margin-left:8px;">` +
-                            `${p.cpf ? 'CPF: ' + p.cpf : ''}` +
-                            `${p.cartao_sus ? ' · SUS: ' + p.cartao_sus : ''}` +
-                            `</span>`;
-
-                        // Ao clicar no resultado, seleciona o paciente
-                        item.addEventListener('click', () => {
-                            selecionarPaciente(p);
-                        });
-                        item.addEventListener('mouseenter', () => {
-                            item.style.background = '#f3f4f6';
-                        });
-                        item.addEventListener('mouseleave', () => {
-                            item.style.background = 'white';
-                        });
-
-                        resultadosDiv.appendChild(item);
-                    });
-                }
-
-                resultadosDiv.style.display = 'block';
-            });
-    }, 300);
-});
-
-function selecionarPaciente(paciente) {
-    // Preenche o campo hidden com o ID
-    pacienteIdInput.value = paciente.id;
-
-    // Mostra o paciente selecionado (provisório — sem condições ainda)
-    pacienteSel.innerHTML =
-        `✓ <strong>${paciente.nome}</strong>` +
-        `<span style="color:#6b7280; font-size:12px; margin-left:8px;">` +
-        `${paciente.cpf ? 'CPF: ' + paciente.cpf : ''}` +
-        `${paciente.cartao_sus ? ' · SUS: ' + paciente.cartao_sus : ''}` +
-        `</span>` +
-        `<button type="button" onclick="limparPaciente()"
-                style="float:right; background:none; border:none;
-                       color:#dc2626; cursor:pointer; font-size:12px;">
-            Trocar
-        </button>`;
-    pacienteSel.style.display = 'block';
-
-    // Esconde a busca e os resultados
-    campoBusca.style.display = 'none';
-    resultadosDiv.style.display = 'none';
-
-    // Busca dados completos do paciente — condições e prioridade sugerida
-    fetch(`/encaminhamentos/paciente/${paciente.id}/dados/`)
-        .then(r => r.json())
-        .then(dados => {
-            if (dados.erro) return;
-            enriquecerPacienteSelecionado(dados);
-            sugerirPrioridade(dados);
-        });
-}
-
-function enriquecerPacienteSelecionado(dados) {
-    // Monta linha de info: idade, sexo, micro-área
-    let info = '';
-    if (dados.idade)      info += `${dados.idade} anos`;
-    if (dados.sexo && dados.sexo !== 'Não informado')
-                          info += ` · ${dados.sexo}`;
-    if (dados.micro_area) info += ` · M.A ${dados.micro_area}`;
-    else                  info += ` · <span style="color:#dc2626;">⚠️ Fora de área</span>`;
-
-    // Monta badges de condições
-    let badgesCondicoes = '';
-    if (dados.condicoes && dados.condicoes.length > 0) {
-        badgesCondicoes = '<div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:4px;">';
-        dados.condicoes.forEach(c => {
-            badgesCondicoes +=
-                `<span style="font-size:11px; padding:2px 8px;
-                              border-radius:20px; background:#f0fdf4;
-                              color:#166534; border:1px solid #bbf7d0;">
-                    ${c.icone} ${c.nome}
-                </span>`;
-        });
-        badgesCondicoes += '</div>';
-    }
-
-    pacienteSel.innerHTML =
-        `<div style="display:flex; align-items:flex-start;
-                     justify-content:space-between;">
-            <div>
-                <strong>${dados.nome}</strong>
-                <span style="color:#6b7280; font-size:12px; margin-left:8px;">
-                    ${info}
-                </span>
-                ${badgesCondicoes}
-            </div>
-            <button type="button" onclick="limparPaciente()"
-                    style="background:none; border:none; color:#dc2626;
-                           cursor:pointer; font-size:12px; flex-shrink:0;
-                           margin-left:8px;">
-                Trocar
-            </button>
-        </div>`;
-    // Se já tem um tipo selecionado, verifica as restrições agora
-    const tipoId = parseInt(selectTipo.value);
-    if (tipoId) verificarRestricoesTipo(tipoId);
-}
-
-function sugerirPrioridade(dados) {
-    // Guarda os dados do paciente para uso nas verificações de tipo
-    window._pacienteDados = dados;
-    const select = document.getElementById('{{ form.prioridade.id_for_label }}');
-    if (!select) return;
-
-    const prioridade = dados.prioridade_sugerida;
-    const motivo     = dados.prioridade_motivo;
-
-    // Remove aviso anterior se existir
-    const avisoAnterior = document.getElementById('aviso-prioridade');
-    if (avisoAnterior) avisoAnterior.remove();
-
-    // Só sugere se não for Normal (5)
-    if (prioridade >= 5) return;
-
-    // Muda o select para a prioridade sugerida
-    select.value = String(prioridade);
-
-    // Dispara o evento change para mostrar campos de retorno se necessário
-    select.dispatchEvent(new Event('change'));
-
-    // Cria aviso visual abaixo do select
-    const aviso = document.createElement('div');
-    aviso.id = 'aviso-prioridade';
-    aviso.style.cssText =
-        'margin-top:8px; padding:8px 12px; background:#fffbeb;' +
-        'border:1px solid #fcd34d; border-radius:6px;' +
-        'font-size:12px; color:#92400e; display:flex;' +
-        'align-items:center; justify-content:space-between;';
-    aviso.innerHTML =
-        `<span>💡 ${motivo}</span>` +
-        `<button type="button"
-                 onclick="this.parentElement.remove()"
-                 style="background:none; border:none; color:#92400e;
-                        cursor:pointer; font-size:14px; padding:0 4px;">
-            ×
-        </button>`;
-
-    // Insere o aviso após o select de prioridade
-    select.parentElement.appendChild(aviso);
-}
-
-function limparPaciente() {
-    pacienteIdInput.value = '';
-    pacienteSel.style.display = 'none';
-    campoBusca.style.display = 'block';
-    campoBusca.value = '';
-    campoBusca.focus();
-    window._pacienteDados = null;
-
-    // Remove alertas de tipo
-    const areaAlertas = document.getElementById('area-alertas-tipo');
-    if (areaAlertas) {
-        areaAlertas.innerHTML = '';
-        areaAlertas.style.display = 'none';
-    }
-
-    // Remove aviso de prioridade
-    const aviso = document.getElementById('aviso-prioridade');
-    if (aviso) aviso.remove();
-
-    // Volta prioridade para Normal
-    const select = document.getElementById('{{ form.prioridade.id_for_label }}');
-    if (select) select.value = '5';
-}
-
-// Fecha resultados ao clicar fora
-document.addEventListener('click', function(e) {
-    if (!campoBusca.contains(e.target) && !resultadosDiv.contains(e.target)) {
-        resultadosDiv.style.display = 'none';
-    }
-});
-
-// ── 2. SUBTIPOS DINÂMICOS ───────────────────────────
-
-const selectTipo    = document.getElementById('{{ form.tipo.id_for_label }}');
-const areaSubtipos  = document.getElementById('area-subtipos');
-const listaSubtipos = document.getElementById('lista-subtipos');
-
-selectTipo.addEventListener('change', function() {
-    const tipoId = parseInt(this.value);
-    const subtipos = tiposComSubtipos[tipoId];
-
-    // ── Subtipos dinâmicos ────────────────────────
-    listaSubtipos.innerHTML = '';
-    if (subtipos && subtipos.length > 0) {
-        // Monta checkboxes para cada subtipo
-        subtipos.forEach(s => {
-            const label = document.createElement('label');
-            label.style.cssText =
-                'display:flex; align-items:center; gap:6px;' +
-                'padding:6px 12px; background:#f9fafb;' +
-                'border:1px solid #e5e7eb; border-radius:6px;' +
-                'cursor:pointer; font-size:13px;';
-            label.innerHTML =
-                `<input type="checkbox" name="subtipos" value="${s.id}">` +
-                s.nome;
-            listaSubtipos.appendChild(label);
-        });
-        areaSubtipos.style.display = 'block';
-    } else {
-        // Tipo sem subtipos — esconde a área
-        areaSubtipos.style.display = 'none';
-    }
-    // ── Verifica restrições do tipo ───────────────
-    verificarRestricoesTipo(tipoId);
-});
-
-function verificarRestricoesTipo(tipoId) {
-    const areaAlertas = document.getElementById('area-alertas-tipo');
-    areaAlertas.innerHTML = '';
-    areaAlertas.style.display = 'none';
-
-    // Só verifica se o paciente já foi selecionado
-    const pacienteId = pacienteIdInput.value;
-    if (!pacienteId || !tipoId) return;
-
-    const restricoes = tiposRestricoes[tipoId];
-    if (!restricoes) return;
-
-    const alertas = [];
-
-    // Pega a idade do paciente do elemento visual
-    // (já foi carregada quando o paciente foi selecionado)
-    const idadePaciente = window._pacienteDados
-        ? window._pacienteDados.idade
-        : null;
-
-    const condicoesPaciente = window._pacienteDados
-        ? window._pacienteDados.condicoes.map(c => c.codigo)
-        : [];
-
-    // Verifica idade mínima
-    if (restricoes.idade_minima !== null &&
-        idadePaciente !== null &&
-        idadePaciente < restricoes.idade_minima) {
-        alertas.push({
-            tipo: 'aviso',
-            texto: `⚠️ ${restricoes.nome} é indicado para pacientes com
-                    ${restricoes.idade_minima} anos ou mais.
-                    O paciente tem ${idadePaciente} anos.`,
-        });
-    }
-
-    // Verifica idade máxima
-    if (restricoes.idade_maxima !== null &&
-        idadePaciente !== null &&
-        idadePaciente > restricoes.idade_maxima) {
-        alertas.push({
-            tipo: 'aviso',
-            texto: `⚠️ ${restricoes.nome} é indicado para pacientes com
-                    até ${restricoes.idade_maxima} anos.
-                    O paciente tem ${idadePaciente} anos.`,
-        });
-    }
-
-    // Verifica critério especial — gestante
-    if (restricoes.criterio_especial === 'gestante') {
-        if (!condicoesPaciente.includes('gestante')) {
-            alertas.push({
-                tipo: 'aviso',
-                texto: `⚠️ ${restricoes.nome} é indicado para gestantes.
-                        A paciente não tem essa condição registrada.`,
-            });
-        }
-    }
-
-    // Verifica critério especial — histórico familiar
-    if (restricoes.criterio_especial === 'historico_familiar') {
-        alertas.push({
-            tipo: 'info',
-            texto: `ℹ️ ${restricoes.nome} tem indicação por histórico familiar.
-                    Confirme a elegibilidade do paciente.`,
-        });
-    }
-
-    if (alertas.length === 0) return;
-
-    // Monta os alertas visualmente
-    alertas.forEach(alerta => {
-        const div = document.createElement('div');
-        div.style.cssText =
-            `padding:10px 14px; border-radius:8px; font-size:13px;
-             margin-bottom:8px; display:flex; align-items:flex-start;
-             justify-content:space-between; gap:8px;` +
-            (alerta.tipo === 'aviso'
-                ? 'background:#fffbeb; border:1px solid #fcd34d; color:#92400e;'
-                : 'background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af;');
-        div.innerHTML =
-            `<span>${alerta.texto}</span>
-             <button type="button"
-                     onclick="this.parentElement.remove(); verificarAreaAlertas()"
-                     style="background:none; border:none; cursor:pointer;
-                            font-size:16px; padding:0; flex-shrink:0;
-                            color:inherit; opacity:0.6;">
-                 ×
-             </button>`;
-        areaAlertas.appendChild(div);
-    });
-
-    areaAlertas.style.display = 'block';
-}
-
-function verificarAreaAlertas() {
-    // Esconde a área se não tiver mais alertas
-    const area = document.getElementById('area-alertas-tipo');
-    if (area.children.length === 0) area.style.display = 'none';
-}
-
-// ── 3. CAMPOS DE RETORNO ────────────────────────────
-
-const selectPrioridade = document.getElementById('{{ form.prioridade.id_for_label }}');
-const areaRetorno      = document.getElementById('area-retorno');
-
-selectPrioridade.addEventListener('change', function() {
-    // Prioridade 1 = Retorno
-    areaRetorno.style.display = this.value === '1' ? 'block' : 'none';
-});
-
-// ── 4. VALIDAÇÃO ANTES DE ENVIAR ───────────────────
-
-document.getElementById('form-encaminhamento').addEventListener('submit', function(e) {
-    // Verifica se o paciente foi selecionado
-    if (!pacienteIdInput.value) {
-        e.preventDefault();
-        alert('Selecione um paciente antes de salvar.');
-        campoBusca.focus();
-        return;
-    }
-
-    // Verifica se tipo com subtipos tem pelo menos um marcado
-    const checkboxes = document.querySelectorAll('input[name="subtipos"]:checked');
-    const temSubtipos = areaSubtipos.style.display !== 'none';
-    if (temSubtipos && checkboxes.length === 0) {
-        e.preventDefault();
-        alert('Selecione pelo menos um exame/subtipo.');
-        return;
-    }
-
-    // ── Previne duplo envio ──────────────────────────
-    // Desabilita o botão imediatamente após validação passar
-    // Evita que o usuário clique duas vezes e crie dois encaminhamentos
-    const btn = document.getElementById('btn-salvar');
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
-    btn.style.opacity = '0.7';
-});
-// ── MODAL DE CADASTRO RÁPIDO DE PACIENTE ────────────
-
-function abrirModalPaciente() {
-    // Preenche o nome com o que o usuário digitou na busca
-    // para não precisar digitar de novo
-    document.getElementById('modal-nome').value = campoBusca.value;
-    document.getElementById('modal-erro').style.display = 'none';
-    document.getElementById('modal-paciente').style.display = 'flex';
-    document.getElementById('modal-nome').focus();
-}
-
-function fecharModalPaciente() {
-    document.getElementById('modal-paciente').style.display = 'none';
-    // Limpa os campos para a próxima vez
-    ['modal-nome','modal-cpf','modal-sus',
-     'modal-telefone','modal-endereco','modal-numero'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-}
-
-function salvarPaciente() {
-    const btn  = document.getElementById('btn-salvar-paciente');
-    const erro = document.getElementById('modal-erro');
-
-    // Desabilita o botão para evitar duplo clique
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
-
-    // Monta os dados para enviar
-    const dados = new FormData();
-    dados.append('nome',       document.getElementById('modal-nome').value);
-    dados.append('cpf',        document.getElementById('modal-cpf').value);
-    dados.append('cartao_sus', document.getElementById('modal-sus').value);
-    dados.append('telefone',   document.getElementById('modal-telefone').value);
-    dados.append('endereco',   document.getElementById('modal-endereco').value);
-    dados.append('numero',     document.getElementById('modal-numero').value);
-    // CSRF token — obrigatório em todo POST do Django
-    dados.append('csrfmiddlewaretoken',
-        document.querySelector('[name=csrfmiddlewaretoken]').value);
-
-    // Envia para a view via fetch (requisição assíncrona)
-    fetch('{% url "encaminhamentos:cadastrar_paciente_rapido" %}', {
-        method: 'POST',
-        body: dados
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.erro) {
-            // Mostra o erro dentro do modal
-            erro.textContent = data.erro;
-            erro.style.display = 'block';
-            btn.disabled = false;
-            btn.textContent = 'Cadastrar paciente';
-        } else {
-            // Sucesso — seleciona o paciente no formulário
-            // e fecha o modal
-            selecionarPaciente(data);
-            fecharModalPaciente();
-        }
-    })
-    .catch(() => {
-        erro.textContent = 'Erro ao conectar com o servidor. Tente novamente.';
-        erro.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Cadastrar paciente';
-    });
-}
-
-// Fecha modal ao clicar fora
-document.getElementById('modal-paciente').addEventListener('click', function(e) {
-    if (e.target === this) fecharModalPaciente();
-});
-</script>
-
 {% endblock %}

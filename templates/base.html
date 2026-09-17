@@ -16,6 +16,24 @@
     {# CSS principal do sistema #}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
+    {# ═══ SEÇÃO TAILWIND CSS ═══════════════════════════ #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Ensinamos o Tailwind a usar o seu Verde padrão!
+        // Assim podemos usar classes como "bg-verde-principal" no HTML.
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'verde-principal': '#1a7a4c',
+                        'verde-escuro': '#145c38',
+                    }
+                }
+            }
+        }
+    </script>
+    {# ══════════════════════════════════════════════════ #}
+
     <style>
         /* ════════════════════════════════════════
            DRAWER — Menu lateral deslizante

@@ -17,7 +17,7 @@ import io
 from datetime import datetime, date, timedelta
 
 # Repare que ConfiguracaoSistema não está mais aqui!
-from core.models import (Cargo, CondicaoSaude, EquipeUSF, Paciente, PacienteCondicao, 
+from core.models import (Cargo, CondicaoSaude, EquipeUSF, HistoricoFamiliar, Paciente, PacienteCondicao, 
                          PerfilUsuario, USF, TipoAtendimento, Aviso, MicroArea, ModuloSistema)
 
 from core.decorators import admin_required
@@ -415,8 +415,7 @@ def admin_pacientes(request):
 @admin_required
 def admin_paciente_salvar(request, pk=None):
     paciente = get_object_or_404(Paciente, pk=pk) if pk else None
-    HistoricoFamiliar = apps.get_model('encaminhamentos', 'HistoricoFamiliar') if apps.is_installed('encaminhamentos') else None
-
+    
     if request.method == 'POST':
         nome = request.POST.get('nome', '').strip(); cpf = ''.join(c for c in request.POST.get('cpf', '') if c.isdigit()) or None
         cartao_sus = request.POST.get('cartao_sus', '').strip() or None; data_nasc = request.POST.get('data_nascimento') or None
@@ -448,23 +447,23 @@ def admin_paciente_salvar(request, pk=None):
                 if not PacienteCondicao.objects.filter(paciente=paciente, condicao_id=int(condicao_id), data_fim__isnull=True).exists():
                     PacienteCondicao.objects.create(paciente=paciente, condicao_id=int(condicao_id), data_inicio=date.today())
 
-            if HistoricoFamiliar:
-                hf_ids = request.POST.getlist('hf_id'); hf_condicoes = request.POST.getlist('hf_condicao')
-                hf_graus = request.POST.getlist('hf_grau'); hf_obs = request.POST.getlist('hf_observacao')
-                ids_mantidos = set()
-                for hf_id, condicao, grau, obs in zip(hf_ids, hf_condicoes, hf_graus, hf_obs):
-                    condicao = condicao.strip()
-                    if not condicao: continue 
-                    if hf_id:
-                        try:
-                            hf = HistoricoFamiliar.objects.get(pk=hf_id, paciente=paciente)
-                            hf.condicao = condicao; hf.grau_parentesco = grau; hf.observacao = obs; hf.save()
-                            ids_mantidos.add(hf.pk)
-                        except HistoricoFamiliar.DoesNotExist: pass
-                    else:
-                        hf = HistoricoFamiliar.objects.create(paciente=paciente, condicao=condicao, grau_parentesco=grau, observacao=obs, registrado_por=request.user)
+            # O IF foi removido daqui! O Historico já é nativo do Core.
+            hf_ids = request.POST.getlist('hf_id'); hf_condicoes = request.POST.getlist('hf_condicao')
+            hf_graus = request.POST.getlist('hf_grau'); hf_obs = request.POST.getlist('hf_observacao')
+            ids_mantidos = set()
+            for hf_id, condicao, grau, obs in zip(hf_ids, hf_condicoes, hf_graus, hf_obs):
+                condicao = condicao.strip()
+                if not condicao: continue 
+                if hf_id:
+                    try:
+                        hf = HistoricoFamiliar.objects.get(pk=hf_id, paciente=paciente)
+                        hf.condicao = condicao; hf.grau_parentesco = grau; hf.observacao = obs; hf.save()
                         ids_mantidos.add(hf.pk)
-                HistoricoFamiliar.objects.filter(paciente=paciente).exclude(pk__in=ids_mantidos).delete()
+                    except HistoricoFamiliar.DoesNotExist: pass
+                else:
+                    hf = HistoricoFamiliar.objects.create(paciente=paciente, condicao=condicao, grau_parentesco=grau, observacao=obs, registrado_por=request.user)
+                    ids_mantidos.add(hf.pk)
+            HistoricoFamiliar.objects.filter(paciente=paciente).exclude(pk__in=ids_mantidos).delete()
 
             if data_prevista_parto:
                 try:
@@ -487,7 +486,7 @@ def admin_paciente_salvar(request, pk=None):
         condicoes_ativas_ids = {pc.condicao_id for pc in ativas}
         gestante_ativa = ativas.filter(condicao__codigo='gestante').first()
 
-    graus_parentesco = HistoricoFamiliar.GRAUS if HistoricoFamiliar else []
+    graus_parentesco = HistoricoFamiliar.GRAUS
     return render(request, 'core/pacientes/form.html', {'paciente': paciente, 'usfs': usfs, 'microareas': microareas, 'condicoes': condicoes, 'condicoes_ativas_ids': condicoes_ativas_ids, 'gestante_ativa': gestante_ativa, 'graus_parentesco': graus_parentesco, 'titulo': 'Editar paciente' if paciente else 'Novo paciente', 'acao': 'Salvar alterações' if paciente else 'Cadastrar paciente'})
 
 @admin_required

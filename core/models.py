@@ -1,6 +1,8 @@
 from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
+
+from config import settings
 from .validators import validar_cpf
 
 class PerfilUsuario(models.Model):
@@ -302,3 +304,27 @@ class PacienteCondicao(models.Model):
     @property
     def is_gestante(self):
         return self.condicao.codigo == 'gestante' and self.ativa
+
+# =============================================================================
+# HISTÓRICO FAMILIAR (Movido para cá, conforme a sua Views exigia)
+# =============================================================================
+
+class HistoricoFamiliar(models.Model):
+    GRAUS = [
+        ('pai_mae', 'Pai / Mãe'),
+        ('avo', 'Avô / Avó'),
+        ('irmao', 'Irmão / Irmã'),
+        ('outro', 'Outro'),
+    ]
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='historico_familiar')
+    condicao = models.CharField('Condição/Doença', max_length=150)
+    grau_parentesco = models.CharField('Grau de Parentesco', max_length=20, choices=GRAUS)
+    observacao = models.CharField('Observação', max_length=255, blank=True)
+    registrado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        verbose_name = 'Histórico Familiar'
+        verbose_name_plural = 'Históricos Familiares'
+
+    def __str__(self):
+        return f'{self.paciente.nome} - {self.condicao} ({self.get_grau_parentesco_display()})'

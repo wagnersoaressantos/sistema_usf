@@ -1,179 +1,149 @@
 {% extends 'base.html' %}
 
-{% block titulo %}Encaminhamentos{% endblock %}
-
 {% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <!-- Cabeçalho da Página -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Fila de Espera</h1>
+            <p class="text-gray-600 mt-1">Pacientes aguardando agendamento ou em regulação municipal.</p>
+        </div>
+        
+        <!-- NOVO: Filtro por Tipo de Fila -->
+        <form method="GET" class="flex items-center gap-2">
+            <select name="tipo" onchange="this.form.submit()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-green-500 focus:border-green-500">
+                <option value="">Todas as Filas (Geral)</option>
+                {% for tipo in tipos_na_fila %}
+                    <option value="{{ tipo.pk }}" {% if tipo_filtro == tipo.pk %}selected{% endif %}>
+                        Fila: {{ tipo.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
 
-{# ── Cabeçalho ───────────────────────────────────── #}
-<div style="display:flex; align-items:center;
-            justify-content:space-between; margin-bottom:1.5rem;">
-    <div>
-        <h1 style="font-size:20px; font-weight:600; margin:0;">
-            📋 Encaminhamentos
-        </h1>
-        <p style="font-size:13px; color:#6b7280; margin:0;">
-            {{ usf.nome }}
-        </p>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'encaminhamentos:cadastrar' %}" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Nova Guia
+            </a>
+            <a href="{% url 'encaminhamentos:inicio' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg">
+                Voltar
+            </a>
+        </div>
     </div>
-    <a href="{% url 'encaminhamentos:cadastrar' %}" class="btn btn-verde">
-        ➕ Novo
-    </a>
+
+    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold">Paciente</th>
+                        <th class="px-6 py-4 font-semibold">Procedimento</th>
+                        <th class="px-6 py-4 font-semibold text-center">Prioridade</th>
+                        <th class="px-6 py-4 font-semibold">Status / Tempo</th>
+                        <th class="px-6 py-4 font-semibold text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    
+                    {% for enc in encaminhamentos %}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <!-- Paciente -->
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-gray-800">{{ enc.paciente.nome }}</div>
+                            <div class="text-xs text-gray-500 mt-1 flex flex-col gap-1">
+                                <span>CPF: {{ enc.paciente.cpf|default:"-" }} | CNS: {{ enc.paciente.cartao_sus|default:"-" }}</span>
+                                
+                                {# MÁGICA: O ALERTA DE IDADE A FUNCIONAR! #}
+                                {% if enc.alerta_idade_incompativel %}
+                                    <span class="inline-flex items-center gap-1 text-red-600 font-semibold bg-red-50 px-2 py-0.5 rounded border border-red-200 mt-1 w-fit">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        Atenção: Idade incompatível ({{ enc.paciente.idade }} anos)
+                                    </span>
+                                {% else %}
+                                    <span>Idade: {{ enc.paciente.idade }} anos</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Procedimento -->
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-gray-800">{{ enc.tipo.nome }}</div>
+                            <div class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded inline-block mt-1">
+                                {{ enc.tipo.subcategoria.nome }}
+                            </div>
+                        </td>
+
+                        <!-- Prioridade -->
+                        <td class="px-6 py-4 text-center">
+                            {% if enc.prioridade == 3 %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                                    3 - Urgência
+                                </span>
+                            {% elif enc.prioridade == 2 %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">
+                                    2 - Preferencial
+                                </span>
+                            {% else %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                                    1 - Normal
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status / Tempo -->
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium
+                                {% if enc.status == 'aguardando' %}text-orange-600
+                                {% elif enc.status == 'regulacao' %}text-purple-600
+                                {% else %}text-gray-600{% endif %}">
+                                {{ enc.get_status_display }}
+                            </div>
+                            
+                            <!-- NOVO: Contador Inteligente de Dias -->
+                            <div class="mt-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                    Há {{ enc.dias_no_status }} dias neste status
+                                </span>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1" title="Pedido original feito em {{ enc.data_solicitacao|date:'d/m/Y' }}">
+                                Pedido Orig: {{ enc.data_solicitacao|date:"d/m/Y" }}
+                            </div>
+                        </td>
+
+                        <!-- Ações -->
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'encaminhamentos:detalhe' enc.pk %}" class="inline-flex items-center gap-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold py-1.5 px-3 rounded shadow-sm transition">
+                                Ver/Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center text-gray-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p class="text-lg font-medium text-gray-600">Fila Vazia!</p>
+                                <p class="text-sm mt-1">Nenhum paciente está aguardando regulação no momento.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 text-xs text-gray-500 flex justify-between items-center">
+            <span>Total na fila: <strong>{{ encaminhamentos.count }}</strong> pacientes.</span>
+            <span>A ordem da lista já respeita as prioridades clínicas.</span>
+        </div>
+    </div>
 </div>
-{% comment %}
-{# ── Filtros ─────────────────────────────────────────
-    Filtros por tipo e status via GET.
-    Ao submeter o form, a URL fica:
-    /encaminhamentos/?tipo=1&status=aguardando
-    ──────────────────────────────────────────────────── #}
-    {% endcomment %}
-<form method="get" style="margin-bottom:1.5rem;">
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-
-        <select name="tipo"
-                style="flex:1; min-width:160px; padding:8px 10px;
-                       border:1px solid #d1d5db; border-radius:8px;
-                       font-size:13px;">
-            <option value="">Todos os tipos</option>
-            {% for tipo in tipos %}
-                <option value="{{ tipo.pk }}"
-                    {% if tipo_selecionado == tipo.pk|stringformat:"s" %}
-                        selected
-                    {% endif %}>
-                    {{ tipo.nome }}
-                </option>
-            {% endfor %}
-        </select>
-
-        <select name="status"
-                style="flex:1; min-width:160px; padding:8px 10px;
-                       border:1px solid #d1d5db; border-radius:8px;
-                       font-size:13px;">
-            <option value="">Todos os status</option>
-            {% for valor, label in status_choices %}
-                <option value="{{ valor }}"
-                    {% if status_selecionado == valor %}selected{% endif %}>
-                    {{ label }}
-                </option>
-            {% endfor %}
-        </select>
-
-        <button type="submit" class="btn btn-verde">
-            Filtrar
-        </button>
-
-        {% if tipo_selecionado or status_selecionado %}
-            <a href="{% url 'encaminhamentos:lista' %}"
-               class="btn btn-cinza">
-                Limpar
-            </a>
-        {% endif %}
-
-    </div>
-</form>
-
-{# ── Lista de encaminhamentos ─────────────────────── #}
-{% if encaminhamentos %}
-
-    {# Contador de resultados #}
-    <p style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
-        {{ encaminhamentos|length }} encaminhamento{{ encaminhamentos|length|pluralize }}
-    </p>
-
-    {# Cada card é um encaminhamento na fila #}
-    {% for enc in encaminhamentos %}
-    <div style="background:white;
-                border:1px solid #e5e7eb;
-                border-left:4px solid {% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#3b82f6{% else %}#9ca3af{% endif %}{% elif enc.prioridade == 2 %}#a855f7{% elif enc.prioridade == 3 %}#f59e0b{% elif enc.prioridade == 4 %}#ef4444{% else %}#e5e7eb{% endif %};
-                border-radius:8px;
-                padding:14px 16px;
-                margin-bottom:10px;">
-
-        <div style="display:flex; align-items:flex-start;
-                    justify-content:space-between; gap:12px;">
-
-            <div style="flex:1;">
-                <p style="font-size:15px; font-weight:600;
-                           margin:0 0 4px; color:#111827;">
-                    {{ enc.paciente.nome }}
-                </p>
-                <p style="font-size:13px; color:#6b7280; margin:0 0 6px;">
-                    {{ enc.tipo.nome }}
-                    {% with subs=enc.subtipos.all %}
-                        {% if subs %}
-                            —
-                            {% for s in subs %}
-                                {{ s.subtipo.nome }}{% if not forloop.last %}, {% endif %}
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
-                </p>
-                <p style="font-size:12px; color:#9ca3af; margin:0;">
-                    Solicitado em {{ enc.data_solicitacao|date:"d/m/Y" }}
-                </p>
-            </div>
-
-            <div style="display:flex; flex-direction:column;
-                        align-items:flex-end; gap:6px; flex-shrink:0;">
-
-                <span style="font-size:11px; font-weight:500;
-                             padding:3px 10px; border-radius:20px;
-                             background:{% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#eff6ff{% else %}#f3f4f6{% endif %}{% elif enc.prioridade == 2 %}#faf5ff{% elif enc.prioridade == 3 %}#fffbeb{% elif enc.prioridade == 4 %}#fef2f2{% else %}#f9fafb{% endif %};
-                             color:{% if enc.prioridade == 1 %}{% if enc.retorno_ativo %}#1d4ed8{% else %}#6b7280{% endif %}{% elif enc.prioridade == 2 %}#7e22ce{% elif enc.prioridade == 3 %}#92400e{% elif enc.prioridade == 4 %}#991b1b{% else %}#374151{% endif %};">
-                    {{ enc.get_prioridade_display }}
-                    {% if enc.prioridade == 1 and enc.mes_retorno %}
-                        · {{ enc.mes_retorno }}/{{ enc.ano_retorno }}
-                    {% endif %}
-                </span>
-
-                <span style="font-size:11px; padding:3px 10px;
-                             border-radius:20px; background:#f3f4f6;
-                             color:#374151;">
-                    {{ enc.get_status_display }}
-                </span>
-
-                {% if enc.duplicata_de %}
-                    <span style="font-size:11px; padding:3px 10px;
-                                 border-radius:20px; background:#fef2f2;
-                                 color:#dc2626;">
-                        ⚠️ Duplicata
-                    </span>
-                {% endif %}
-
-                {% if enc.acima_da_cota %}
-                    <span style="font-size:11px; padding:3px 10px;
-                                 border-radius:20px; background:#fffbeb;
-                                 color:#92400e;">
-                        📊 Acima da cota
-                    </span>
-                {% endif %}
-
-            </div>
-        </div>
-
-        <div style="margin-top:10px; border-top:1px solid #f3f4f6;
-                    padding-top:10px;">
-            <a href="{% url 'encaminhamentos:detalhe' enc.pk %}"
-               style="font-size:13px; color:var(--verde);
-                      text-decoration:none; font-weight:500;">
-                Ver detalhes →
-            </a>
-        </div>
-
-    </div>
-{% endfor %}
-
-{% else %}
-    {# Estado vazio #}
-    <div style="text-align:center; padding:3rem 1rem; color:#9ca3af;">
-        <div style="font-size:48px; margin-bottom:1rem;">📭</div>
-        <p style="font-size:15px; font-weight:500; color:#6b7280;">
-            Nenhum encaminhamento encontrado.
-        </p>
-        <a href="{% url 'encaminhamentos:cadastrar' %}"
-           class="btn btn-verde" style="margin-top:1rem;">
-            ➕ Cadastrar primeiro encaminhamento
-        </a>
-    </div>
-{% endif %}
-
 {% endblock %}

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 
 from .models import (
-    PerfilUsuario, USF, TipoAtendimento, Aviso, Cargo, 
+    HistoricoFamiliar, PerfilUsuario, USF, TipoAtendimento, Aviso, Cargo, 
     ModuloSistema, EquipeUSF, MicroArea, Paciente, CondicaoSaude, PacienteCondicao
 )
 
@@ -73,3 +73,8 @@ class PacienteAdmin(admin.ModelAdmin):
 @admin.register(CondicaoSaude)
 class CondicaoSaudeAdmin(admin.ModelAdmin):
     list_display = ('nome', 'codigo', 'afeta_prioridade', 'ativo')
+
+@admin.register(HistoricoFamiliar)
+class HistoricoFamiliarAdmin(admin.ModelAdmin):
+    list_display = ('paciente', 'condicao', 'grau_parentesco')
+    search_fields = ('paciente__nome', 'condicao')
