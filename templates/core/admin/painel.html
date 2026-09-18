@@ -14,11 +14,11 @@
 <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
                                 margin-bottom:2rem;">
     <div class="stat-card" style="cursor:pointer;"
-        onclick="window.location='{% url 'core:admin_tipos' %}'">
+        onclick="window.location='{#{% url 'core:admin_tipos' %}#}'">
         <div class="stat-num">{{ total_tipos }}</div>
         <div class="stat-label">Tipos de atendimento</div>
             <div style="margin-top:12px;">
-                <a href="{% url 'core:admin_tipos' %}" class="btn btn-verde"
+                <a href="{#{% url 'core:admin_tipos' %}#}" class="btn btn-verde"
                     style="font-size:12px;padding:6px 14px;">
                     🩺 Atendimentos
                 </a>
@@ -26,11 +26,11 @@
     </div>
 
     <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_configuracao' %}'">
+         onclick="window.location='{#{% url 'core:admin_configuracao' %}#}'">
         <div class="stat-num">⚙️</div>
         <div class="stat-label">Configuração do sistema</div>
         <div style="margin-top:12px;">
-            <a href="{% url 'core:admin_configuracao' %}" class="btn btn-verde"
+            <a href="{#{% url 'core:admin_configuracao' %}#}" class="btn btn-verde"
                style="font-size:12px;padding:6px 14px;">
                 Configurações
             </a>
@@ -39,11 +39,11 @@
 
 
     <div class="stat-card" style="cursor:pointer;"
-        onclick="window.location='{% url 'core:admin_avisos' %}'">
+        onclick="window.location='{#{% url 'core:admin_avisos' %}#}'">
         <div class="stat-num" style="color:#d97706;">📢</div>
         <div class="stat-label">Mural de avisos</div>
         <div style="margin-top:12px;">
-            <a href="{% url 'core:admin_avisos' %}" class="btn btn-verde"
+            <a href="{#{% url 'core:admin_avisos' %}#}" class="btn btn-verde"
             style="font-size:12px;padding:6px 14px;">
                 Gerenciar avisos
             </a>
@@ -182,7 +182,22 @@
             Ver famílias
         </a>
     </div>
+    {# ── NOVO CARD: MAPA DO TERRITÓRIO (RUAS) ── #}
+    <a href="{% url 'core:territorio_lista' %}" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #06b6d4; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer; height:100%;"
+             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:32px; margin-bottom:12px;">🗺️</div>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Ruas e Território</h2>
+            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
+                Consulte os logradouros, ruas e CEPs vinculados às micro-áreas da sua USF.
+            </p>
+            <div style="background:#ecfeff; border-radius:6px; padding:6px 12px; display:inline-block;">
+                <span style="font-size:12px; color:#0891b2; font-weight:500;">Gerir Ruas →</span>
+            </div>
+        </div>
+    </a>
 </div>
+
 
 {# ── Seção: Importações ──────────────────────────── #}
 <h2 style="font-size:13px; font-weight:600; color:#9ca3af;
@@ -281,11 +296,11 @@
                                 margin-bottom:2rem;">
 
         <div class="stat-card" style="cursor:pointer;"
-          onclick="window.location= '{% url 'encaminhamentos:admin_tipos_enc' %}'" > 
+          onclick="window.location= '{#{% url 'encaminhamentos:admin_tipos_enc' %}#}'" > 
         <div class="stat-num">{{ total_tipos_enc }}</div>
         <div class="stat-label">Tipos de encaminhamento</div>
         <div style="margin-top:12px;">
-            <a href="{% url 'encaminhamentos:admin_tipos_enc' %}" class="btn btn-verde"
+            <a href="{#{% url 'encaminhamentos:admin_tipos_enc' %}#}" class="btn btn-verde"
                style="font-size:12px;padding:6px 14px;">
                 📋 Gerenciar tipos
             </a>
@@ -293,11 +308,11 @@
     </div>
 
     <div class="stat-card" style="cursor:pointer;"
-        onclick="window.location='{% url 'encaminhamentos:admin_cotas' %}'"> 
+        onclick="window.location='{#{% url 'encaminhamentos:admin_cotas' %}#}'"> 
         <div class="stat-num">{{ total_cotas }}</div>
         <div class="stat-label">Cotas configuradas</div>
         <div style="margin-top:12px;">
-            <a href="{% url 'encaminhamentos:admin_cotas' %}" class="btn btn-verde"
+            <a href="{#{% url 'encaminhamentos:admin_cotas' %}#}" class="btn btn-verde"
                style="font-size:12px;padding:6px 14px;">
                 📊 Gerenciar cotas
             </a>

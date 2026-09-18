@@ -64,11 +64,14 @@ urlpatterns = [
     path('administracao/avisos/<int:pk>/',              views.admin_aviso_salvar,      name='admin_aviso_editar'),
     path('administracao/avisos/<int:pk>/excluir/',      views.admin_aviso_excluir,     name='admin_aviso_excluir'),
 
-    # A Configuração de Sistema foi substituída pelos Módulos Dinâmicos, por isso apagámos a rota admin_configuracao!
-
-    # Território
-    path('administracao/familias/',                views.familias_score,        name='familias_score'),
-    path('administracao/familias/<str:cpf_responsavel>/', views.familia_detalhe, name='familia_detalhe'),
+    # Território (Acesso Clínico e Gestão)
+    path('territorio/familias/',                          views.familias_score,        name='familias_score'),
+    path('territorio/familias/<str:cpf_responsavel>/',    views.familia_detalhe,       name='familia_detalhe'),
+    path('territorio/ruas/',                              views.territorio_lista,      name='territorio_lista'),
+    
+    # Território (Acesso Exclusivo Gestão)
+    path('administracao/territorio/ruas/nova/',           views.admin_rua_salvar,      name='admin_rua_criar'),
+    path('administracao/territorio/ruas/<int:pk>/',       views.admin_rua_salvar,      name='admin_rua_editar'),
 
     # Sentinelas de risco
     path('administracao/sentinelas/',          views.admin_sentinelas,       name='admin_sentinelas'),
@@ -79,10 +82,6 @@ urlpatterns = [
     path('administracao/condicoes/',          views.admin_condicoes,       name='admin_condicoes'),
     path('administracao/condicoes/novo/',     views.admin_condicao_salvar, name='admin_condicao_criar'),
     path('administracao/condicoes/<int:pk>/', views.admin_condicao_salvar, name='admin_condicao_editar'),
-
-    # Rotas comentadas temporariamente para evitar Crash (até criarmos essas pastas!)
-    # path('territorializacao/', include('territorializacao.urls')),
-    # path('vacinas/', include('vacinas.urls')),
 
     # Manutenção do sistema/atualização via git pull
     path('manutencao/atualizar-git/', views.executar_git_pull, name='executar_git_pull'),

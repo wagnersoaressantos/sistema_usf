@@ -1,208 +1,142 @@
 {% extends 'base.html' %}
-{% block titulo %}Score Familiar — Coelho e Savassi{% endblock %}
+
+{% block titulo %}Risco Familiar — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-
-<div style="display:flex; align-items:center;
-            justify-content:space-between; margin-bottom:1.5rem;">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <a href="{% url 'core:painel_admin' %}"
-           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
-        <h1 class="page-title" style="margin:0;">
-            👨‍👩‍👧 Score Familiar — Coelho e Savassi
-        </h1>
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Classificação de Risco Familiar</h1>
+            <p class="text-gray-600 mt-1">Escala de Coelho e Savassi aplicada à USF {{ usf.nome }}.</p>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <form method="POST" action="{% url 'core:familias_score' %}">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="recalcular">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                    </svg>
+                    Recalcular Todos os Scores
+                </button>
+            </form>
+            <a href="{% url 'core:painel_admin' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg">
+                Voltar
+            </a>
+        </div>
     </div>
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit" name="acao" value="recalcular"
-                class="btn btn-cinza">
-            🔄 Recalcular todos os scores
-        </button>
-    </form>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <!-- R3: Alto Risco -->
+        <div class="bg-red-50 border border-red-200 rounded-xl p-5 shadow-sm">
+            <div class="text-red-600 font-bold text-lg mb-1">Risco Alto (R3)</div>
+            <div class="text-3xl font-black text-red-800">{{ totais.R3|default:"0" }}</div>
+            <div class="text-xs text-red-500 mt-1">9 ou mais pontos</div>
+        </div>
+        <!-- R2: Médio Risco -->
+        <div class="bg-orange-50 border border-orange-200 rounded-xl p-5 shadow-sm">
+            <div class="text-orange-600 font-bold text-lg mb-1">Risco Médio (R2)</div>
+            <div class="text-3xl font-black text-orange-800">{{ totais.R2|default:"0" }}</div>
+            <div class="text-xs text-orange-500 mt-1">7 a 8 pontos</div>
+        </div>
+        <!-- R1: Baixo Risco -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-5 shadow-sm">
+            <div class="text-yellow-600 font-bold text-lg mb-1">Risco Baixo (R1)</div>
+            <div class="text-3xl font-black text-yellow-800">{{ totais.R1|default:"0" }}</div>
+            <div class="text-xs text-yellow-600 mt-1">5 a 6 pontos</div>
+        </div>
+        <!-- R0: Sem Risco -->
+        <div class="bg-green-50 border border-green-200 rounded-xl p-5 shadow-sm">
+            <div class="text-green-600 font-bold text-lg mb-1">Sem Risco (R0)</div>
+            <div class="text-3xl font-black text-green-800">{{ totais.R0|default:"0" }}</div>
+            <div class="text-xs text-green-600 mt-1">0 a 4 pontos</div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4">
+        <form method="GET" class="flex-1 flex gap-2">
+            <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome do responsável..." class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+            
+            <!-- 🚀 NOVO FILTRO DE MICRO-ÁREA -->
+            <select name="microarea" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Todas as Micro-áreas</option>
+                {% for micro in microareas %}
+                    <!-- O |stringformat:"s" garante que o número da URL bata com o ID do banco -->
+                    <option value="{{ micro.pk }}" {% if microarea_filtro == micro.pk|stringformat:"s" %}selected{% endif %}>
+                        MA {{ micro.codigo }} {% if micro.responsavel %}({{ micro.responsavel.user.first_name }}){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <select name="classificacao" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Todas as Classificações</option>
+                {% for sigla, rotulo in classificacoes %}
+                    <option value="{{ sigla }}" {% if classificacao_filtro == sigla %}selected{% endif %}>{{ rotulo }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Filtrar</button>
+        </form>
+    </div>
+
+    <!-- Tabela de Famílias -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold">Responsável Familiar</th>
+                        <th class="px-6 py-4 font-semibold">Endereço (Resumo)</th>
+                        <th class="px-6 py-4 font-semibold text-center">Score Total</th>
+                        <th class="px-6 py-4 font-semibold text-center">Classificação</th>
+                        <th class="px-6 py-4 font-semibold text-right">Ação</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for familia in familias %}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-gray-800">{{ familia.nome_responsavel }}</div>
+                            <div class="text-xs text-gray-500 mt-1">CPF: {{ familia.cpf_responsavel }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-gray-600">
+                            {{ familia.logradouro }}, {{ familia.numero }}
+                            {% if familia.bairro %}- {{ familia.bairro }}{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="font-black text-lg text-gray-700">{{ familia.score_total }} pts</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if familia.classificacao == 'R3' %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">R3 - ALTO</span>
+                            {% elif familia.classificacao == 'R2' %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200">R2 - MÉDIO</span>
+                            {% elif familia.classificacao == 'R1' %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">R1 - BAIXO</span>
+                            {% else %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">R0 - SEM RISCO</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'core:familia_detalhe' familia.cpf_responsavel %}" class="inline-flex items-center gap-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold py-1.5 px-3 rounded shadow-sm transition">
+                                Ver / Avaliar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            Nenhuma família encontrada com estes filtros.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-
-{# Cards por classificação #}
-<div style="display:grid; grid-template-columns:repeat(5,1fr);
-            gap:10px; margin-bottom:1.5rem;">
-
-    <a href="{% if classificacao_filtro == 'R0' %}{% url 'core:familias_score' %}{% else %}?classificacao=R0{% endif %}"
-       style="text-decoration:none;">
-        <div style="background:{% if classificacao_filtro == 'R0' %}#f0fdf4{% else %}white{% endif %};
-                    border:1px solid #86efac; border-radius:8px;
-                    padding:12px; text-align:center;">
-            <p style="font-size:24px; font-weight:700; color:#16a34a; margin:0;">
-                {{ totais.R0 }}
-            </p>
-            <p style="font-size:11px; font-weight:500; color:#16a34a; margin:2px 0 0;">R0</p>
-            <p style="font-size:10px; color:#9ca3af; margin:0;">Sem risco</p>
-        </div>
-    </a>
-
-    <a href="{% if classificacao_filtro == 'R1' %}{% url 'core:familias_score' %}{% else %}?classificacao=R1{% endif %}"
-       style="text-decoration:none;">
-        <div style="background:{% if classificacao_filtro == 'R1' %}#f7fee7{% else %}white{% endif %};
-                    border:1px solid #bef264; border-radius:8px;
-                    padding:12px; text-align:center;">
-            <p style="font-size:24px; font-weight:700; color:#65a30d; margin:0;">
-                {{ totais.R1 }}
-            </p>
-            <p style="font-size:11px; font-weight:500; color:#65a30d; margin:2px 0 0;">R1</p>
-            <p style="font-size:10px; color:#9ca3af; margin:0;">Risco baixo</p>
-        </div>
-    </a>
-
-    <a href="{% if classificacao_filtro == 'R2' %}{% url 'core:familias_score' %}{% else %}?classificacao=R2{% endif %}"
-       style="text-decoration:none;">
-        <div style="background:{% if classificacao_filtro == 'R2' %}#fffbeb{% else %}white{% endif %};
-                    border:1px solid #fcd34d; border-radius:8px;
-                    padding:12px; text-align:center;">
-            <p style="font-size:24px; font-weight:700; color:#d97706; margin:0;">
-                {{ totais.R2 }}
-            </p>
-            <p style="font-size:11px; font-weight:500; color:#d97706; margin:2px 0 0;">R2</p>
-            <p style="font-size:10px; color:#9ca3af; margin:0;">Risco médio</p>
-        </div>
-    </a>
-
-    <a href="{% if classificacao_filtro == 'R3' %}{% url 'core:familias_score' %}{% else %}?classificacao=R3{% endif %}"
-       style="text-decoration:none;">
-        <div style="background:{% if classificacao_filtro == 'R3' %}#fef2f2{% else %}white{% endif %};
-                    border:1px solid #fca5a5; border-radius:8px;
-                    padding:12px; text-align:center;">
-            <p style="font-size:24px; font-weight:700; color:#dc2626; margin:0;">
-                {{ totais.R3 }}
-            </p>
-            <p style="font-size:11px; font-weight:500; color:#dc2626; margin:2px 0 0;">R3</p>
-            <p style="font-size:10px; color:#9ca3af; margin:0;">Risco alto</p>
-        </div>
-    </a>
-
-    <a href="{% if classificacao_filtro == 'R4' %}{% url 'core:familias_score' %}{% else %}?classificacao=R4{% endif %}"
-       style="text-decoration:none;">
-        <div style="background:{% if classificacao_filtro == 'R4' %}#f5f3ff{% else %}white{% endif %};
-                    border:1px solid #c4b5fd; border-radius:8px;
-                    padding:12px; text-align:center;">
-            <p style="font-size:24px; font-weight:700; color:#6d28d9; margin:0;">
-                {{ totais.R4 }}
-            </p>
-            <p style="font-size:11px; font-weight:500; color:#6d28d9; margin:2px 0 0;">R4</p>
-            <p style="font-size:10px; color:#9ca3af; margin:0;">Risco muito alto</p>
-        </div>
-    </a>
-</div>
-
-
-{# Filtros #}
-<form method="get" style="display:flex; gap:10px;
-                           flex-wrap:wrap; margin-bottom:1rem;">
-    <input type="text" name="q" value="{{ q }}"
-           placeholder="🔍 Buscar por nome do responsável..."
-           class="form-input" style="flex:2; min-width:200px;">
-    <select name="classificacao" class="form-input"
-            style="flex:1; min-width:150px;"
-            onchange="this.form.submit()">
-        <option value="">Todas as classificações</option>
-        {% for classe, label in classificacoes %}
-            <option value="{{ classe }}"
-                {% if classificacao_filtro == classe %}selected{% endif %}>
-                {{ label }}
-            </option>
-        {% endfor %}
-    </select>
-    <button type="submit" class="btn btn-verde">Buscar</button>
-    {% if q or classificacao_filtro %}
-        <a href="{% url 'core:familias_score' %}" class="btn btn-cinza">
-            Limpar
-        </a>
-    {% endif %}
-</form>
-
-<p style="font-size:13px; color:#6b7280; margin-bottom:1rem;">
-    {{ familias|length }} família{{ familias|length|pluralize }}
-    {% if classificacao_filtro %}
-        com classificação {{ classificacao_filtro }}
-    {% endif %}
-</p>
-
-{# Lista de famílias #}
-<div class="card">
-    {% if familias %}
-    <table>
-        <thead>
-            <tr>
-                <th>Responsável</th>
-                <th>Endereço</th>
-                <th>Score</th>
-                <th>Classificação</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for f in familias %}
-            <tr>
-                <td>
-                    <p style="font-size:14px; font-weight:500; margin:0;">
-                        {{ f.nome_responsavel }}
-                    </p>
-                    <p style="font-size:12px; color:#9ca3af; margin:0;">
-                        CPF: {{ f.cpf_responsavel }}
-                    </p>
-                </td>
-                <td style="font-size:13px; color:#6b7280;">
-                    {% if f.logradouro %}
-                        {{ f.logradouro }}
-                        {% if f.numero %}, {{ f.numero }}{% endif %}
-                        {% if f.bairro %}<br>{{ f.bairro }}{% endif %}
-                    {% else %}
-                        <span style="color:#9ca3af;">—</span>
-                    {% endif %}
-                </td>
-                <td style="text-align:center;">
-                    <span style="font-size:22px; font-weight:700;
-                                 color:{% if f.classificacao == 'R0' %}#16a34a
-                                       {% elif f.classificacao == 'R1' %}#65a30d
-                                       {% elif f.classificacao == 'R2' %}#d97706
-                                       {% elif f.classificacao == 'R3' %}#dc2626
-                                       {% else %}#6d28d9{% endif %};">
-                        {{ f.score_total }}
-                    </span>
-                </td>
-                <td>
-                    <span style="font-size:12px; font-weight:600;
-                                 padding:4px 12px; border-radius:20px;
-                                 background:{% if f.classificacao == 'R0' %}#f0fdf4
-                                            {% elif f.classificacao == 'R1' %}#f7fee7
-                                            {% elif f.classificacao == 'R2' %}#fffbeb
-                                            {% elif f.classificacao == 'R3' %}#fef2f2
-                                            {% else %}#f5f3ff{% endif %};
-                                 color:{% if f.classificacao == 'R0' %}#16a34a
-                                       {% elif f.classificacao == 'R1' %}#65a30d
-                                       {% elif f.classificacao == 'R2' %}#d97706
-                                       {% elif f.classificacao == 'R3' %}#dc2626
-                                       {% else %}#6d28d9{% endif %};">
-                        {{ f.classificacao }} — {{ f.get_classificacao_display }}
-                    </span>
-                </td>
-                <td>
-                    <a href="{% url 'core:familia_detalhe' f.cpf_responsavel %}"
-                       style="color:var(--verde); font-size:13px;">
-                        Ver família
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color:#9ca3af; text-align:center; padding:2rem;">
-        Nenhuma família encontrada.
-        <br>
-        <a href="{% url 'core:importar_territorio' %}"
-           style="color:var(--verde);">
-            Importe o território do e-SUS para começar.
-        </a>
-    </p>
-    {% endif %}
-</div>
-
 {% endblock %}

@@ -2,97 +2,73 @@
 {# core/templates/core/componentes/menu_lateral.html #}
 {# COMPONENTE ISOLADO: MENU LATERAL (DRAWER) #}
 
-{# Overlay — fundo escuro. Clicando nele fecha o drawer. #}
 <div class="drawer-overlay" id="overlay" onclick="fecharDrawer()"></div>
 
-{# Painel lateral #}
 <div class="drawer" id="drawer">
 
     {# Cabeçalho — logo + nome do sistema #}
     <div class="drawer-header">
-
         <button class="drawer-fechar" onclick="fecharDrawer()">×</button>
-
         <div style="display:flex; flex-direction:column; align-items:center; width:100%; padding:28px 16px 20px; gap:12px;">
-
-            {# Logo com fundo branco arredondado sobre o verde #}
             <div style="background:white; border-radius:99px; padding:5px;">
                 <img src="{% static 'img/logo.png' %}" alt="Logo da unidade" style="height:100px;width:auto;display:block;">
             </div>
-
-            {# Nome e descrição do sistema — vêm do context processor #}
             <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                <span style="color:white;font-size:16px;font-weight:600;">
-                    {{ sistema.nome }}
-                </span>
-                <span style="color:rgba(255,255,255,0.7);font-size:12px;">
-                    {{ sistema.descricao }}
-                </span>
+                <span style="color:white;font-size:16px;font-weight:600;">{{ sistema.nome }}</span>
+                <span style="color:rgba(255,255,255,0.7);font-size:12px;">{{ sistema.descricao }}</span>
             </div>
-
         </div>
     </div>
 
-    {# Links de navegação #}
+    {# Links de navegação usando a Nova Arquitetura de Módulos Dinâmicos #}
     <nav class="drawer-nav">
         
-        <a href="{% url 'encaminhamentos:inicio' %}"
-        {% if request.resolver_match.app_name == 'encaminhamentos' %}class="ativo"{% endif %}>
-            📋 Encaminhamentos
-        </a>
-        <a class="nav-link {% if 'territorio' in request.path %}active{% endif %}"
-        {# href="{% url 'territorializacao:territorio_lista' %}"#}>
-        🗺️ Território
-        </a>
-        <a{# href="{% url 'vacinas:painel' %}"#} style="display:flex; align-items:center; gap:10px; padding:10px; color:#374151; text-decoration:none; font-weight:600; border-radius:6px; transition:background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
-            <span style="font-size:18px;">💉</span>
-            Imunização e PNI
-        </a>
-
-        <a {# href="{% url 'vacinas:controle_lotes' %}" #} style="display:flex; align-items:center; gap:10px; padding:10px; color:#4b5563; text-decoration:none; font-size:14px; margin-left:16px; border-radius:6px; transition:background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
-            <span style="font-size:16px;">📦</span>
-            Estoque de Lotes
-        </a>
-        {% if mutirao_ativo %}
-            <hr class="drawer-separador">
-            <a href="{% url 'mutirao:dashboard' %}"
-            {% if request.resolver_match.url_name == 'dashboard' %}class="ativo"{% endif %}>
-                📈 Mutirão — Dashboard
-            </a>
-            <a href="{% url 'mutirao:listar' %}"
-            {% if request.resolver_match.url_name == 'listar' %}class="ativo"{% endif %}>
-                📋 Mutirão — Atendimentos
-            </a>
-            <a href="{% url 'mutirao:cadastrar' %}"
-            {% if request.resolver_match.url_name == 'cadastrar' %}class="ativo"{% endif %}>
-                ➕ Mutirão — Novo cadastro
-            </a>
-            <a href="{% url 'mutirao:relatorio' %}"
-            {% if request.resolver_match.url_name == 'relatorio' %}class="ativo"{% endif %}>
-                📊 Mutirão — Relatório
-            </a>
-            <a href="{% url 'mutirao:exportar_csv' %}">
-                📥 Mutirão — Exportar CSV
+        {% if 'encaminhamentos' in modulos_ativos %}
+            <a href="{% url 'encaminhamentos:inicio' %}" {% if request.resolver_match.app_name == 'encaminhamentos' %}class="ativo"{% endif %}>
+                📋 Encaminhamentos
             </a>
         {% endif %}
-        
-        {% if user.perfil.is_admin_sistema %}
+
+        {% if 'territorializacao' in modulos_ativos %}
+            <!-- A rota mágica que aponta para as Famílias! -->
+            <a href="{% url 'core:familias_score' %}" class="{% if 'familias' in request.path %}ativo{% endif %}">
+                🗺️ Famílias e Território
+            </a>
+        {% endif %}
+
+        {% if 'vacinas' in modulos_ativos %}
+            <a href="#" style="display:flex; align-items:center; gap:10px; padding:10px; color:#374151; text-decoration:none; font-weight:600; border-radius:6px; transition:background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:18px;">💉</span> Imunização e PNI
+            </a>
+            <a href="#" style="display:flex; align-items:center; gap:10px; padding:10px; color:#4b5563; text-decoration:none; font-size:14px; margin-left:16px; border-radius:6px; transition:background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:16px;">📦</span> Estoque de Lotes
+            </a>
+        {% endif %}
+
+        {% if 'mutirao' in modulos_ativos %}
             <hr class="drawer-separador">
-            <a href="{% url 'core:painel_admin' %}"
-            {% if request.resolver_match.url_name == 'painel_admin' %}class="ativo"{% endif %}>
+            <a href="{% url 'mutirao:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="ativo"{% endif %}>📈 Mutirão — Dashboard</a>
+            <a href="{% url 'mutirao:listar' %}" {% if request.resolver_match.url_name == 'listar' %}class="ativo"{% endif %}>📋 Mutirão — Atendimentos</a>
+            <a href="{% url 'mutirao:cadastrar' %}" {% if request.resolver_match.url_name == 'cadastrar' %}class="ativo"{% endif %}>➕ Mutirão — Novo cadastro</a>
+            <a href="{% url 'mutirao:relatorio' %}" {% if request.resolver_match.url_name == 'relatorio' %}class="ativo"{% endif %}>📊 Mutirão — Relatório</a>
+            <a href="{% url 'mutirao:exportar_csv' %}">📥 Mutirão — Exportar CSV</a>
+        {% endif %}
+        
+        <!-- Verifica se ele tem poderes na USF atual ou se é Master -->
+        {% if is_master or is_admin_unidade %}
+            <hr class="drawer-separador">
+            <a href="{% url 'core:painel_admin' %}" {% if request.resolver_match.url_name == 'painel_admin' %}class="ativo"{% endif %}>
                 ⚙ Administração
             </a>
-            <a href="{% url 'core:admin_avisos' %}"
-            {% if request.resolver_match.url_name == 'admin_avisos' %}class="ativo"{% endif %}>
+            <a href="{% url 'core:admin_avisos' %}" {% if request.resolver_match.url_name == 'admin_avisos' %}class="ativo"{% endif %}>
                 📢 Mural de avisos
             </a>
         {% endif %}
 
         <hr class="drawer-separador">
-
     </nav>        
 
-    {# Rodapé do drawer — utilizador logado e botão sair #}
+    {# Rodapé do drawer #}
     <div class="drawer-footer">
         <div class="usuario">
             👤 {{ user.get_full_name|default:user.username }}

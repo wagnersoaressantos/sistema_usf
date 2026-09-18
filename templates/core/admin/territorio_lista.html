@@ -1,94 +1,112 @@
 {% extends 'base.html' %}
-{% block titulo %}Territorialização — {{ usf.nome }}{% endblock %}
+
+{% block titulo %}Mapa do Território — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-
-{# ── Cabeçalho ───────────────────────────────────── #}
-<div style="display:flex; align-items:center;
-            justify-content:space-between; margin-bottom:1.5rem;">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <a href="{% url 'core:hub' %}"
-           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
-        <div>
-            <h1 style="font-size:20px; font-weight:600; margin:0;">
-                🗺️ Territorialização
-            </h1>
-            <p style="font-size:13px; color:#6b7280; margin:0;">
-                Mapa de abrangência da {{ usf.nome }}
-            </p>
-        </div>
-    </div>
-</div>
-
-{# ── Cards de Resumo ─────────────────────────────── #}
-<div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; margin-bottom:2rem;">
+<div class="container mx-auto px-4 py-8 max-w-6xl">
     
-    <div style="background:white; border:1px solid #e5e7eb; border-radius:10px; padding:1.5rem; display:flex; align-items:center; gap:16px;">
-        <div style="font-size:36px;">📍</div>
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
         <div>
-            <p style="font-size:24px; font-weight:700; color:var(--verde); margin:0;">
-                {{ microareas|length }}
-            </p>
-            <p style="font-size:13px; color:#6b7280; font-weight:500; margin:0;">
-                Micro-áreas mapeadas
-            </p>
+            <h1 class="text-3xl font-bold text-gray-800">Mapa do Território (Ruas)</h1>
+            <p class="text-gray-600 mt-1">Gestão de ruas, bairros e vínculos com as Micro-áreas da {{ usf.nome }}.</p>
         </div>
-    </div>
-
-    <div style="background:white; border:1px solid #e5e7eb; border-radius:10px; padding:1.5rem; display:flex; align-items:center; gap:16px;">
-        <div style="font-size:36px;">⚠️</div>
-        <div>
-            <p style="font-size:24px; font-weight:700; color:#dc2626; margin:0;">
-                {{ pacientes_fora_de_area }}
-            </p>
-            <p style="font-size:13px; color:#6b7280; font-weight:500; margin:0;">
-                Pacientes fora de área
-            </p>
-        </div>
-    </div>
-
-</div>
-
-{# ── Grade de Micro-áreas ────────────────────────── #}
-<h2 style="font-size:14px; font-weight:600; color:#374151; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;">
-    Equipe de Área
-</h2>
-
-<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
-    {% for ma in microareas %}
-    <a href="{% url 'territorializacao:territorio_detalhe' ma.id %}" style="text-decoration:none; color:inherit;">
-        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid var(--verde); border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer;"
-             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-             onmouseout="this.style.boxShadow='none'">
+        
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()" class="no-print text-gray-700 bg-gray-100 hover:bg-gray-200 font-medium py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2v4h10z" /></svg>
+                Imprimir Mapa
+            </button>
+            <a href="{% url 'core:familias_score' %}" class="no-print text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg">
+                Voltar para Famílias
+            </a>
             
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                <h3 style="font-size:18px; font-weight:700; color:#111827; margin:0;">
-                    {{ ma.codigo }}
-                </h3>
-            </div>
-
-            <p style="font-size:13px; color:#6b7280; margin:0 0 4px;">
-                <strong>ACS:</strong> 
-                {% if ma.responsavel %}
-                    {{ ma.responsavel.user.get_full_name }}
-                {% else %}
-                    <span style="color:#dc2626;">Sem responsável</span>
-                {% endif %}
-            </p>
-
-            <div style="background:#f0fdf4; border-radius:6px; padding:6px 12px; margin-top:12px; display:inline-block;">
-                <span style="font-size:13px; font-weight:600; color:var(--verde);">
-                    👤 {{ ma.total_pacientes }} pacientes ativos
-                </span>
-            </div>
-            
+            {# Só aparece o botão de Nova Rua se ele for Gestor! #}
+            {% if is_master or is_admin_unidade %}
+            <a href="{% url 'core:admin_rua_criar' %}" class="no-print bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                Nova Rua
+            </a>
+            {% endif %}
         </div>
-    </a>
-    {% empty %}
-    <div style="grid-column: 1 / -1; background:white; border:1px solid #e5e7eb; border-radius:8px; padding:2rem; text-align:center; color:#9ca3af;">
-        Nenhuma micro-área encontrada para esta USF.
     </div>
-    {% endfor %}
-</div>
 
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 no-print">
+        <form method="GET" class="flex-1 flex gap-2">
+            <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome da rua..." class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+            <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Filtrar</button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold">Logradouro (Rua)</th>
+                        <th class="px-6 py-4 font-semibold">Bairro</th>
+                        <th class="px-6 py-4 font-semibold">Micro-áreas Vinculadas</th>
+                        <th class="px-6 py-4 font-semibold text-center">Status</th>
+                        {% if is_master or is_admin_unidade %}
+                        <th class="px-6 py-4 font-semibold text-right no-print">Ações</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for rua in logradouros %}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-gray-800">{{ rua.logradouro }}</div>
+                            {% if rua.cep %}
+                                <div class="text-xs text-gray-500 mt-1">CEP: {{ rua.cep }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-gray-600">
+                            {{ rua.bairro }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-wrap gap-2">
+                                {% for vinculo in rua.vinculos.all %}
+                                    <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded text-xs font-semibold">
+                                        MA {{ vinculo.micro_area.codigo }}
+                                        {% if vinculo.numero_inicial and vinculo.numero_final %}
+                                            <span class="text-[10px] text-blue-500 font-normal">({{ vinculo.numero_inicial }} ao {{ vinculo.numero_final }})</span>
+                                        {% endif %}
+                                    </span>
+                                {% empty %}
+                                    <span class="text-xs text-red-500 font-semibold bg-red-50 px-2 py-1 rounded border border-red-200">Área Descoberta</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if rua.ativo %}
+                                <span class="w-3 h-3 bg-green-500 rounded-full inline-block shadow-sm" title="Ativo"></span>
+                            {% else %}
+                                <span class="w-3 h-3 bg-red-500 rounded-full inline-block shadow-sm" title="Inativo"></span>
+                            {% endif %}
+                        </td>
+                        
+                        {% if is_master or is_admin_unidade %}
+                        <td class="px-6 py-4 text-right no-print">
+                            <a href="{% url 'core:admin_rua_editar' rua.pk %}" class="text-xs bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-1.5 px-3 rounded shadow-sm transition">
+                                Editar
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            </svg>
+                            <p class="text-lg font-medium text-gray-600">Nenhuma rua cadastrada.</p>
+                            <p class="text-sm mt-1">Elas serão geradas automaticamente na importação do e-SUS PEC!</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,356 +1,179 @@
 {% extends 'base.html' %}
-{% block titulo %}Família — {{ familia.nome_responsavel }}{% endblock %}
+
+{% block titulo %}Avaliação Familiar — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-
-{# ── Cabeçalho ───────────────────────────────────── #}
-<div style="display:flex; align-items:center;
-            justify-content:space-between; margin-bottom:1.5rem;">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <a href="{% url 'core:familias_score' %}"
-           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    
+    <!-- Cabeçalho -->
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
         <div>
-            <h1 style="font-size:20px; font-weight:600; margin:0;">
-                👨‍👩‍👧 {{ familia.nome_responsavel }}
-            </h1>
-            <p style="font-size:13px; color:#6b7280; margin:0;">
-                {% if familia.logradouro %}
-                    {{ familia.logradouro }}
-                    {% if familia.numero %}, {{ familia.numero }}{% endif %}
-                    {% if familia.bairro %} · {{ familia.bairro }}{% endif %}
-                {% endif %}
-                {% if familia.ponto_referencia and familia.ponto_referencia != '-' %}
-                    · Ref: {{ familia.ponto_referencia }}
-                {% endif %}
-            </p>
+            <h1 class="text-3xl font-bold text-gray-800">Avaliação de Risco Familiar</h1>
+            <p class="text-gray-600 mt-1">Escala de Coelho e Savassi — Família de {{ familia.nome_responsavel }}</p>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <!-- NOVO BOTÃO: SINCRONIZAR SCORE -->
+            <form method="POST" action="{% url 'core:familia_detalhe' familia.cpf_responsavel %}" class="m-0">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="recalcular">
+                <button type="submit" class="text-blue-700 hover:text-blue-800 font-bold flex items-center gap-2 transition bg-blue-50 border border-blue-200 hover:bg-blue-100 py-2 px-4 rounded-lg shadow-sm" title="Puxar as doenças e idades mais recentes do prontuário">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                    </svg>
+                    Sincronizar Score
+                </button>
+            </form>
+
+            <a href="{% url 'core:familias_score' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+                Voltar à Lista
+            </a>
         </div>
     </div>
 
-    {# Badge do score #}
-    <div style="text-align:center;
-                background:{% if familia.classificacao == 'R0' %}#f0fdf4
-                           {% elif familia.classificacao == 'R1' %}#f7fee7
-                           {% elif familia.classificacao == 'R2' %}#fffbeb
-                           {% elif familia.classificacao == 'R3' %}#fef2f2
-                           {% else %}#f5f3ff{% endif %};
-                border:2px solid
-                           {% if familia.classificacao == 'R0' %}#86efac
-                           {% elif familia.classificacao == 'R1' %}#bef264
-                           {% elif familia.classificacao == 'R2' %}#fcd34d
-                           {% elif familia.classificacao == 'R3' %}#fca5a5
-                           {% else %}#c4b5fd{% endif %};
-                border-radius:12px; padding:12px 24px;">
-        <p style="font-size:36px; font-weight:700; margin:0;
-                   color:{% if familia.classificacao == 'R0' %}#16a34a
-                         {% elif familia.classificacao == 'R1' %}#65a30d
-                         {% elif familia.classificacao == 'R2' %}#d97706
-                         {% elif familia.classificacao == 'R3' %}#dc2626
-                         {% else %}#6d28d9{% endif %};">
-            {{ familia.score_total }}
-        </p>
-        <p style="font-size:12px; font-weight:600; margin:0;
-                   color:{% if familia.classificacao == 'R0' %}#16a34a
-                         {% elif familia.classificacao == 'R1' %}#65a30d
-                         {% elif familia.classificacao == 'R2' %}#d97706
-                         {% elif familia.classificacao == 'R3' %}#dc2626
-                         {% else %}#6d28d9{% endif %};">
-            {{ familia.get_classificacao_display }}
-        </p>
-    </div>
-</div>
-
-<form method="post">
-{% csrf_token %}
-
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-
-    {# ── COLUNA ESQUERDA — Membros e sentinelas individuais ── #}
-    <div>
-        <h2 style="font-size:14px; font-weight:600; color:#374151;
-                    text-transform:uppercase; letter-spacing:.05em;
-                    margin-bottom:1rem;">
-            Membros da família ({{ membros|length }})
-        </h2>
-
-        {% for membro in membros %}
-        <div style="background:white; border:1px solid #e5e7eb;
-                    border-left:4px solid
-                        {% if membro.responsavel_familiar %}var(--verde)
-                        {% else %}#e5e7eb{% endif %};
-                    border-radius:8px; padding:14px;
-                    margin-bottom:10px;">
-
-            {# Dados do membro #}
-            <div style="display:flex; align-items:flex-start;
-                        justify-content:space-between;
-                        margin-bottom:10px;">
-                <div>
-                    <p style="font-size:14px; font-weight:600; margin:0 0 2px;">
-                        {{ membro.nome }}
-                        {% if membro.responsavel_familiar %}
-                            <span style="font-size:10px; background:var(--verde);
-                                         color:white; padding:1px 6px;
-                                         border-radius:20px; margin-left:4px;">
-                                🏠 Responsável
-                            </span>
-                        {% endif %}
-                    </p>
-                    <p style="font-size:12px; color:#6b7280; margin:0;">
-                        {% if membro.idade %}{{ membro.idade }} anos{% endif %}
-                        {% if membro.sexo != 'I' %} · {{ membro.get_sexo_display }}{% endif %}
-                    </p>
-                </div>
-                <a href="{% url 'encaminhamentos:paciente' membro.pk %}"
-                   style="font-size:12px; color:var(--verde);
-                          text-decoration:none; flex-shrink:0;">
-                    Ver →
-                </a>
+    <form method="POST" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Score Atual e Info Base -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row gap-6 items-center">
+            
+            <div class="flex-1">
+                <h2 class="text-lg font-bold text-gray-800 mb-2">Dados do Domicílio</h2>
+                <p class="text-sm text-gray-600 mb-1"><strong>Endereço:</strong> {{ familia.logradouro }}, {{ familia.numero }} - {{ familia.bairro }}</p>
+                <p class="text-sm text-gray-600 mb-4"><strong>Responsável:</strong> {{ familia.nome_responsavel }} (CPF: {{ familia.cpf_responsavel }})</p>
+                
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Nº de Cômodos na Casa:</label>
+                <input type="number" name="numero_comodos" value="{{ familia.numero_comodos|default:'' }}" class="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 bg-gray-50" placeholder="Ex: 4">
+                <span class="text-xs text-gray-500 ml-2">Agrupamento gera 3 pts de risco!</span>
             </div>
 
-            {# Condições de saúde automáticas #}
-            {% with condicoes=membro.condicoes.all %}
-            {% if condicoes %}
-            <div style="display:flex; flex-wrap:wrap; gap:4px;
-                        margin-bottom:10px;">
-                {% for pc in condicoes %}
-                    {% if pc.ativa %}
-                    <span style="font-size:11px; padding:2px 8px;
-                                 border-radius:20px; background:#f0fdf4;
-                                 color:#166534; border:1px solid #bbf7d0;">
-                        {{ pc.condicao.icone }} {{ pc.condicao.nome }}
-                    </span>
-                    {% endif %}
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
-
-            {# Sentinelas individuais — marcadas manualmente #}
-            {% if sentinelas_ind %}
-            <div style="border-top:1px solid #f3f4f6; padding-top:10px;">
-                <p style="font-size:11px; color:#9ca3af;
-                           text-transform:uppercase; letter-spacing:.05em;
-                           margin:0 0 6px;">
-                    Sentinelas individuais
+            <!-- O Termômetro do Risco -->
+            <div class="w-full md:w-64 rounded-xl p-6 text-center border shadow-inner
+                {% if familia.classificacao == 'R3' %} bg-red-50 border-red-200
+                {% elif familia.classificacao == 'R2' %} bg-orange-50 border-orange-200
+                {% elif familia.classificacao == 'R1' %} bg-yellow-50 border-yellow-200
+                {% else %} bg-green-50 border-green-200 {% endif %}">
+                
+                <p class="text-sm font-bold uppercase tracking-wider mb-1
+                    {% if familia.classificacao == 'R3' %} text-red-600
+                    {% elif familia.classificacao == 'R2' %} text-orange-600
+                    {% elif familia.classificacao == 'R1' %} text-yellow-600
+                    {% else %} text-green-600 {% endif %}">
+                    {{ familia.get_classificacao_display }}
                 </p>
-                <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                    {% for s in sentinelas_ind %}
-                    <label style="display:flex; align-items:center;
-                                   gap:6px; cursor:pointer; font-size:12px;
-                                   padding:4px 10px; border-radius:20px;
-                                   border:1px solid #e5e7eb; background:white;"
-                           id="label-ind-{{ membro.pk }}-{{ s.pk }}">
-                        <input type="checkbox"
-                            name="ind_{{ membro.pk }}_{{ s.pk }}"
-                            {% if s.pk in membro.marcadas_ids %}checked{% endif %}
-                            onchange="toggleLabel(this, 'label-ind-{{ membro.pk }}-{{ s.pk }}')">
-                        {{ s.nome }}
-                        <span style="color:#9ca3af; font-size:10px;">
-                            +{{ s.peso }}pt
-                        </span>
+                <p class="text-5xl font-black text-gray-800">{{ familia.score_total }}</p>
+                <p class="text-xs font-semibold text-gray-500 mt-2 uppercase tracking-wide">Pontos Atuais</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- BLOCO 1: Fatores do Domicílio -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                    Fatores do Domicílio
+                </h2>
+                <div class="space-y-3">
+                    {% for sentinela in sentinelas_dom %}
+                    <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer transition">
+                        <input type="checkbox" name="dom_{{ sentinela.pk }}" class="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            {% if sentinela.pk in dom_marcadas %}checked{% endif %}>
+                        <div>
+                            <span class="font-medium text-gray-800 text-sm block">{{ sentinela.nome }}</span>
+                            <span class="text-xs font-bold text-red-500 mt-0.5 inline-block">+{{ sentinela.peso }} pts</span>
+                        </div>
                     </label>
+                    {% empty %}
+                    <p class="text-sm text-gray-500 italic">Nenhum risco de domicílio cadastrado no painel.</p>
                     {% endfor %}
                 </div>
             </div>
-            {% endif %}
 
-        </div>
-        {% empty %}
-        <div style="background:white; border:1px solid #e5e7eb;
-                    border-radius:8px; padding:2rem; text-align:center;
-                    color:#9ca3af;">
-            Nenhum membro encontrado no cadastro.
-        </div>
-        {% endfor %}
-    </div>
-
-    {# ── COLUNA DIREITA — Domicílio e score ── #}
-    <div>
-
-        {# Sentinelas do domicílio #}
-        <h2 style="font-size:14px; font-weight:600; color:#374151;
-                    text-transform:uppercase; letter-spacing:.05em;
-                    margin-bottom:1rem;">
-            Condições do domicílio
-        </h2>
-        <div class="card" style="margin-bottom:1rem;">
-
-            <p style="font-size:12px; color:#9ca3af; margin:0 0 1rem;">
-                Marque as condições presentes no domicílio.
-            </p>
-
-            {% for s in sentinelas_dom %}
-            <label style="display:flex; align-items:center; gap:10px;
-                           padding:10px 0; border-bottom:1px solid #f3f4f6;
-                           cursor:pointer; font-size:13px;"
-                   id="label-dom-{{ s.pk }}">
-                <input type="checkbox"
-                       name="dom_{{ s.pk }}"
-                       {% if s.pk in dom_marcadas %}checked{% endif %}
-                       onchange="toggleLabel(this, 'label-dom-{{ s.pk }}')">
-                <span style="flex:1;">
-                    {{ s.nome }}
-                    {% if s.observacao %}
-                        <span style="font-size:11px; color:#9ca3af;
-                                     display:block;">
-                            {{ s.observacao }}
-                        </span>
-                    {% endif %}
-                </span>
-                <span style="font-size:11px; color:#9ca3af;
-                             background:#f3f4f6; padding:2px 8px;
-                             border-radius:20px; flex-shrink:0;">
-                    +{{ s.peso }} pt{{ s.peso|pluralize }}
-                </span>
-            </label>
-            {% endfor %}
-
-            {# Número de cômodos #}
-            <div style="padding:10px 0;">
-                <div style="display:flex; align-items:center;
-                            justify-content:space-between;
-                            margin-bottom:6px;">
-                    <label style="font-size:13px;">
-                        Número de cômodos
-                        <span style="font-size:11px; color:#9ca3af;">
-                            (excluindo banheiro)
-                        </span>
-                    </label>
-                    <span style="font-size:11px; color:#9ca3af;
-                                 background:#f3f4f6; padding:2px 8px;
-                                 border-radius:20px;">
-                        +1 pt se &gt; 2 pessoas/cômodo
-                    </span>
-                </div>
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <input type="number" name="numero_comodos"
-                           class="form-input" style="max-width:100px;"
-                           min="1" max="20"
-                           value="{{ familia.numero_comodos|default:'' }}"
-                           placeholder="Ex: 4">
-                    {% if familia.numero_moradores %}
-                    <p style="font-size:12px; color:#6b7280; margin:0;">
-                        {{ familia.numero_moradores }}
-                        morador{{ familia.numero_moradores|pluralize }}
-                        {% if familia.lotacao %}
-                            · {{ familia.lotacao }} pessoas/cômodo
-                            {% if familia.lotacao_critica %}
-                                <span style="color:#ef4444; font-weight:500;">
-                                    ⚠️ Lotação crítica
-                                </span>
-                            {% endif %}
-                        {% endif %}
-                    </p>
-                    {% endif %}
-                </div>
+            <!-- BLOCO 2: Automação Inteligente (Idades e Condições) -->
+            <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl shadow-sm border border-purple-100 p-6">
+                <h2 class="text-lg font-bold text-purple-900 mb-4 border-b border-purple-100 pb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
+                    Automações Ativas
+                </h2>
+                <p class="text-xs text-purple-700 mb-4">O sistema lê a ficha dos membros abaixo e soma os pontos automaticamente para estas regras:</p>
+                <ul class="space-y-2">
+                    {% for s_auto in sentinelas_auto %}
+                        <li class="text-sm flex justify-between items-center bg-white p-2 rounded border border-purple-50 shadow-sm">
+                            <span class="text-gray-700 font-medium">{{ s_auto.nome }}</span>
+                            <span class="text-xs font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded">+{{ s_auto.peso }} pt</span>
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
-
         </div>
 
-        {# Sentinelas automáticas — informativo #}
-        {% if sentinelas_auto %}
-        <h2 style="font-size:14px; font-weight:600; color:#374151;
-                    text-transform:uppercase; letter-spacing:.05em;
-                    margin-bottom:1rem;">
-            Calculadas automaticamente
-        </h2>
-        <div class="card" style="margin-bottom:1rem;">
-            <p style="font-size:12px; color:#9ca3af; margin:0 0 10px;">
-                Verificadas pelo sistema com base nos dados dos membros.
-            </p>
-            {% for s in sentinelas_auto %}
-            <div style="display:flex; align-items:center; gap:10px;
-                        padding:8px 0; border-bottom:1px solid #f3f4f6;
-                        font-size:13px;">
-                <span style="flex:1; color:#6b7280;">
-                    {{ s.nome }}
-                    {% if s.tipo == 'condicao' and s.condicao_saude %}
-                        <span style="font-size:11px; color:#9ca3af;">
-                            via {{ s.condicao_saude.nome }}
-                        </span>
-                    {% elif s.tipo == 'idade' %}
-                        <span style="font-size:11px; color:#9ca3af;">
-                            {% if s.idade_minima is not None and s.idade_maxima is not None %}
-                                {{ s.idade_minima }}–{{ s.idade_maxima }} anos
-                            {% elif s.idade_minima is not None %}
-                                ≥ {{ s.idade_minima }} anos
-                            {% elif s.idade_maxima is not None %}
-                                ≤ {{ s.idade_maxima }} anos
-                            {% endif %}
-                        </span>
-                    {% endif %}
-                </span>
-                <span style="font-size:11px; color:#9ca3af;
-                             background:#f3f4f6; padding:2px 8px;
-                             border-radius:20px;">
-                    +{{ s.peso }} pt{{ s.peso|pluralize }}/membro
-                </span>
-            </div>
-            {% endfor %}
-        </div>
-        {# ── EXTRATO DA PONTUAÇÃO (DETALHES) ── #}
-        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:1.5rem; margin-bottom:1.5rem;">
-            <h3 style="font-size:14px; font-weight:700; color:#166534; margin:0 0 12px; display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:.05em;">
-                <span>📊</span> Extrato do Risco
-            </h3>
+        <!-- BLOCO 3: Fatores Individuais por Membro -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             
-            <div style="display:flex; flex-direction:column; gap:8px;">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b pb-2 gap-4">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                    Composição Familiar e Riscos Individuais
+                </h2>
                 
-                {% for item in familia.obter_detalhamento_score %}
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding-bottom:8px; border-bottom:1px solid #dcfce7;">
-                        <span style="color:#15803d;">{{ item.descricao }}</span>
-                        <span style="font-weight:700; color:#16a34a;">+{{ item.pontos }} pt{{ item.pontos|pluralize }}</span>
+                <!-- NOVO BOTÃO: Adicionar Membro -->
+                <a href="{% url 'core:admin_paciente_criar' %}" target="_blank" class="text-sm bg-green-50 text-green-700 hover:bg-green-100 font-bold py-1.5 px-3 rounded-lg border border-green-200 transition flex items-center gap-1 shadow-sm w-fit">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                    Novo Membro
+                </a>
+            </div>
+            
+            <div class="space-y-4">
+                {% for membro in membros %}
+                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                        <div>
+                            <span class="font-bold text-gray-800 text-base">{{ membro.nome }}</span>
+                            
+                            <!-- A NOVA TAG AMARELA DE RESPONSÁVEL FAMILIAR! -->
+                            {% if membro.responsavel_familiar %}
+                                <span class="ml-2 text-[10px] uppercase tracking-wider font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200 align-middle">Responsável</span>
+                            {% endif %}
+                            
+                            <span class="text-xs text-gray-500 ml-2">({{ membro.idade_formatada }})</span>
+                        </div>
+                        <div class="mt-1 sm:mt-0 flex flex-wrap gap-1">
+                            {% for cond in membro.condicoes.all %}
+                                {% if not cond.data_fim %}
+                                    <span class="text-[10px] uppercase tracking-wider font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{{ cond.condicao.nome }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                     </div>
-                
+                    
+                    <!-- Checkboxes Individuais -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {% for s_ind in sentinelas_ind %}
+                        <label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-gray-200 hover:border-blue-300 transition">
+                            <input type="checkbox" name="ind_{{ membro.pk }}_{{ s_ind.pk }}" class="w-4 h-4 text-blue-600 rounded border-gray-300"
+                                {% if s_ind.pk in membro.marcadas_ids %}checked{% endif %}>
+                            <span class="text-xs font-medium text-gray-700 truncate" title="{{ s_ind.nome }}">{{ s_ind.nome }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
                 {% empty %}
-                    <div style="font-size:13px; color:#15803d; font-style:italic;">
-                        Nenhuma vulnerabilidade identificada. Família classificada como Sem Risco (R0).
-                    </div>
+                <div class="text-center py-6 text-gray-500">
+                    Nenhum membro ativo cadastrado nesta família.
+                </div>
                 {% endfor %}
             </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:700; color:#14532d; margin-top:12px; padding-top:12px; border-top:2px dashed #bbf7d0;">
-                <span>Pontuação Final</span>
-                <span>{{ familia.score_total }} pt{{ familia.score_total|pluralize }}</span>
-            </div>
         </div>
-        {% endif %}
 
-        {# Botão salvar #}
-        <button type="submit" class="btn btn-verde"
-                style="width:100%;">
-            💾 Salvar e recalcular score
-        </button>
-
-    </div>
+        <!-- Botão Salvar Fixo -->
+        <div class="flex justify-end pt-4">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition flex items-center gap-2 text-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                Salvar Avaliação
+            </button>
+        </div>
+    </form>
 </div>
-</form>
-
-<script>
-function toggleLabel(checkbox, labelId) {
-    var label = document.getElementById(labelId);
-    if (checkbox.checked) {
-        label.style.background    = '#f0fdf4';
-        label.style.borderColor   = '#86efac';
-        label.style.color         = '#166534';
-    } else {
-        label.style.background    = 'white';
-        label.style.borderColor   = '#e5e7eb';
-        label.style.color         = 'inherit';
-    }
-}
-
-// Inicializa visual dos checkboxes já marcados
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-        if (cb.checked && cb.closest('label')) {
-            var label = cb.closest('label');
-            label.style.background  = '#f0fdf4';
-            label.style.borderColor = '#86efac';
-            label.style.color       = '#166534';
-        }
-    });
-});
-</script>
-
 {% endblock %}

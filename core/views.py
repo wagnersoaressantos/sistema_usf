@@ -15,7 +15,6 @@ import subprocess
 import csv
 import io
 from datetime import datetime, date, timedelta
-
 # Repare que ConfiguracaoSistema não está mais aqui!
 from core.models import (Cargo, CondicaoSaude, EquipeUSF, HistoricoFamiliar, Paciente, PacienteCondicao, 
                          PerfilUsuario, USF, TipoAtendimento, Aviso, MicroArea, ModuloSistema)
@@ -24,7 +23,8 @@ from core.decorators import admin_required
 from core.forms import LoginForm
 from core.validators import validar_cpf
 from django.apps import apps
-
+from territorializacao.models import FamiliaScore, Logradouro, SentinelaRisco, FamiliaSentinela, MembroSentinela
+from django.db.models import Count
 
 # ─── LOGIN & LOGOUT ───────────────────────────────────────────────────────────
 def login_view(request):
@@ -685,3 +685,197 @@ def executar_git_pull(request):
         messages.success(request, '🚀 Sincronização concluída com sucesso.')
     except Exception as e: messages.error(request, f'❌ Erro inesperado: {str(e)}')
     return redirect('core:painel_admin')
+
+# ════════════════════════════════════════════════════════
+# TERRITORIALIZAÇÃO E FAMÍLIAS (SCORE DE RISCO)
+# ════════════════════════════════════════════════════════
+
+@login_required
+def familias_score(request):
+    """Dashboard de pontuação de risco das famílias."""
+    # Garanta que o modelo MicroArea e Paciente estão importados lá no topo do arquivo!
+    from core.models import MicroArea, Paciente
+
+    usf = request.user.perfil.usf_ativa_padrao
+    
+    # Recalcula tudo se o usuário clicar no botão
+    if request.method == 'POST' and request.POST.get('acao') == 'recalcular':
+        familias = FamiliaScore.objects.filter(usf=usf)
+        for f in familias:
+            f.salvar_com_score()
+        messages.success(request, "Todos os scores foram recalculados com sucesso!")
+        return redirect('core:familias_score')
+
+    q = request.GET.get('q', '')
+    classificacao_filtro = request.GET.get('classificacao', '')
+    microarea_filtro = request.GET.get('microarea', '') # <-- NOVO FILTRO
+
+    familias = FamiliaScore.objects.filter(usf=usf).order_by('-score_total')
+    
+    if q:
+        familias = familias.filter(nome_responsavel__icontains=q)
+    if classificacao_filtro:
+        familias = familias.filter(classificacao=classificacao_filtro)
+    
+    # --- MÁGICA DA MICRO-ÁREA ---
+    if microarea_filtro:
+        # 1. Pega os CPFs dos responsáveis de todos os pacientes que moram nessa micro-área
+        cpfs_da_micro = Paciente.objects.filter(micro_area_id=microarea_filtro, usf=usf).values_list('cpf_responsavel', flat=True)
+        # 2. Filtra as famílias que batem com esses CPFs!
+        familias = familias.filter(cpf_responsavel__in=cpfs_da_micro)
+
+    # Conta quantas famílias em cada nível (R0, R1, R2, R3)
+    totais = FamiliaScore.objects.filter(usf=usf).values('classificacao').annotate(total=Count('id'))
+    dict_totais = {item['classificacao']: item['total'] for item in totais}
+
+    # Busca as micro-áreas ativas para preencher o Menu Suspenso
+    microareas = MicroArea.objects.filter(usf=usf, ativo=True).order_by('codigo')
+
+    context = {
+        'familias': familias,
+        'totais': dict_totais,
+        'q': q,
+        'classificacao_filtro': classificacao_filtro,
+        'microarea_filtro': microarea_filtro,
+        'microareas': microareas,
+        'classificacoes': FamiliaScore.CLASSIFICACOES,
+        'usf': usf
+    }
+    return render(request, 'core/admin/familias_score.html', context)
+
+@login_required
+def familia_detalhe(request, cpf_responsavel):
+    """Ficha do ACS para avaliar uma família específica."""
+    usf = request.user.perfil.usf_ativa_padrao
+    familia = get_object_or_404(FamiliaScore, cpf_responsavel=cpf_responsavel, usf=usf)
+    
+    if request.method == 'POST':
+        # --- NOVA AÇÃO MÁGICA: RECALCULAR AUTOMÁTICO ---
+        if request.POST.get('acao') == 'recalcular':
+            familia.salvar_com_score()
+            messages.success(request, f"Score da família sincronizado com as idades e doenças mais recentes!")
+            return redirect('core:familia_detalhe', cpf_responsavel=cpf_responsavel)
+
+        # 🐛 CORREÇÃO DO BUG AQUI: Converter Texto para Número Inteiro! 
+        comodos_str = request.POST.get('numero_comodos')
+        familia.numero_comodos = int(comodos_str) if comodos_str and comodos_str.isdigit() else None
+        
+        familia.save()
+        
+        # Limpa tudo para recriar apenas os marcados
+        FamiliaSentinela.objects.filter(familia=familia).delete()
+        MembroSentinela.objects.filter(familia=familia).delete()
+
+        for key, value in request.POST.items():
+            if key.startswith('dom_'):
+                s_id = key.split('_')[1]
+                FamiliaSentinela.objects.create(familia=familia, sentinela_id=s_id, registrado_por=request.user)
+            elif key.startswith('ind_'):
+                parts = key.split('_')
+                p_id = parts[1]
+                s_id = parts[2]
+                MembroSentinela.objects.create(familia=familia, paciente_id=p_id, sentinela_id=s_id, registrado_por=request.user)
+        
+        # A MÁGICA: Calcula e salva o novo score!
+        familia.salvar_com_score()
+        messages.success(request, f"Avaliação da família de {familia.nome_responsavel} atualizada!")
+        return redirect('core:familia_detalhe', cpf_responsavel=cpf_responsavel)
+
+    # Busca os riscos para montar o formulário
+    sentinelas_dom = SentinelaRisco.objects.filter(tipo='domicilio', ativo=True)
+    sentinelas_ind = SentinelaRisco.objects.filter(tipo='individual', ativo=True)
+    sentinelas_auto = SentinelaRisco.objects.filter(tipo__in=['idade', 'condicao'], ativo=True)
+    
+    dom_marcadas = FamiliaSentinela.objects.filter(familia=familia).values_list('sentinela_id', flat=True)
+    
+    # Busca os membros vivos e ativos
+    membros = Paciente.objects.filter(cpf_responsavel=cpf_responsavel, usf=usf, ativo=True, obito=False)
+    for m in membros:
+        m.marcadas_ids = MembroSentinela.objects.filter(familia=familia, paciente=m).values_list('sentinela_id', flat=True)
+
+    context = {
+        'familia': familia,
+        'sentinelas_dom': sentinelas_dom,
+        'sentinelas_ind': sentinelas_ind,
+        'sentinelas_auto': sentinelas_auto,
+        'dom_marcadas': list(dom_marcadas),
+        'membros': membros,
+    }
+    return render(request, 'core/admin/familia_detalhe.html', context)
+
+
+@login_required
+@admin_required
+def territorio_lista(request):
+    """Mostra as ruas e quais Micro-áreas atendem essas ruas."""
+    usf = request.user.perfil.usf_ativa_padrao
+    
+    q = request.GET.get('q', '')
+    
+    # Busca todos os logradouros desta USF e já traz as micro-áreas junto (prefetch)
+    logradouros = Logradouro.objects.filter(usf=usf).prefetch_related('vinculos__micro_area').order_by('logradouro')
+    
+    if q:
+        logradouros = logradouros.filter(logradouro__icontains=q)
+        
+    context = {
+        'logradouros': logradouros,
+        'q': q,
+        'usf': usf
+    }
+    return render(request, 'core/admin/territorio_lista.html', context)
+
+
+@login_required
+@admin_required
+def admin_rua_salvar(request, pk=None):
+    """Tela para o Coordenador cadastrar ou editar uma Rua e a sua Micro-área."""
+    from territorializacao.models import Logradouro, VinculoLogradouro
+    from core.models import MicroArea
+    
+    usf = request.user.perfil.usf_ativa_padrao
+    rua = get_object_or_404(Logradouro, pk=pk, usf=usf) if pk else None
+    
+    if request.method == 'POST':
+        logradouro_nome = request.POST.get('logradouro')
+        bairro = request.POST.get('bairro')
+        cep = request.POST.get('cep', '')
+        microarea_id = request.POST.get('microarea')
+        ativo = request.POST.get('ativo') == 'on'
+        
+        # 🚀 NOVOS CAMPOS: Capturando os limites da rua
+        num_inicial = request.POST.get('numero_inicial')
+        num_final = request.POST.get('numero_final')
+        
+        if not rua:
+            rua = Logradouro.objects.create(usf=usf, logradouro=logradouro_nome, bairro=bairro, cep=cep, ativo=ativo)
+        else:
+            rua.logradouro = logradouro_nome
+            rua.bairro = bairro
+            rua.cep = cep
+            rua.ativo = ativo
+            rua.save()
+            
+        # Associa a rua à Micro-área escolhida
+        rua.vinculos.all().delete() # Limpa o vínculo antigo
+        if microarea_id:
+            microarea = get_object_or_404(MicroArea, pk=microarea_id, usf=usf)
+            VinculoLogradouro.objects.create(
+                logradouro=rua, 
+                micro_area=microarea,
+                # Verifica se digitaram algo e converte para número matemático
+                numero_inicial=int(num_inicial) if num_inicial and num_inicial.isdigit() else None,
+                numero_final=int(num_final) if num_final and num_final.isdigit() else None
+            )
+        
+        messages.success(request, 'Rua e vínculos atualizados com sucesso!')
+        return redirect('core:territorio_lista')
+        
+    microareas = MicroArea.objects.filter(usf=usf, ativo=True)
+    vinculo_atual = rua.vinculos.first() if rua else None
+    
+    return render(request, 'core/admin/territorio_rua_form.html', {
+        'rua': rua,
+        'microareas': microareas,
+        'vinculo_atual': vinculo_atual
+    })

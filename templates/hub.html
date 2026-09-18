@@ -1,417 +1,163 @@
 {% extends 'base.html' %}
-{% block titulo %}Portal USF Bom Jesus 2{% endblock %}
+{% block titulo %}Início — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
 
-{# ── Saudação ─────────────────────────────────────── #}
+{# ── Saudação Inteligente (Multi-tenancy) ─────────── #}
 <div style="margin-bottom:2rem;">
-    <h1 style="font-size:22px; font-weight:600; margin:0 0 4px;">
+    <h1 style="font-size:22px; font-weight:600; margin:0 0 4px; color:#1f2937;">
         Olá, {{ request.user.get_full_name|default:request.user.username }}! 👋
     </h1>
     <p style="font-size:14px; color:#6b7280; margin:0;">
-        {% if usf %}
-            {{ usf.nome }}{% if cargo %} · {{ cargo }}{% endif %}
+        {% if usuario_usf %}
+            Unidade Ativa: <strong>{{ usuario_usf.nome }}</strong>
+            {% if is_master %}<span style="color:#eab308; font-weight:bold; margin-left:4px;">(Acesso Master)</span>{% endif %}
         {% else %}
-            Bem-vindo ao Portal USF Bom Jesus 2
+            Bem-vindo ao {{ sistema.nome }}
         {% endif %}
     </p>
 </div>
 
-{# ── Notificações de retorno ──────────────────────── #}
-{% if retornos_mes or retornos_proximo %}
-<div style="margin-bottom:1.5rem; display:flex; flex-direction:column; gap:10px;">
+{# ── Notificações de retorno (Módulo de Encaminhamentos) ── #}
+{% if 'encaminhamentos' in modulos_ativos %}
+    {% if retornos_mes or retornos_proximo %}
+    <div style="margin-bottom:1.5rem; display:flex; flex-direction:column; gap:10px;">
 
-    {# Retornos do mês atual — urgente #}
-    {% if retornos_mes %}
-    <div style="background:#fef2f2; border:1px solid #fca5a5;
-                border-left:4px solid #ef4444;
-                border-radius:8px; padding:14px 16px;">
-
-        <div style="display:flex; align-items:center;
-                    justify-content:space-between; margin-bottom:10px;">
-            <p style="font-size:14px; font-weight:600;
-                       color:#dc2626; margin:0;">
-                🔄 {{ retornos_mes|length }}
-                retorno{{ retornos_mes|length|pluralize }}
-                para este mês
-                ({{ hoje|date:"F/Y" }})
-            </p>
-            <a href="{% url 'encaminhamentos:inicio' %}?status=aguardando"
-               style="font-size:12px; color:#dc2626;
-                      text-decoration:none; font-weight:500;">
-                Ver na fila →
-            </a>
-        </div>
-
-        <div style="display:flex; flex-direction:column; gap:6px;">
-            {% for enc in retornos_mes %}
-            <div style="display:flex; align-items:center;
-                        justify-content:space-between;
-                        background:white; border-radius:6px;
-                        padding:8px 12px; font-size:13px;">
-                <span>
-                    <strong>
-                        {% with partes=enc.paciente.nome.split %}
-                            {{ partes.0 }}
-                            {% if partes|length > 1 %}
-                                {{ partes.1|first }}.
-                            {% endif %}
-                        {% endwith %}
-                    </strong>
-                    <span style="color:#6b7280; margin-left:6px;">
-                        {{ enc.tipo.nome }}
-                    </span>
-                </span>
-                <a href="{% url 'encaminhamentos:detalhe' enc.pk %}"
-                   style="color:#dc2626; text-decoration:none;
-                          font-size:12px;">
-                    Ver guia →
+        {# Retornos do mês atual — urgente #}
+        {% if retornos_mes %}
+        <div style="background:#fef2f2; border:1px solid #fca5a5; border-left:4px solid #ef4444; border-radius:8px; padding:14px 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <p style="font-size:14px; font-weight:600; color:#dc2626; margin:0;">
+                    🔄 {{ retornos_mes|length }} retorno{{ retornos_mes|length|pluralize }} para este mês ({{ hoje|date:"F/Y" }})
+                </p>
+                <a href="{% url 'encaminhamentos:inicio' %}?status=aguardando" style="font-size:12px; color:#dc2626; text-decoration:none; font-weight:500;">
+                    Ver na fila →
                 </a>
             </div>
-            {% endfor %}
-        </div>
 
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                {% for enc in retornos_mes %}
+                <div style="display:flex; align-items:center; justify-content:space-between; background:white; border-radius:6px; padding:8px 12px; font-size:13px;">
+                    <span>
+                        <strong>{{ enc.paciente.nome }}</strong>
+                        <span style="color:#6b7280; margin-left:6px;">{{ enc.tipo.nome }}</span>
+                    </span>
+                    <a href="{% url 'encaminhamentos:detalhe' enc.pk %}" style="color:#dc2626; text-decoration:none; font-size:12px;">
+                        Ver guia →
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
-
-    {# Retornos do próximo mês — informativo #}
-    {% if retornos_proximo %}
-    <div style="background:#fffbeb; border:1px solid #fcd34d;
-                border-left:4px solid #f59e0b;
-                border-radius:8px; padding:14px 16px;">
-
-        <div style="display:flex; align-items:center;
-                    justify-content:space-between; margin-bottom:10px;">
-            <p style="font-size:14px; font-weight:600;
-                       color:#92400e; margin:0;">
-                📅 {{ retornos_proximo|length }}
-                retorno{{ retornos_proximo|length|pluralize }}
-                previstos para o próximo mês
-            </p>
-        </div>
-
-        <div style="display:flex; flex-wrap:wrap; gap:6px;">
-            {% for enc in retornos_proximo %}
-            <a href="{% url 'encaminhamentos:detalhe' enc.pk %}"
-               style="font-size:12px; padding:4px 12px;
-                      border-radius:20px; background:white;
-                      color:#92400e; text-decoration:none;
-                      border:1px solid #fcd34d;">
-                {% with partes=enc.paciente.nome.split %}
-                    {{ partes.0 }}
-                {% endwith %}
-                · {{ enc.tipo.nome }}
-            </a>
-            {% endfor %}
-        </div>
-
-    </div>
-    {% endif %}
-
-</div>
 {% endif %}
 
-{# ── Cards dos módulos ────────────────────────────── #}
-<div style="display:grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap:16px;">
-{# ── NOVO MÓDULO: Hub de Pacientes ────────── #}
-    <a href="{% url 'pacientes:hub' %}"
-       style="text-decoration:none; color:inherit;">
-        <div style="background:white;
-                    border:1px solid #e5e7eb;
-                    border-top:4px solid #4f46e5; /* Índigo para destacar */
-                    border-radius:10px;
-                    padding:1.5rem;
-                    transition:box-shadow 0.15s;
-                    cursor:pointer;"
-             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-             onmouseout="this.style.boxShadow='none'">
+{# ── Cards Dinâmicos dos Módulos ──────────────────── #}
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
 
+    {# ── MÓDULO 1: PACIENTES (SEMPRE ATIVO NO CORE) ── #}
+    <a href="{% url 'core:admin_pacientes' %}" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #4f46e5; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer;"
+             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
             <div style="font-size:32px; margin-bottom:12px;">👥</div>
-
-            <h2 style="font-size:16px; font-weight:600;
-                       margin:0 0 4px; color:#111827;">
-                Pacientes (Perfil 360º)
-            </h2>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Pacientes (Cadastros)</h2>
             <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-                Busca rápida de cidadãos, acesso à caderneta de vacinas, acompanhamento crónico e histórico clínico.
+                Busca rápida de cidadãos, edição de cadastros e vínculos de CPF e Cartão SUS.
             </p>
-
-            <div style="background:#e0e7ff; border-radius:6px;
-                        padding:6px 12px; display:inline-block;">
-                <span style="font-size:12px; color:#4338ca; font-weight:500;">
-                    Acessar Hub Central →
-                </span>
+            <div style="background:#e0e7ff; border-radius:6px; padding:6px 12px; display:inline-block;">
+                <span style="font-size:12px; color:#4338ca; font-weight:500;">Acessar Cadastros →</span>
             </div>
         </div>
     </a>
-    {# ── Encaminhamentos ──────────────────────────── #}
-    <a href="{% url 'encaminhamentos:inicio' %}"
-       style="text-decoration:none; color:inherit;">
-        <div style="background:white;
-                    border:1px solid #e5e7eb;
-                    border-top:4px solid var(--verde);
-                    border-radius:10px;
-                    padding:1.5rem;
-                    transition:box-shadow 0.15s;
-                    cursor:pointer;"
-             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-             onmouseout="this.style.boxShadow='none'">
 
+    {# ── MÓDULO 2: ENCAMINHAMENTOS ── #}
+    {% if 'encaminhamentos' in modulos_ativos %}
+    <a href="{% url 'encaminhamentos:inicio' %}" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid var(--verde); border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer;"
+             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
             <div style="font-size:32px; margin-bottom:12px;">📋</div>
-
-            <h2 style="font-size:16px; font-weight:600;
-                       margin:0 0 4px; color:#111827;">
-                Encaminhamentos
-            </h2>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Encaminhamentos</h2>
             <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-                Gerencie as guias de encaminhamento da unidade,
-                controle cotas e acompanhe a fila por especialidade.
+                Gerencie as guias de encaminhamento, controle cotas e acompanhe a fila por especialidade.
             </p>
-
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                <div style="background:#f0fdf4; border-radius:6px;
-                            padding:6px 12px; text-align:center;">
-                    <div style="font-size:20px; font-weight:700;
-                                color:var(--verde);">
-                        {{ total_fila }}
-                    </div>
-                    <div style="font-size:11px; color:#6b7280;">
-                        na fila
-                    </div>
+                <div style="background:#f0fdf4; border-radius:6px; padding:6px 12px; text-align:center;">
+                    <div style="font-size:14px; font-weight:700; color:var(--verde);">Fila de Espera</div>
                 </div>
-
-                {% if total_duplicatas > 0 %}
-                    <div style="background:#fef2f2; border-radius:6px;
-                                padding:6px 12px; text-align:center;">
-                        <div style="font-size:20px; font-weight:700;
-                                    color:#dc2626;">
-                            {{ total_duplicatas }}
-                        </div>
-                        <div style="font-size:11px; color:#6b7280;">
-                            duplicata{{ total_duplicatas|pluralize }}
-                        </div>
-                    </div>
-                {% endif %}
             </div>
-
         </div>
     </a>
+    {% endif %}
 
-    {# ── NOVO MÓDULO: Vacinas e Imunização ────────── #}
-    <div style="background:white;
-                border:1px solid #e5e7eb;
-                border-top:4px solid #ec4899; /* Rosa para destacar */
-                border-radius:10px;
-                padding:1.5rem;
-                transition:box-shadow 0.15s;
-                cursor:pointer;"
-         onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-         onmouseout="this.style.boxShadow='none'"
-         onclick="window.location='{% url 'vacinas:painel' %}'">
-
-        <div style="font-size:32px; margin-bottom:12px;">💉</div>
-
-        <h2 style="font-size:16px; font-weight:600;
-                   margin:0 0 4px; color:#111827;">
-            Imunização e PNI
-        </h2>
+    {# ── MÓDULO 3: TERRITORIALIZAÇÃO (AGORA COM DOIS BOTÕES!) ── #}
+    {% if 'territorializacao' in modulos_ativos %}
+    <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #06b6d4; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s;"
+         onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+        
+        <div style="font-size:32px; margin-bottom:12px;">🗺️</div>
+        <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Território e Famílias</h2>
         <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-            Motor do PNI, busca ativa de atrasados, cálculo de caderneta e gestão de estoque.
+            Consulte as ruas de abrangência da unidade ou acesse a avaliação de Risco Familiar (Coelho-Savassi).
         </p>
-
-        <div style="display:flex; gap:8px;">
-            <div style="background:#fdf2f8; border-radius:6px;
-                        padding:6px 12px; display:inline-block;">
-                <span style="font-size:12px; color:#db2777; font-weight:500;">
-                    Hub de Vacinas →
-                </span>
-            </div>
+        
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <!-- Botão 1: Mapa de Ruas (Acesso Geral/Recepção) -->
+            <a href="{% url 'core:territorio_lista' %}" style="background:#ecfeff; border:1px solid #a5f3fc; border-radius:6px; padding:6px 12px; text-decoration:none; display:flex; align-items:center; gap:4px; transition:background 0.2s;" onmouseover="this.style.background='#cffafe'" onmouseout="this.style.background='#ecfeff'">
+                <span style="font-size:12px; color:#0891b2; font-weight:600;">📍 Mapa de Ruas</span>
+            </a>
             
-            <a href="{% url 'vacinas:controle_lotes' %}"
-               onclick="event.stopPropagation()"
-               style="background:#f3f4f6; border-radius:6px;
-                      padding:6px 12px; display:inline-block;
-                      text-decoration:none;">
-                <span style="font-size:12px; color:#4b5563; font-weight:500;">
-                    📦 Estoque
-                </span>
+            <!-- Botão 2: Avaliação de Famílias (Focado em ACS/Médico) -->
+            <a href="{% url 'core:familias_score' %}" style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:6px 12px; text-decoration:none; display:flex; align-items:center; gap:4px; transition:background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+                <span style="font-size:12px; color:#4b5563; font-weight:600;">👥 Risco Familiar</span>
             </a>
         </div>
     </div>
-
-    {# ── Relatórios e Análise ─────────────────────────── #}
-    <a href="{% url 'relatorios:interno' %}"
-    style="text-decoration:none; color:inherit;">
-        <div style="background:white;
-                    border:1px solid #e5e7eb;
-                    border-top:4px solid #8b5cf6;
-                    border-radius:10px;
-                    padding:1.5rem;
-                    transition:box-shadow 0.15s;
-                    cursor:pointer;"
-            onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-            onmouseout="this.style.boxShadow='none'">
-
-            <div style="font-size:32px; margin-bottom:12px;">📊</div>
-
-            <h2 style="font-size:16px; font-weight:600;
-                    margin:0 0 4px; color:#111827;">
-                Relatórios
-            </h2>
-            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-                Análise de encaminhamentos, demanda reprimida,
-                tempo de espera e perfil dos pacientes.
-            </p>
-
-            <div style="display:flex; gap:8px;">
-                <div style="background:#f5f3ff; border-radius:6px;
-                            padding:6px 12px; display:inline-block;">
-                    <span style="font-size:12px; color:#7c3aed; font-weight:500;">
-                        Análise interna
-                    </span>
-                </div>
-            </div>
-
-        </div>
-    </a>
-
-    {# ── Card: Indicadores de Monitoramento (APS) ────── #}
-    <div class="stat-card" style="cursor:pointer; border-top:4px solid #10b981;
-                background:white; border-left:1px solid #e5e7eb; border-right:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s;"
-         onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-         onmouseout="this.style.boxShadow='none'"
-        onclick="window.location='{% url 'indicadores:dashboard' %}'">
-        
-        <div style="font-size:32px; margin-bottom:12px;">📈</div>
-
-        <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">
-            Indicadores Gerenciais
-        </h2>
-        <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-            Monitore as metas da unidade e faça a busca ativa de pacientes com pendências.
-        </p>
-
-        <div style="background:#f0fdf4; border-radius:6px; padding:6px 12px; display:inline-block; text-align:center;">
-            <div style="font-size:12px; font-weight:600; color:#16a34a;">
-                🎯 C2 a C7 Mapeados
-            </div>
-        </div>
-    </div>
-
-    {# ── Relatórios SSA2 ────────────────────────────── #}
-    <a href="{% url 'territorializacao:painel_ssa2' %}"
-       style="text-decoration:none; color:inherit;">
-        <div style="background:white;
-                    border:1px solid #e5e7eb;
-                    border-top:4px solid #06b6d4; /* Azul ciano para diferenciar */
-                    border-radius:10px;
-                    padding:1.5rem;
-                    transition:box-shadow 0.15s;
-                    cursor:pointer;"
-             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-             onmouseout="this.style.boxShadow='none'">
-
-            <div style="font-size:32px; margin-bottom:12px;">📑</div>
-
-            <h2 style="font-size:16px; font-weight:600;
-                       margin:0 0 4px; color:#111827;">
-                Relatórios SSA2
-            </h2>
-            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-                Acompanhamento mensal de famílias, gestantes e crónicos por micro-área.
-            </p>
-
-            <div style="background:#ecfeff; border-radius:6px;
-                        padding:6px 12px; display:inline-block;">
-                <span style="font-size:12px; color:#0891b2; font-weight:500;">
-                    Acesso ao Painel →
-                </span>
-            </div>
-        </div>
-    </a>
-    
-    {# ── Administração ────────────────────────────── #}
-    {% if request.user.perfil.is_admin_sistema %}
-        <a href="{% url 'core:painel_admin' %}"
-           style="text-decoration:none; color:inherit;">
-            <div style="background:white;
-                        border:1px solid #e5e7eb;
-                        border-top:4px solid #f59e0b;
-                        border-radius:10px;
-                        padding:1.5rem;
-                        transition:box-shadow 0.15s;
-                        cursor:pointer;"
-                 onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-                 onmouseout="this.style.boxShadow='none'">
-
-                <div style="font-size:32px; margin-bottom:12px;">⚙️</div>
-
-                <h2 style="font-size:16px; font-weight:600;
-                           margin:0 0 4px; color:#111827;">
-                    Administração
-                </h2>
-                <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-                    Gerencie usuários, equipe, micro-áreas,
-                    pacientes, tipos e cotas do sistema.
-                </p>
-
-                <div style="background:#fffbeb; border-radius:6px;
-                            padding:6px 12px; display:inline-block;">
-                    <span style="font-size:12px; color:#92400e;
-                                 font-weight:500;">
-                        Painel completo →
-                    </span>
-                </div>
-
-            </div>
-        </a>
     {% endif %}
 
+    {# ── MÓDULO 4: VACINAS (APENAS VISUAL POR ENQUANTO) ── #}
+    {% if 'vacinas' in modulos_ativos %}
+    <a href="#" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #ec4899; border-radius:10px; padding:1.5rem; opacity:0.7;">
+            <div style="font-size:32px; margin-bottom:12px;">💉</div>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Imunização e PNI</h2>
+            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
+                (Módulo em construção) Motor do PNI e gestão de estoque de lotes.
+            </p>
+        </div>
+    </a>
+    {% endif %}
 
+    {# ── MÓDULO 5: MUTIRÃO (APENAS VISUAL POR ENQUANTO) ── #}
+    {% if 'mutirao' in modulos_ativos %}
+    <a href="#" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #3b82f6; border-radius:10px; padding:1.5rem; opacity:0.7;">
+            <div style="font-size:32px; margin-bottom:12px;">🏥</div>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Mutirão</h2>
+            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
+                (Módulo em construção) Registre atendimentos em eventos de mutirão.
+            </p>
+        </div>
+    </a>
+    {% endif %}
 
-    {# ── Mutirão ──────────────────────────────────── #}
-    {% if mutirao_visivel %}
-        <a href="{% url 'mutirao:listar' %}"
-           style="text-decoration:none; color:inherit;">
-            <div style="background:white;
-                        border:1px solid #e5e7eb;
-                        border-top:4px solid #3b82f6;
-                        border-radius:10px;
-                        padding:1.5rem;
-                        transition:box-shadow 0.15s;
-                        cursor:pointer;"
-                 onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
-                 onmouseout="this.style.boxShadow='none'">
-
-                <div style="font-size:32px; margin-bottom:12px;">🏥</div>
-
-                <h2 style="font-size:16px; font-weight:600;
-                           margin:0 0 4px; color:#111827;">
-                    Mutirão
-                </h2>
-                <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-                    Registre e acompanhe os atendimentos
-                    realizados durante os eventos de mutirão.
-                </p>
-
-                <div style="background:#eff6ff; border-radius:6px;
-                            padding:6px 12px; display:inline-block;
-                            text-align:center;">
-                    <div style="font-size:20px; font-weight:700;
-                                color:#3b82f6;">
-                        {{ total_mutirao }}
-                    </div>
-                    <div style="font-size:11px; color:#6b7280;">
-                        atendimento{{ total_mutirao|pluralize }}
-                    </div>
-                </div>
-
+    {# ── ADMINISTRAÇÃO (APENAS PARA MASTER OU ADMIN DA UNIDADE) ── #}
+    {% if is_master or is_admin_unidade %}
+    <a href="{% url 'core:painel_admin' %}" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #f59e0b; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer;"
+             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:32px; margin-bottom:12px;">⚙️</div>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Administração</h2>
+            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
+                Gerencie usuários, equipe, micro-áreas, permissões, parâmetros e Módulos do sistema.
+            </p>
+            <div style="background:#fffbeb; border-radius:6px; padding:6px 12px; display:inline-block;">
+                <span style="font-size:12px; color:#92400e; font-weight:500;">Painel de Gestão →</span>
             </div>
-        </a>
+        </div>
+    </a>
     {% endif %}
 
 </div>
-
 {% endblock %}

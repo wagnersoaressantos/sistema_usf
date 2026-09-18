@@ -173,7 +173,6 @@ class MicroArea(models.Model):
         return f'{self.codigo} ({self.usf.nome})'
 
 class Paciente(models.Model):
-    """Paciente cadastrado na USF."""
     SEXO_CHOICES = [
         ('M', 'Masculino'),
         ('F', 'Feminino'),
@@ -219,6 +218,12 @@ class Paciente(models.Model):
 
     def __str__(self):
         return f'{self.nome}'
+
+    def save(self, *args, **kwargs):
+        """MÁGICA: Se ele for o Responsável Familiar, auto-preenche o CPF do Responsável com o próprio CPF dele!"""
+        if self.responsavel_familiar and self.cpf:
+            self.cpf_responsavel = self.cpf
+        super().save(*args, **kwargs)
     
     @property
     def idade(self):
@@ -261,7 +266,6 @@ class Paciente(models.Model):
         return False
 
 class CondicaoSaude(models.Model):
-    """Condições de saúde cadastradas dinamicamente pelo admin."""
     nome = models.CharField('Nome', max_length=100, unique=True)
     codigo = models.SlugField('Código interno', max_length=50, unique=True)
     icone = models.CharField('Ícone', max_length=10, blank=True)
@@ -278,7 +282,6 @@ class CondicaoSaude(models.Model):
 
 
 class PacienteCondicao(models.Model):
-    """Vínculo entre um paciente e uma condição de saúde."""
     paciente = models.ForeignKey('Paciente', on_delete=models.CASCADE, verbose_name='Paciente', related_name='condicoes')
     condicao = models.ForeignKey('CondicaoSaude', on_delete=models.PROTECT, verbose_name='Condição', related_name='pacientes')
     data_inicio = models.DateField('Data de início')
@@ -307,10 +310,6 @@ class PacienteCondicao(models.Model):
     @property
     def is_gestante(self):
         return self.condicao.codigo == 'gestante' and self.ativa
-
-# =============================================================================
-# HISTÓRICO FAMILIAR (Movido para cá, conforme a sua Views exigia)
-# =============================================================================
 
 class HistoricoFamiliar(models.Model):
     GRAUS = [
