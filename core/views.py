@@ -104,6 +104,37 @@ def hub(request):
 def erro_404(request, exception):
     return render(request, '404.html', status=404)
 
+# ─── ALTERNAR USF (MULTI-TENANCY) ─────────────────────────────────────────────
+@login_required
+def alternar_usf(request, usf_id):
+    """Muda a USF ativa do utilizador na sessão atual e recarrega a página."""
+    if request.method == 'POST' and hasattr(request.user, 'perfil'):
+        perfil = request.user.perfil
+        is_master = perfil.is_master
+        
+        # Verifica se a USF existe
+        usf = get_object_or_404(USF, pk=usf_id, ativo=True)
+        
+        # Verifica se ele tem permissão para aceder a esta USF (se não for Master)
+        tem_permissao = False
+        if is_master:
+            tem_permissao = True
+        else:
+            tem_permissao = EquipeUSF.objects.filter(user=request.user, usf=usf, ativo=True).exists()
+        
+        if tem_permissao:
+            # MAGIA: Guarda a escolha no perfil!
+            perfil.usf_ativa_padrao = usf
+            perfil.save()
+            messages.success(request, f'Unidade alterada para {usf.nome}!')
+        else:
+            messages.error(request, 'Você não tem permissão para aceder a esta unidade.')
+            
+    # Redireciona de volta para a página onde ele estava (ou para o Hub se falhar)
+    next_url = request.META.get('HTTP_REFERER', reverse('core:hub'))
+    return redirect(next_url)
+
+
 # ════════════════════════════════════════════════════════
 # ÁREA DE ADMINISTRAÇÃO
 # ════════════════════════════════════════════════════════

@@ -10,6 +10,9 @@ urlpatterns = [
 
     # hub principal
     path('', views.hub, name='hub'),
+    
+    # Alternância de USF (O botão do menu superior)
+    path('alternar-usf/<int:usf_id>/', views.alternar_usf, name='alternar_usf'),
 
     # Área de administração — estrutura base
     path('administracao/',                              views.painel_admin,            name='painel_admin'),

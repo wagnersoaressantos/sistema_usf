@@ -6,33 +6,61 @@ from config import settings
 from .validators import validar_cpf
 
 class PerfilUsuario(models.Model):
-    """Estende o User padrão com CPF e nível de acesso."""
-    NIVEIS = [
-        ('admin', 'Administrador'),
-        ('funcionario', 'Funcionário'),
-        ('usuario', 'Usuário'),
-    ]
-
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name='perfil'
-    )
+    """
+    A Pessoa física. Login único no sistema.
+    Aqui não guardamos mais se ele é 'Admin' ou 'Comum', pois isso 
+    depende de qual posto de saúde ele está a trabalhar hoje.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
     cpf = models.CharField('CPF', max_length=11, unique=True, validators=[validar_cpf])
-    nivel = models.CharField(
-        'Nível de acesso', max_length=13, choices=NIVEIS, default='usuario'
-    )
+    
+    # --- PODER GLOBAL (O SUPREMO) ---
+    # Se is_master for True, este utilizador é da Secretaria de Saúde ou TI.
+    # Ele tem acesso a todas as USFs, pode criar novas USFs e ligar/desligar módulos.
+    is_master = models.BooleanField('Gestor Municipal (Master)', default=False, help_text='Tem acesso a todas as USFs e configurações globais.')
+    
+    # --- MEMÓRIA DO SISTEMA ---
+    # Se o médico trabalha em 2 postos, ele escolhe no topo da tela em qual está hoje.
+    # Guardamos essa escolha aqui para que, ao mudar de página, o sistema não esqueça onde ele está.
+    usf_ativa_padrao = models.ForeignKey('USF', on_delete=models.SET_NULL, null=True, blank=True, related_name='usuarios_logados')
+    
     ativo = models.BooleanField('Ativo', default=True)
 
     class Meta:
-        verbose_name = 'Perfil de Profissional'
-        verbose_name_plural = 'Perfis de Profissionais'
+        verbose_name = 'Perfil do Utilizador'
+        verbose_name_plural = 'Perfis dos Utilizadores'
 
     def __str__(self):
-        return f'{self.user.get_full_name() or self.user.username}'
+        return f'{self.user.get_full_name()} ({self.cpf})'
 
-    @property
-    def is_admin_sistema(self):
-        return self.nivel == 'admin' and self.ativo
 
+class EquipeUSF(models.Model):
+    """
+    O Vínculo de Trabalho (O Chapéu). Um utilizador pode ter vários.
+    Aqui é onde definimos o PODER LOCAL.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Profissional', related_name='vinculos_equipe')
+    usf = models.ForeignKey('USF', on_delete=models.CASCADE, verbose_name='USF', related_name='equipe')
+    cargo = models.ForeignKey('Cargo', on_delete=models.PROTECT, verbose_name='Cargo')
+    
+    # --- PODER LOCAL (O COORDENADOR DO POSTO) ---
+    # Se isto for True, o profissional é 'Admin' APENAS DESTA USF.
+    # Ele poderá adicionar membros, editar pacientes e ver todos os relatórios DAQUI.
+    # Se ele for para outra USF onde isto seja False, ele será apenas um profissional comum lá.
+    is_admin_unidade = models.BooleanField('Administrador desta Unidade', default=False, help_text='Pode gerir a equipa apenas nesta USF.')
+    
+    data_entrada = models.DateField('Data de entrada', null=True, blank=True)
+    data_saida = models.DateField('Data de saída', null=True, blank=True)
+    ativo = models.BooleanField('Vínculo Ativo', default=True)
+
+    class Meta:
+        verbose_name = 'Vínculo na USF'
+        verbose_name_plural = 'Equipa das USFs'
+        unique_together = ['user', 'usf'] # A mesma pessoa não pode ter 2 vínculos na MESMA USF simultaneamente.
+
+    def __str__(self):
+        tipo = " (Admin)" if self.is_admin_unidade else ""
+        return f'{self.user.get_full_name()} - {self.cargo.nome} na {self.usf.nome}{tipo}'
 
 class USF(models.Model):
     """Unidades de Saúde da Família."""
@@ -121,31 +149,6 @@ class ModuloSistema(models.Model):
     def __str__(self):
         return self.nome
 
-class EquipeUSF(models.Model):
-    """Vínculo de um profissional com uma USF."""
-    user = models.ForeignKey(
-        User, on_delete=models.PROTECT, verbose_name='Profissional', related_name='vinculos_usf'
-    )
-    usf = models.ForeignKey(
-        'USF', on_delete=models.PROTECT, verbose_name='USF', related_name='equipe'
-    )
-    cargo = models.ForeignKey(
-        'Cargo', on_delete=models.PROTECT, verbose_name='Cargo', related_name='profissionais'
-    )
-    ativo = models.BooleanField(
-        'Vínculo ativo', default=True, help_text='Desative ao invés de excluir para preservar o histórico.'
-    )
-    data_entrada = models.DateField('Data de entrada', null=True, blank=True)
-    data_saida = models.DateField('Data de saída', null=True, blank=True)
-
-    class Meta:
-        verbose_name = 'Membro da Equipe'
-        verbose_name_plural = 'Equipe da USF'
-        ordering = ['usf', 'cargo', 'user__first_name']
-
-    def __str__(self):
-        nome = self.user.get_full_name() or self.user.username
-        return f'{nome} — {self.cargo.nome} ({self.usf})'
 
 class MicroArea(models.Model):
     """Micro-área de abrangência de uma USF."""

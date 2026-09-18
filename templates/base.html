@@ -209,33 +209,61 @@
     {% include 'core/componentes/modal_sair.html' %}
 
     {# ─── COMPONENTE: MENU LATERAL (DRAWER) ─── #}
-        {% include 'core/componentes/menu_lateral.html' %}
-    {% comment %}
-    {# ══ NAVBAR ═════════════════════════════════════════
-       Barra verde no topo com botão ☰ e título centralizado.
-    ════════════════════════════════════════════════════ #}
-    {% endcomment %}
+    {% include 'core/componentes/menu_lateral.html' %}
+
+    {# ══ NAVBAR ═════════════════════════════════════════ #}
     <nav class="navbar">
         <div class="navbar-inner">
 
             {# Botão ☰ — abre o drawer ao clicar #}
             <button class="btn-drawer no-print" onclick="abrirDrawer()">☰</button>
             
-            {% comment %}
-            {# Título centralizado com position:absolute.
-               left:50% + translateX(-50%) centraliza independente
-               do que há nos lados esquerdo e direito. #}
-            {% endcomment %}
             <a href="{% url 'core:hub' %}"
-            class="navbar-brand"
-            style="position:absolute;
-                    left:50%;
-                    transform:translateX(-50%);">
+               class="navbar-brand"
+               style="position:absolute; left:50%; transform:translateX(-50%);">
                 {{ sistema.nome }}
             </a>
 
-            {# Div vazia para equilibrar o botão ☰ e manter o título centrado #}
-            <div style="width:44px;"></div>
+            <!-- 🚀 O NOVO SELETOR DE USFs (DROPDOWN) -->
+            <div class="relative group cursor-pointer flex items-center z-[100]">
+                {% if usuario_usf %}
+                    <!-- Botão Visível na Barra -->
+                    <div class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition border border-white/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span class="font-medium text-white truncate max-w-[150px] text-sm" title="{{ usuario_usf.nome }}">
+                            {{ usuario_usf.nome }}
+                            {% if is_master %}<span class="text-[10px] text-yellow-300 ml-1 tracking-wider uppercase font-bold">(Master)</span>{% endif %}
+                        </span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+
+                    <!-- A Lista Suspensa (Aparece ao passar o rato) -->
+                    <div class="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 origin-top-right">
+                        <div class="p-2 border-b border-gray-100">
+                            <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider px-2">Alternar Unidade</p>
+                        </div>
+                        <div class="max-h-64 overflow-y-auto p-1">
+                            {% for usf_item in usfs_permitidas %}
+                                <form method="POST" action="{% url 'core:alternar_usf' usf_item.pk %}" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors flex items-center justify-between {% if usf_item.pk == usuario_usf.pk %}bg-green-50 text-green-700 font-bold border border-green-100{% else %}text-gray-700 hover:bg-gray-50{% endif %}">
+                                        <span class="truncate pr-2">{{ usf_item.nome }}</span>
+                                        {% if usf_item.pk == usuario_usf.pk %}
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <span class="text-xs text-yellow-300 font-medium bg-white/10 px-2 py-1 rounded">Sem vínculo ativo</span>
+                {% endif %}
+            </div>
 
         </div>
     </nav>

@@ -13,9 +13,11 @@ User.add_to_class("__str__", usuario_nome_completo)
 
 @admin.register(PerfilUsuario)
 class PerfilUsuarioAdmin(admin.ModelAdmin):
-    list_display = ('user', 'cpf', 'nivel', 'ativo')
+    # Trocamos 'nivel' por 'is_master'
+    list_display = ('user', 'cpf', 'is_master', 'ativo')
     search_fields = ('user__first_name', 'cpf')
-    list_filter = ('nivel', 'ativo')
+    # Trocamos 'nivel' por 'is_master' no filtro
+    list_filter = ('is_master', 'ativo')
 
 @admin.register(USF)
 class USFAdmin(admin.ModelAdmin):
@@ -41,8 +43,10 @@ class ModuloSistemaAdmin(admin.ModelAdmin):
 
 @admin.register(EquipeUSF)
 class EquipeUSFAdmin(admin.ModelAdmin):
-    list_display = ('user', 'cargo', 'usf', 'ativo')
-    list_filter = ('usf', 'cargo', 'ativo')
+    # Adicionamos 'is_admin_unidade' para sabermos quem é o chefe de cada posto
+    list_display = ('user', 'cargo', 'usf', 'is_admin_unidade', 'ativo')
+    # Adicionamos o filtro para achar rapidamente os coordenadores
+    list_filter = ('usf', 'cargo', 'is_admin_unidade', 'ativo')
     search_fields = ('user__first_name', 'user__last_name')
 
 @admin.register(MicroArea)
