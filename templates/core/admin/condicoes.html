@@ -1,77 +1,81 @@
 {% extends 'base.html' %}
-{% block titulo %}Condições de Saúde{% endblock %}
+
+{% block titulo %}Condições de Saúde — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-
-<div style="display:flex; align-items:center;
-            justify-content:space-between; margin-bottom:1.5rem;">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <a href="{% url 'core:painel_admin' %}"
-           style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
-        <h1 class="page-title" style="margin:0;">🩺 Condições de Saúde</h1>
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Condições de Saúde e Listas</h1>
+            <p class="text-gray-600 mt-1">Gerencie as listas temáticas que serão vinculadas aos pacientes.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'core:admin_condicao_criar' %}" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                Nova Condição
+            </a>
+            <a href="{% url 'core:painel_admin' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
+                Voltar
+            </a>
+        </div>
     </div>
-    <a href="{% url 'core:admin_condicao_criar' %}" class="btn btn-verde">
-        ➕ Nova condição
-    </a>
-</div>
 
-<div class="card">
-    {% if condicoes %}
-    <table>
-        <thead>
-            <tr>
-                <th>Ícone</th>
-                <th>Nome</th>
-                <th>Código</th>
-                <th>Afeta prioridade</th>
-                <th>Status</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for c in condicoes %}
-            <tr>
-                <td style="font-size:20px; text-align:center;">
-                    {{ c.icone|default:"—" }}
-                </td>
-                <td style="font-size:14px; font-weight:500;">
-                    {{ c.nome }}
-                </td>
-                <td style="font-size:12px; color:#9ca3af;">
-                    {{ c.codigo }}
-                </td>
-                <td style="text-align:center;">
-                    {% if c.afeta_prioridade %}
-                        <span class="badge badge-verde">Sim</span>
-                    {% else %}
-                        <span style="font-size:13px; color:#9ca3af;">—</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if c.ativo %}
-                        <span class="badge badge-verde">Ativa</span>
-                    {% else %}
-                        <span class="badge"
-                              style="background:#f3f4f6; color:#6b7280;">
-                            Inativa
-                        </span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{% url 'core:admin_condicao_editar' c.pk %}"
-                       style="color:var(--verde); font-size:13px;">
-                        Editar
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color:#9ca3af; text-align:center; padding:2rem;">
-        Nenhuma condição cadastrada.
-    </p>
-    {% endif %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold">Nome da Condição</th>
+                        <th class="px-6 py-4 font-semibold">Código Automático</th>
+                        <th class="px-6 py-4 font-semibold text-center">Fura-Fila?</th>
+                        <th class="px-6 py-4 font-semibold text-center">Status</th>
+                        <th class="px-6 py-4 font-semibold text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for condicao in condicoes %}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-gray-800 text-base">
+                                {{ condicao.icone }} {{ condicao.nome }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded text-xs font-mono border border-gray-200">{{ condicao.codigo }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if condicao.afeta_prioridade %}
+                                <span class="inline-flex items-center gap-1 text-purple-700 bg-purple-100 px-2 py-1 rounded text-xs font-bold border border-purple-200">
+                                    ⚡ Sim
+                                </span>
+                            {% else %}
+                                <span class="text-gray-400 text-xs">Não</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if condicao.ativo %}
+                                <span class="w-3 h-3 bg-green-500 rounded-full inline-block shadow-sm" title="Ativo"></span>
+                            {% else %}
+                                <span class="w-3 h-3 bg-red-500 rounded-full inline-block shadow-sm" title="Inativo"></span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'core:admin_condicao_editar' condicao.pk %}" class="text-xs bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-1.5 px-3 rounded shadow-sm transition">
+                                Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            Nenhuma condição ou lista temática encontrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-
 {% endblock %}

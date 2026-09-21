@@ -62,6 +62,23 @@
                 </div>
 
                 <p class="text-xs text-cyan-600 mt-3">Dica: Se deixar a numeração em branco, o sistema entenderá que a rua INTEIRA pertence a esta micro-área.</p>
+
+                <!-- 🚀 NOVO: Tratar Anomalias -->
+                <div class="mt-4 p-3 bg-white border border-cyan-200 rounded-lg">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="ignorar_anomalia" class="w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500" 
+                               {% if vinculo_atual.motivo == '✔️ Validado (Numeração Correta)' %}checked{% endif %}>
+                        <span class="text-sm font-medium text-gray-800">
+                            Validar Numeração
+                            <span class="text-xs text-gray-500 block font-normal mt-0.5">Marque se esta rua tiver muitos lotes vagos ou comércios para desligar os alertas de ⚠️ Anomalia na importação.</span>
+                        </span>
+                    </label>
+                    {% if vinculo_atual and '⚠️' in vinculo_atual.motivo %}
+                    <p class="text-xs text-red-600 font-bold mt-3 bg-red-50 p-2 rounded border border-red-100 flex items-center gap-1">
+                        {{ vinculo_atual.motivo }}
+                    </p>
+                    {% endif %}
+                </div>
             </div>
 
         </div>

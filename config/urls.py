@@ -26,4 +26,6 @@ urlpatterns = [
     
     # Acordamos a rota de encaminhamentos!
     path('encaminhamentos/', include('encaminhamentos.urls')), 
+    path('pacientes/', include('pacientes.urls')),
+    path('importacoes/', include('importacoes.urls')),
 ]

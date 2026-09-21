@@ -57,17 +57,17 @@
 {# ── Cards Dinâmicos dos Módulos ──────────────────── #}
 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
 
-    {# ── MÓDULO 1: PACIENTES (SEMPRE ATIVO NO CORE) ── #}
-    <a href="{% url 'core:admin_pacientes' %}" style="text-decoration:none; color:inherit;">
+    {# ── MÓDULO 1: PACIENTES (HUB DO PRONTUÁRIO 360) ── #}
+    <a href="{% url 'pacientes:hub' %}" style="text-decoration:none; color:inherit;">
         <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #4f46e5; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer;"
              onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
             <div style="font-size:32px; margin-bottom:12px;">👥</div>
-            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Pacientes (Cadastros)</h2>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Busca de Pacientes</h2>
             <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-                Busca rápida de cidadãos, edição de cadastros e vínculos de CPF e Cartão SUS.
+                Acesse o Prontuário 360º para ver o perfil clínico completo dos cidadãos.
             </p>
             <div style="background:#e0e7ff; border-radius:6px; padding:6px 12px; display:inline-block;">
-                <span style="font-size:12px; color:#4338ca; font-weight:500;">Acessar Cadastros →</span>
+                <span style="font-size:12px; color:#4338ca; font-weight:500;">Prontuário 360º →</span>
             </div>
         </div>
     </a>

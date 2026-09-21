@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'core',
     'encaminhamentos',
     'territorializacao',
+    'pacientes',
+    'importacoes',
 ]
 
 MIDDLEWARE = [

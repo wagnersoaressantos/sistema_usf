@@ -17,6 +17,11 @@ urlpatterns = [
     # Área de administração — estrutura base
     path('administracao/',                              views.painel_admin,            name='painel_admin'),
 
+    # 🚀 Módulos do Sistema (NOVO)
+    path('administracao/modulos/',                      views.admin_modulos,           name='admin_modulos'),
+    path('administracao/modulos/novo/',                 views.admin_modulo_salvar,     name='admin_modulo_criar'),
+    path('administracao/modulos/<int:pk>/',             views.admin_modulo_salvar,     name='admin_modulo_editar'),
+
     # Usuários
     path('administracao/usuarios/',                     views.admin_usuarios,          name='admin_usuarios'),
     path('administracao/usuarios/novo/',                views.admin_usuario_criar,     name='admin_usuario_criar'),

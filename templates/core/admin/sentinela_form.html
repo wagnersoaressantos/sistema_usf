@@ -1,131 +1,120 @@
 {% extends 'base.html' %}
-{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block titulo %}{{ titulo }} — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
-    <a href="{% url 'core:admin_sentinelas' %}"
-       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
-    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
-</div>
-
-<form method="post">
-    {% csrf_token %}
-
-    <div class="card" style="margin-bottom:1rem;">
-        <h2 style="font-size:15px; font-weight:600; margin-bottom:1rem;">
-            Identificação
-        </h2>
-
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label>Nome *</label>
-            <input type="text" name="nome" class="form-input"
-                   value="{{ sentinela.nome|default:'' }}"
-                   placeholder="Ex: Analfabetismo, Moradia precária">
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">{{ titulo }}</h1>
+            <p class="text-gray-600 mt-1">Configuração de pontuação da Escala de Risco.</p>
         </div>
+        <a href="{% url 'core:admin_sentinelas' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
+            Voltar
+        </a>
+    </div>
 
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label>Código *
-                <span style="font-size:12px; color:#9ca3af;">
-                    (sem espaços, não altere após criado)
-                </span>
-            </label>
-            <input type="text" name="codigo" class="form-input"
-                   value="{{ sentinela.codigo|default:'' }}"
-                   placeholder="Ex: analfabetismo, moradia_precaria">
-        </div>
+    <form method="POST" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            
+            <div class="col-span-1 md:col-span-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Nome do Fator de Risco</label>
+                <input type="text" name="nome" value="{{ sentinela.nome|default:'' }}" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-pink-500 focus:border-pink-500" placeholder="Ex: Menor de 1 ano">
+            </div>
 
-        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
-            <div class="form-group" style="flex:2;">
-                <label>Tipo *</label>
-                <select name="tipo" id="select-tipo" class="form-input"
-                        onchange="atualizarCampos()">
+            <div class="col-span-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Pontos (Peso)</label>
+                <input type="number" name="peso" value="{{ sentinela.peso|default:'1' }}" required min="1" max="10" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-pink-500 focus:border-pink-500 bg-pink-50 font-bold text-pink-900">
+            </div>
+            
+            <div class="col-span-1 md:col-span-3">
+                <label class="block text-sm font-bold text-pink-800 mb-2">Categoria da Sentinela (Como ela é acionada?)</label>
+                <select name="tipo" id="select_tipo" class="w-full border border-pink-300 rounded-lg px-4 py-3 bg-white focus:ring-pink-500 focus:border-pink-500 font-medium">
                     {% for valor, label in tipos %}
-                        <option value="{{ valor }}"
-                            {% if sentinela and sentinela.tipo == valor %}selected{% endif %}>
-                            {{ label }}
-                        </option>
+                        <option value="{{ valor }}" {% if sentinela and sentinela.tipo == valor %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group" style="flex:1;">
-                <label>Peso (pontos) *</label>
-                <input type="number" name="peso" class="form-input"
-                       min="1" max="10"
-                       value="{{ sentinela.peso|default:'1' }}">
-            </div>
-        </div>
 
-        {# Condição de saúde — só para tipo='condicao' #}
-        <div id="bloco-condicao"
-             style="display:{% if sentinela and sentinela.tipo == 'condicao' %}block{% else %}none{% endif %};
-                    margin-bottom:1rem;">
-            <div class="form-group">
-                <label>Condição de saúde vinculada</label>
-                <select name="condicao_saude" class="form-input">
+            <!-- BLOCO CONDICIONAL: IDADE -->
+            <div id="bloco_idade" class="col-span-1 md:col-span-3 bg-purple-50 border border-purple-200 p-4 rounded-lg hidden">
+                <p class="text-xs font-bold text-purple-800 uppercase mb-3">Automação por Idade</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Idade Mínima</label>
+                        <input type="number" name="idade_minima" value="{{ sentinela.idade_minima|default:'' }}" class="w-full border border-gray-300 rounded px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Idade Máxima</label>
+                        <input type="number" name="idade_maxima" value="{{ sentinela.idade_maxima|default:'' }}" class="w-full border border-gray-300 rounded px-3 py-2">
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-2">Deixe em branco para limites abertos (Ex: Max 1 = Bebés até 1 ano. Min 70 = Idosos de 70 para cima).</p>
+            </div>
+
+            <!-- BLOCO CONDICIONAL: DOENÇA -->
+            <div id="bloco_condicao" class="col-span-1 md:col-span-3 bg-pink-50 border border-pink-200 p-4 rounded-lg hidden">
+                <p class="text-xs font-bold text-pink-800 uppercase mb-3">Automação por Condição / Lista Temática</p>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Selecione a Condição de Saúde a monitorar:</label>
+                <select name="condicao_saude" class="w-full border border-gray-300 rounded px-3 py-2 bg-white">
                     <option value="">Selecione...</option>
                     {% for c in condicoes %}
-                        <option value="{{ c.pk }}"
-                            {% if sentinela and sentinela.condicao_saude_id == c.pk %}selected{% endif %}>
-                            {{ c.icone }} {{ c.nome }}
-                        </option>
+                        <option value="{{ c.pk }}" {% if sentinela and sentinela.condicao_saude_id == c.pk %}selected{% endif %}>{{ c.nome }}</option>
                     {% endfor %}
                 </select>
+                <p class="text-[10px] text-gray-500 mt-2">O sistema procurará pessoas com esta condição no Prontuário para atribuir pontos à família.</p>
             </div>
+
+            <div class="col-span-1 md:col-span-3">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Observações Adicionais <span class="text-gray-400 font-normal">(Opcional)</span></label>
+                <textarea name="observacao" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-pink-500 focus:border-pink-500">{{ sentinela.observacao|default:'' }}</textarea>
+            </div>
+            
         </div>
 
-        {# Faixa etária — só para tipo='idade' #}
-        <div id="bloco-idade"
-             style="display:{% if sentinela and sentinela.tipo == 'idade' %}flex{% else %}none{% endif %};
-                    gap:1rem; margin-bottom:1rem;">
-            <div class="form-group" style="flex:1;">
-                <label>Idade mínima</label>
-                <input type="number" name="idade_minima" class="form-input"
-                       min="0" max="120"
-                       value="{{ sentinela.idade_minima|default:'' }}"
-                       placeholder="Ex: 0">
-            </div>
-            <div class="form-group" style="flex:1;">
-                <label>Idade máxima</label>
-                <input type="number" name="idade_maxima" class="form-input"
-                       min="0" max="120"
-                       value="{{ sentinela.idade_maxima|default:'' }}"
-                       placeholder="Deixe vazio para sem limite">
-            </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label>Observação</label>
-            <textarea name="observacao" class="form-input" rows="2"
-                      placeholder="Explica o critério e como identificá-lo">{{ sentinela.observacao|default:'' }}</textarea>
-        </div>
-
-        <div class="form-group">
-            <label style="display:flex; align-items:center;
-                           gap:8px; cursor:pointer;">
-                <input type="checkbox" name="ativo"
-                       {% if not sentinela or sentinela.ativo %}checked{% endif %}>
-                Sentinela ativa
+        <div class="mb-8">
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="ativo" class="w-5 h-5 text-pink-600 border-gray-300 rounded focus:ring-pink-500" {% if not sentinela or sentinela.ativo %}checked{% endif %}>
+                <span class="text-sm font-medium text-gray-800">Regra Ativa no Sistema</span>
             </label>
         </div>
-    </div>
 
-    <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <a href="{% url 'core:admin_sentinelas' %}" class="btn btn-cinza">
-            Cancelar
-        </a>
-        <button type="submit" class="btn btn-verde">{{ acao }}</button>
-    </div>
-</form>
+        <div class="flex justify-end pt-4 border-t border-gray-100">
+            <button type="submit" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition">
+                {{ acao }}
+            </button>
+        </div>
+    </form>
+</div>
 
 <script>
-function atualizarCampos() {
-    const tipo = document.getElementById('select-tipo').value;
-    document.getElementById('bloco-condicao').style.display =
-        tipo === 'condicao' ? 'block' : 'none';
-    document.getElementById('bloco-idade').style.display =
-        tipo === 'idade' ? 'flex' : 'none';
-}
-</script>
+    // Script mágico para mostrar/esconder os blocos
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectTipo = document.getElementById('select_tipo');
+        const blocoIdade = document.getElementById('bloco_idade');
+        const blocoCondicao = document.getElementById('bloco_condicao');
 
+        function atualizarBlocos() {
+            const tipo = selectTipo.value;
+            
+            // Esconde tudo primeiro
+            blocoIdade.classList.add('hidden');
+            blocoCondicao.classList.add('hidden');
+            
+            // Mostra consoante a escolha
+            if (tipo === 'idade') {
+                blocoIdade.classList.remove('hidden');
+            } else if (tipo === 'condicao') {
+                blocoCondicao.classList.remove('hidden');
+            }
+        }
+
+        // Executa ao carregar a página e sempre que mudar
+        atualizarBlocos();
+        selectTipo.addEventListener('change', atualizarBlocos);
+    });
+</script>
 {% endblock %}

@@ -2,321 +2,332 @@
 {% block titulo %}Administração — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-<h1 class="page-title">⚙ <span>Administração</span> do sistema</h1>
-
-{# Cards de acesso rápido para cada seção #}
-{# ── Seção: Sistema ──────────────────────────────── #}
-<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
-            text-transform:uppercase; letter-spacing:0.05em;
-            margin-bottom:10px;">
-    Sistema
-</h2>
-<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
-                                margin-bottom:2rem;">
-    <div class="stat-card" style="cursor:pointer;"
-        onclick="window.location='{#{% url 'core:admin_tipos' %}#}'">
-        <div class="stat-num">{{ total_tipos }}</div>
-        <div class="stat-label">Tipos de atendimento</div>
-            <div style="margin-top:12px;">
-                <a href="{#{% url 'core:admin_tipos' %}#}" class="btn btn-verde"
-                    style="font-size:12px;padding:6px 14px;">
-                    🩺 Atendimentos
-                </a>
-            </div>
-    </div>
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{#{% url 'core:admin_configuracao' %}#}'">
-        <div class="stat-num">⚙️</div>
-        <div class="stat-label">Configuração do sistema</div>
-        <div style="margin-top:12px;">
-            <a href="{#{% url 'core:admin_configuracao' %}#}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                Configurações
-            </a>
-        </div>
-    </div>
-
-
-    <div class="stat-card" style="cursor:pointer;"
-        onclick="window.location='{#{% url 'core:admin_avisos' %}#}'">
-        <div class="stat-num" style="color:#d97706;">📢</div>
-        <div class="stat-label">Mural de avisos</div>
-        <div style="margin-top:12px;">
-            <a href="{#{% url 'core:admin_avisos' %}#}" class="btn btn-verde"
-            style="font-size:12px;padding:6px 14px;">
-                Gerenciar avisos
-            </a>
-        </div>
-    </div>
-    {# Cole este bloco dentro do seu template de gerenciamento do core #}
-    <div style="background:#fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 1.5rem; margin-top: 2rem;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-            <span style="font-size:20px;">⚙️</span>
-            <h3 style="margin:0; font-size:14px; color:#9f1239; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">
-                Manutenção Estrutural do Servidor
-            </h3>
-        </div>
-        <p style="font-size:13px; color:#4b5563; margin:0 0 16px; line-height:1.5;">
-            Utilize esta ferramenta para sincronizar o computador servidor do posto de saúde com a versão mais recente do sistema disponível no GitHub. O processo preservará integralmente todos os encaminhamentos, pacientes e dados reais cadastrados na unidade.
-        </p>
-        
-        <a href="{% url 'core:executar_git_pull' %}" 
-        onclick="return confirm('Confirma a busca ativa por atualizações no GitHub? Este processo atualizará os códigos da unidade.')"
-        class="btn" 
-        style="background:#e11d48; color:white; padding:8px 16px; font-size:13px; font-weight:600; text-decoration:none; border-radius:6px; display:inline-block; transition: background 0.2s;">
-            🔄 Buscar e Aplicar Atualizações do Sistema
-        </a>
-    </div>
-
-</div>
-
-{# ── Seção: Usuários e equipe ────────────────────── #}
-<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
-            text-transform:uppercase; letter-spacing:0.05em;
-            margin-bottom:10px;">
-    Usuários e equipe
-</h2>
-<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:2rem;">
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_usuarios' %}'">
-        <div class="stat-num">{{ total_usuarios }}</div>
-        <div class="stat-label">Usuários ativos</div>
-        {% if total_inativos %}
-        <div style="font-size:11px;color:#dc2626;margin-top:4px;">
-            {{ total_inativos }} inativo{{ total_inativos|pluralize }}
-        </div>
-        {% endif %}
-        <div style="margin-top:12px;">
-            <a href="{% url 'core:admin_usuarios' %}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                👥 Gerenciar usuários
-            </a>
-        </div>
-    </div>
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_equipe' %}'">
-        <div class="stat-num">{{ total_equipe }}</div>
-        <div class="stat-label">Membros da equipe</div>
-        <div style="margin-top:12px;">
-            <a href="{% url 'core:admin_equipe' %}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                🧑‍⚕️ Gerenciar equipe
-            </a>
-        </div>
-    </div>
-
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_cargos' %}'">
-        <div class="stat-num">{{ total_cargos }}</div>
-        <div class="stat-label">Cargos cadastrados</div>
-        <div style="margin-top:12px;">
-            <a href="{% url 'core:admin_cargos' %}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                📋 Gerenciar cargos
-            </a>
-        </div>
-    </div>
-
+<div class="container mx-auto px-4 py-8 max-w-7xl">
     
-</div>
-
-    {# ── Seção: Unidade ──────────────────────────────── #}
-<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
-            text-transform:uppercase; letter-spacing:0.05em;
-            margin-bottom:10px;">
-    Unidade
-</h2>
-<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
-                                margin-bottom:2rem;">
-
-
-        <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_usfs' %}'">
-        <div class="stat-num">{{ total_usfs }}</div>
-        <div class="stat-label">USFs cadastradas</div>
-        <div style="margin-top:12px;">
-            <a href="{% url 'core:admin_usfs' %}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                🏥 Gerenciar USFs
-            </a>
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <span class="text-4xl">⚙️</span> Administração do Sistema
+            </h1>
+            <p class="text-gray-600 mt-1">Visão geral e configuração de todos os módulos da USF.</p>
         </div>
-    </div>
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_microareas' %}'">
-        <div class="stat-num">{{ total_microareas }}</div>
-        <div class="stat-label">Micro-áreas</div>
-        <div style="margin-top:12px;">
-            <a href="{% url 'core:admin_microareas' %}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                🗺️ <br> Gerenciar  micro-áreas
-            </a>
-        </div>
-    </div>
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_pacientes' %}'">
-        <div class="stat-num">{{ total_pacientes }}</div>
-        <div class="stat-label">Pacientes cadastrados</div>
-        <div style="margin-top:12px;">
-            <a href="{% url 'core:admin_pacientes' %}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                👤 Gerenciar pacientes
-            </a>
-        </div>
-    </div> 
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:familias_score' %}'">
-        <div class="stat-num">👨‍👩‍👧</div>
-        <div class="stat-label">Score familiar</div>
-        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
-            Escala de Coelho e Savassi
-        </p>
-        <a href="{% url 'core:familias_score' %}" class="btn btn-verde"
-           style="font-size:12px; padding:6px 14px;">
-            Ver famílias
+        <a href="{% url 'core:hub' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
+            Voltar ao Início
         </a>
     </div>
-    {# ── NOVO CARD: MAPA DO TERRITÓRIO (RUAS) ── #}
-    <a href="{% url 'core:territorio_lista' %}" style="text-decoration:none; color:inherit;">
-        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #06b6d4; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer; height:100%;"
-             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
-            <div style="font-size:32px; margin-bottom:12px;">🗺️</div>
-            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Ruas e Território</h2>
-            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
-                Consulte os logradouros, ruas e CEPs vinculados às micro-áreas da sua USF.
-            </p>
-            <div style="background:#ecfeff; border-radius:6px; padding:6px 12px; display:inline-block;">
-                <span style="font-size:12px; color:#0891b2; font-weight:500;">Gerir Ruas →</span>
+
+    {# ── Seção: Sistema ──────────────────────────────── #}
+    <div class="mb-10">
+        <h2 class="text-sm font-bold text-purple-600 uppercase tracking-wider mb-4 border-b border-purple-100 pb-2">Sistema Base</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <!-- Card: Módulos -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">🧩</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Módulos e Apps</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Ligue ou desligue áreas do sistema (Auto-descoberta).</p>
+                    <a href="{% url 'core:admin_modulos' %}" class="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Módulos
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card: Mural de Avisos -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">📢</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Mural de Avisos</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Publique mensagens para toda a equipa visualizar.</p>
+                    <a href="{% url 'core:admin_avisos' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Avisos
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card: Tipos de Atendimento (Em Construção) -->
+            <div class="bg-gray-50 rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative opacity-75">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gray-400"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl grayscale">🩺</div>
+                        <span class="text-[10px] uppercase font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">Em Construção</span>
+                    </div>
+                    <h3 class="font-bold text-gray-700 text-base mb-1">Tipos de Atendimento</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Gestão de motivos de consulta.</p>
+                    <button disabled class="w-full bg-gray-100 text-gray-400 border border-gray-200 font-bold py-2 px-4 rounded-lg text-xs text-center cursor-not-allowed">
+                        Brevemente
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card: Configuração (Em Construção) -->
+            <div class="bg-gray-50 rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative opacity-75">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gray-400"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl grayscale">⚙️</div>
+                        <span class="text-[10px] uppercase font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">Em Construção</span>
+                    </div>
+                    <h3 class="font-bold text-gray-700 text-base mb-1">Configurações Gerais</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Parâmetros globais do sistema.</p>
+                    <button disabled class="w-full bg-gray-100 text-gray-400 border border-gray-200 font-bold py-2 px-4 rounded-lg text-xs text-center cursor-not-allowed">
+                        Brevemente
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Manutenção do Servidor -->
+        <div class="mt-6 bg-rose-50 border border-rose-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xl">🔄</span>
+                    <h3 class="text-sm font-bold text-rose-800 uppercase tracking-wider">Manutenção Estrutural do Servidor</h3>
+                </div>
+                <p class="text-xs text-rose-600 max-w-2xl">
+                    Sincronize o servidor local do posto com a versão mais recente no GitHub. Esta ação preserva todos os dados e cadastros atuais, puxando apenas as melhorias de código.
+                </p>
+            </div>
+            <div class="flex flex-col items-center flex-shrink-0">
+                <a href="{% url 'core:executar_git_pull' %}" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-sm transition text-sm">
+                    Aplicar Atualizações
+                </a>
+                <span class="text-[10px] font-bold text-rose-500 mt-2 uppercase tracking-wide">Ação Imediata</span>
             </div>
         </div>
-    </a>
-</div>
-
-
-{# ── Seção: Importações ──────────────────────────── #}
-<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
-            text-transform:uppercase; letter-spacing:0.05em;
-            margin-bottom:10px;">
-    Importações
-</h2>
-<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
-                                margin-bottom:2rem;">
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:importar_pacientes' %}'">
-        <div class="stat-num">📥</div>
-        <div class="stat-label">Importar pacientes</div>
-        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
-            CSV do e-SUS — vinculados da equipe
-        </p>
-        <a href="{% url 'core:importar_pacientes' %}" class="btn btn-verde"
-           style="font-size:12px; padding:6px 14px;">
-            Importar CSV
-        </a>
     </div>
 
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:importar_condicoes' %}'">
-        <div class="stat-num">🩺</div>
-        <div class="stat-label">Importar condições de saúde</div>
-        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
-            Hipertensão, diabetes e gestantes
-        </p>
-        <a href="{% url 'core:importar_condicoes' %}" class="btn btn-verde"
-           style="font-size:12px; padding:6px 14px;">
-            Importar condições
-        </a>
-    </div>
+    {# ── Seção: Usuários e equipe ────────────────────── #}
+    <div class="mb-10">
+        <h2 class="text-sm font-bold text-emerald-600 uppercase tracking-wider mb-4 border-b border-emerald-100 pb-2">Recursos Humanos</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">👥</div>
+                        <div class="text-xl font-black text-gray-800">{{ total_usuarios }}</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Utilizadores</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Logins e acessos ao sistema.</p>
+                    <a href="{% url 'core:admin_usuarios' %}" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Utilizadores
+                    </a>
+                </div>
+            </div>
 
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:importar_territorio' %}'">
-        <div class="stat-num">🗺️</div>
-        <div class="stat-label">Importar território</div>
-        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
-            Logradouros e vínculos familiares
-        </p>
-        <a href="{% url 'core:importar_territorio' %}" class="btn btn-verde"
-           style="font-size:12px; padding:6px 14px;">
-            Importar território
-        </a>
-    </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">🧑‍⚕️</div>
+                        <div class="text-xl font-black text-gray-800">{{ total_equipe }}</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Equipa de Saúde</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Vínculos de profissionais nas USFs.</p>
+                    <a href="{% url 'core:admin_equipe' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Equipa
+                    </a>
+                </div>
+            </div>
 
-</div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">📋</div>
+                        <div class="text-xl font-black text-gray-800">{{ total_cargos }}</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Cargos</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Cadastro de funções profissionais.</p>
+                    <a href="{% url 'core:admin_cargos' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Cargos
+                    </a>
+                </div>
+            </div>
 
-{# ── Seção: Configurações clínicas ──────────────── #}
-<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
-            text-transform:uppercase; letter-spacing:0.05em;
-            margin-bottom:10px;">
-    Configurações clínicas
-</h2>
-<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
-                                margin-bottom:2rem;">
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_condicoes' %}'">
-        <div class="stat-num">🩺</div>
-        <div class="stat-label">Condições de saúde</div>
-        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
-            Hipertensão, diabetes, gestante...
-        </p>
-        <a href="{% url 'core:admin_condicoes' %}" class="btn btn-verde"
-           style="font-size:12px; padding:6px 14px;">
-            Gerenciar condições
-        </a>
-    </div>
-
-    <div class="stat-card" style="cursor:pointer;"
-         onclick="window.location='{% url 'core:admin_sentinelas' %}'">
-        <div class="stat-num">⚠️</div>
-        <div class="stat-label">Sentinelas de risco</div>
-        <p style="font-size:12px; color:#9ca3af; margin:4px 0 12px;">
-            Escala de Coelho e Savassi
-        </p>
-        <a href="{% url 'core:admin_sentinelas' %}" class="btn btn-verde"
-           style="font-size:12px; padding:6px 14px;">
-            Gerenciar sentinelas
-        </a>
-    </div>
-
-</div>
-
-{# ── Seção: Encaminhamentos ──────────────────────── #}
-<h2 style="font-size:13px; font-weight:600; color:#9ca3af;
-            text-transform:uppercase; letter-spacing:0.05em;
-            margin-bottom:10px;">
-    Encaminhamentos
-</h2>
-<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);
-                                margin-bottom:2rem;">
-
-        <div class="stat-card" style="cursor:pointer;"
-          onclick="window.location= '{#{% url 'encaminhamentos:admin_tipos_enc' %}#}'" > 
-        <div class="stat-num">{{ total_tipos_enc }}</div>
-        <div class="stat-label">Tipos de encaminhamento</div>
-        <div style="margin-top:12px;">
-            <a href="{#{% url 'encaminhamentos:admin_tipos_enc' %}#}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                📋 Gerenciar tipos
-            </a>
         </div>
     </div>
 
-    <div class="stat-card" style="cursor:pointer;"
-        onclick="window.location='{#{% url 'encaminhamentos:admin_cotas' %}#}'"> 
-        <div class="stat-num">{{ total_cotas }}</div>
-        <div class="stat-label">Cotas configuradas</div>
-        <div style="margin-top:12px;">
-            <a href="{#{% url 'encaminhamentos:admin_cotas' %}#}" class="btn btn-verde"
-               style="font-size:12px;padding:6px 14px;">
-                📊 Gerenciar cotas
-            </a>
+    {# ── Seção: Unidade e Território ──────────────────── #}
+    <div class="mb-10">
+        <h2 class="text-sm font-bold text-cyan-600 uppercase tracking-wider mb-4 border-b border-cyan-100 pb-2">Unidades e Território</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-cyan-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">🏥</div>
+                        <div class="text-xl font-black text-gray-800">{{ total_usfs }}</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Postos (USFs)</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Cadastro de unidades físicas.</p>
+                    <a href="{% url 'core:admin_usfs' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar USFs
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-cyan-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">📍</div>
+                        <div class="text-xl font-black text-gray-800">{{ total_microareas }}</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Micro-áreas</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Zonas de atuação dos ACS.</p>
+                    <a href="{% url 'core:admin_microareas' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Micro-áreas
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-cyan-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">🗺️</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Ruas do Território</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Mapeamento e vínculos de endereços.</p>
+                    <a href="{% url 'core:territorio_lista' %}" class="w-full bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Ver Mapa de Ruas
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-cyan-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">👨‍👩‍👧</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Score Familiar</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Escala de Risco de Coelho e Savassi.</p>
+                    <a href="{% url 'core:familias_score' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Ver Famílias
+                    </a>
+                </div>
+            </div>
+
         </div>
-    </div>                                
+    </div>
+
+    {# ── Seção: Pacientes e Importações ──────────────────── #}
+    <div class="mb-10">
+        <h2 class="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4 border-b border-blue-100 pb-2">Pacientes e Sincronização</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">👤</div>
+                        <div class="text-xl font-black text-gray-800">{{ total_pacientes }}</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Base de Pacientes</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Gerenciamento manual de cidadãos.</p>
+                    <a href="{% url 'core:admin_pacientes' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Pacientes
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative md:col-span-2">
+                <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+                <div class="p-5 flex flex-col md:flex-row items-center gap-4">
+                    <div class="text-5xl">📥</div>
+                    <div class="flex-1 text-center md:text-left">
+                        <h3 class="font-bold text-gray-800 text-lg mb-1">Central de Importação e-SUS</h3>
+                        <p class="text-xs text-gray-500 mb-3">Módulo de sincronização massiva via ficheiros CSV para Pacientes, Território e Doenças.</p>
+                        <a href="{% url 'importacoes:hub' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition text-xs text-center">
+                            Acessar Central de Importação
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {# ── Seção: Configurações Clínicas ──────────────────── #}
+    <div class="mb-10">
+        <h2 class="text-sm font-bold text-pink-600 uppercase tracking-wider mb-4 border-b border-pink-100 pb-2">Clínica e Regulação</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-pink-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">🩺</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Condições de Saúde</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Hipertensão, diabetes, gestantes.</p>
+                    <a href="{% url 'core:admin_condicoes' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Listas
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-pink-500"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl">⚠️</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Sentinelas de Risco</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Pesos para a escala de risco.</p>
+                    <a href="{% url 'core:admin_sentinelas' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Sentinelas
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card: Encaminhamentos (Em Construção) -->
+            <div class="bg-gray-50 rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative opacity-75">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gray-400"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl grayscale">📋</div>
+                        <span class="text-[10px] uppercase font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">Fase 7</span>
+                    </div>
+                    <h3 class="font-bold text-gray-700 text-base mb-1">Tipos de Encaminhamento</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Especialidades da regulação.</p>
+                    <button disabled class="w-full bg-gray-100 text-gray-400 border border-gray-200 font-bold py-2 px-4 rounded-lg text-xs text-center cursor-not-allowed">
+                        Aguardando Migração
+                    </button>
+                </div>
+            </div>
+
+            <!-- Card: Cotas (Em Construção) -->
+            <div class="bg-gray-50 rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative opacity-75">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gray-400"></div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="text-3xl grayscale">📊</div>
+                        <span class="text-[10px] uppercase font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">Fase 7</span>
+                    </div>
+                    <h3 class="font-bold text-gray-700 text-base mb-1">Cotas de Especialidades</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Limites mensais da regulação.</p>
+                    <button disabled class="w-full bg-gray-100 text-gray-400 border border-gray-200 font-bold py-2 px-4 rounded-lg text-xs text-center cursor-not-allowed">
+                        Aguardando Migração
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 </div>
 {% endblock %}

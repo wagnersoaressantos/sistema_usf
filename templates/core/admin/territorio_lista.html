@@ -20,7 +20,6 @@
                 Voltar para Famílias
             </a>
             
-            {# Só aparece o botão de Nova Rua se ele for Gestor! #}
             {% if is_master or is_admin_unidade %}
             <a href="{% url 'core:admin_rua_criar' %}" class="no-print bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
@@ -31,82 +30,186 @@
     </div>
 
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 no-print">
-        <form method="GET" class="flex-1 flex gap-2">
+        <form method="GET" class="flex-1 flex flex-col sm:flex-row gap-2">
             <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome da rua..." class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500">
-            <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Filtrar</button>
+            
+            <select name="ordenar" class="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white focus:ring-green-500 focus:border-green-500 cursor-pointer">
+                <option value="rua" {% if ordenar == 'rua' %}selected{% endif %}>Ordenar por Rua (A-Z)</option>
+                <option value="microarea" {% if ordenar == 'microarea' %}selected{% endif %}>Agrupar por Micro-área (01, 02...)</option>
+            </select>
+            
+            <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
+                Filtrar / Ordenar
+            </button>
         </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm whitespace-nowrap">
-                <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-4 font-semibold">Logradouro (Rua)</th>
-                        <th class="px-6 py-4 font-semibold">Bairro</th>
-                        <th class="px-6 py-4 font-semibold">Micro-áreas Vinculadas</th>
-                        <th class="px-6 py-4 font-semibold text-center">Status</th>
-                        {% if is_master or is_admin_unidade %}
-                        <th class="px-6 py-4 font-semibold text-right no-print">Ações</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    {% for rua in logradouros %}
-                    <tr class="hover:bg-gray-50 transition duration-150">
-                        <td class="px-6 py-4">
-                            <div class="font-bold text-gray-800">{{ rua.logradouro }}</div>
-                            {% if rua.cep %}
-                                <div class="text-xs text-gray-500 mt-1">CEP: {{ rua.cep }}</div>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 text-gray-600">
-                            {{ rua.bairro }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex flex-wrap gap-2">
-                                {% for vinculo in rua.vinculos.all %}
-                                    <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded text-xs font-semibold">
-                                        MA {{ vinculo.micro_area.codigo }}
-                                        {% if vinculo.numero_inicial and vinculo.numero_final %}
-                                            <span class="text-[10px] text-blue-500 font-normal">({{ vinculo.numero_inicial }} ao {{ vinculo.numero_final }})</span>
-                                        {% endif %}
-                                    </span>
-                                {% empty %}
-                                    <span class="text-xs text-red-500 font-semibold bg-red-50 px-2 py-1 rounded border border-red-200">Área Descoberta</span>
-                                {% endfor %}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-center">
-                            {% if rua.ativo %}
-                                <span class="w-3 h-3 bg-green-500 rounded-full inline-block shadow-sm" title="Ativo"></span>
-                            {% else %}
-                                <span class="w-3 h-3 bg-red-500 rounded-full inline-block shadow-sm" title="Inativo"></span>
-                            {% endif %}
-                        </td>
-                        
-                        {% if is_master or is_admin_unidade %}
-                        <td class="px-6 py-4 text-right no-print">
-                            <a href="{% url 'core:admin_rua_editar' rua.pk %}" class="text-xs bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-1.5 px-3 rounded shadow-sm transition">
-                                Editar
-                            </a>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                            </svg>
-                            <p class="text-lg font-medium text-gray-600">Nenhuma rua cadastrada.</p>
-                            <p class="text-sm mt-1">Elas serão geradas automaticamente na importação do e-SUS PEC!</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    {% if ordenar == 'microarea' %}
+        
+        <!-- MODO 2: CAIXAS POR MICRO-ÁREA -->
+        <div class="space-y-6">
+            {% for ma in microareas_agrupadas %}
+                <div class="bg-white rounded-xl shadow-sm border border-cyan-200 overflow-hidden break-inside-avoid">
+                    <div class="bg-cyan-50 border-b border-cyan-200 px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">📍</span>
+                            <h2 class="font-bold text-cyan-900 text-xl">Micro-área {{ ma.codigo }}</h2>
+                        </div>
+                        <span class="text-sm text-cyan-800 font-semibold bg-cyan-100 px-4 py-1.5 rounded-full border border-cyan-200 shadow-sm inline-block w-max">
+                            ACS: {{ ma.responsavel.user.get_full_name|default:"Sem profissional vinculado" }}
+                        </span>
+                    </div>
+                    
+                    <ul class="divide-y divide-gray-100">
+                        {% for vinculo in ma.vinculos_filtrados %}
+                            <li class="px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-cyan-50/30 transition">
+                                <div>
+                                    <span class="font-bold text-gray-800">{{ vinculo.logradouro.logradouro }}</span>
+                                    <span class="text-gray-500 text-xs ml-2">Bairro: {{ vinculo.logradouro.bairro }}</span>
+                                </div>
+                                
+                                <div class="flex items-center gap-4 mt-2 sm:mt-0">
+                                    {% if vinculo.numero_inicial and vinculo.numero_final %}
+                                        <span class="bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded font-bold border border-gray-200 shadow-sm tracking-wide">
+                                            Nº {{ vinculo.numero_inicial }} ao {{ vinculo.numero_final }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400 italic">Rua inteira</span>
+                                    {% endif %}
+                                    
+                                    {% if '⚠️' in vinculo.motivo %}
+                                        <span title="{{ vinculo.motivo }}" class="cursor-help bg-red-100 text-red-700 rounded px-2 animate-pulse border border-red-300 shadow-sm font-semibold text-xs py-1">
+                                            ⚠️ Anomalia
+                                        </span>
+                                    {% endif %}
+
+                                    {% if is_master or is_admin_unidade %}
+                                    <a href="{% url 'core:admin_rua_editar' vinculo.logradouro.pk %}" class="text-xs text-cyan-600 hover:text-cyan-800 font-bold no-print underline">Editar</a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% empty %}
+                {% if not ruas_descobertas %}
+                <div class="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <p class="text-gray-500 font-medium text-lg">Nenhuma rua encontrada.</p>
+                </div>
+                {% endif %}
+            {% endfor %}
+
+            <!-- ÁREA DESCOBERTA -->
+            {% if ruas_descobertas %}
+                <div class="bg-white rounded-xl shadow-sm border border-red-300 overflow-hidden break-inside-avoid mt-6">
+                    <div class="bg-red-50 border-b border-red-200 px-6 py-3 flex items-center justify-between">
+                        <h2 class="font-bold text-red-800 text-lg flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                            Área Descoberta (Sem Micro-área)
+                        </h2>
+                    </div>
+                    <ul class="divide-y divide-gray-100">
+                        {% for rua in ruas_descobertas %}
+                            <li class="px-6 py-3 flex items-center justify-between hover:bg-red-50/50 transition">
+                                <div>
+                                    <span class="font-bold text-gray-800">{{ rua.logradouro }}</span>
+                                    <span class="text-gray-500 text-xs ml-2">Bairro: {{ rua.bairro }}</span>
+                                </div>
+                                <div>
+                                    {% if is_master or is_admin_unidade %}
+                                    <a href="{% url 'core:admin_rua_editar' rua.pk %}" class="text-xs bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-1.5 px-4 rounded shadow-sm no-print">Vincular ACS</a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
         </div>
-    </div>
+
+    {% else %}
+        <!-- MODO 1: TABELA GERAL (A-Z) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-4 font-semibold">Logradouro (Rua)</th>
+                            <th class="px-6 py-4 font-semibold">Bairro</th>
+                            <th class="px-6 py-4 font-semibold">Micro-áreas Vinculadas</th>
+                            <th class="px-6 py-4 font-semibold text-center">Status</th>
+                            {% if is_master or is_admin_unidade %}
+                            <th class="px-6 py-4 font-semibold text-right no-print">Ações</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for rua in logradouros %}
+                        <tr class="hover:bg-gray-50 transition duration-150">
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-gray-800">{{ rua.logradouro }}</div>
+                                {% if rua.cep %}
+                                    <div class="text-xs text-gray-500 mt-1">CEP: {{ rua.cep }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-gray-600">
+                                {{ rua.bairro }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-wrap gap-2">
+                                    {% for vinculo in rua.vinculos.all %}
+                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded text-xs font-semibold">
+                                            MA {{ vinculo.micro_area.codigo }}
+                                            {% if vinculo.numero_inicial and vinculo.numero_final %}
+                                                <span class="text-[10px] text-blue-500 font-normal">({{ vinculo.numero_inicial }} ao {{ vinculo.numero_final }})</span>
+                                            {% endif %}
+                                            {% if '⚠️' in vinculo.motivo %}
+                                                <span title="{{ vinculo.motivo }}" class="cursor-help bg-red-100 text-red-700 rounded px-1.5 ml-1 animate-pulse border border-red-300">
+                                                    ⚠️
+                                                </span>
+                                            {% elif '✔️' in vinculo.motivo %}
+                                                <span title="Numeração Verificada" class="cursor-default bg-green-100 text-green-700 rounded px-1.5 ml-1 border border-green-300">
+                                                    ✔️
+                                                </span>
+                                            {% endif %}
+                                        </span>
+                                    {% empty %}
+                                        <span class="text-xs text-red-500 font-semibold bg-red-50 px-2 py-1 rounded border border-red-200">Área Descoberta</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                {% if rua.ativo %}
+                                    <span class="w-3 h-3 bg-green-500 rounded-full inline-block shadow-sm" title="Ativo"></span>
+                                {% else %}
+                                    <span class="w-3 h-3 bg-red-500 rounded-full inline-block shadow-sm" title="Inativo"></span>
+                                {% endif %}
+                            </td>
+                            
+                            {% if is_master or is_admin_unidade %}
+                            <td class="px-6 py-4 text-right no-print">
+                                <a href="{% url 'core:admin_rua_editar' rua.pk %}" class="text-xs bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-1.5 px-3 rounded shadow-sm transition">
+                                    Editar
+                                </a>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                </svg>
+                                <p class="text-lg font-medium text-gray-600">Nenhuma rua cadastrada.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    {% endif %} <!-- O FAMOSO ENDIF QUE ESTAVA A FALTAR! -->
+
 </div>
 {% endblock %}

@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Prontuário — {{ paciente.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <!-- Header Rápido -->
+    <div class="flex items-center justify-between mb-6">
+        <a href="{% url 'pacientes:hub' %}" class="text-gray-500 hover:text-indigo-600 font-medium flex items-center gap-2 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+            Voltar à Busca
+        </a>
+        {% if is_master or is_admin_unidade %}
+            <a href="{% url 'core:admin_paciente_editar' paciente.pk %}" class="text-sm bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-1.5 px-4 rounded-lg shadow-sm transition no-print">Editar Cadastro</a>
+        {% endif %}
+    </div>
+
+    <!-- MURAL CLÍNICO (Cabeçalho de Destaque) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 flex flex-col md:flex-row gap-6 items-center md:items-start relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-2 h-full bg-indigo-500"></div>
+        
+        <!-- Avatar -->
+        <div class="w-24 h-24 rounded-full bg-indigo-50 border-4 border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-4xl shadow-inner flex-shrink-0">
+            {{ paciente.nome|slice:":1" }}
+        </div>
+        
+        <!-- Dados Vitais e Tags -->
+        <div class="flex-1 text-center md:text-left">
+            <h1 class="text-3xl font-bold text-gray-800">{{ paciente.nome }}</h1>
+            <p class="text-gray-500 font-medium mt-1">
+                {{ paciente.idade_formatada }} • Sexo: {{ paciente.get_sexo_display }} • Cadastrado na USF em {{ paciente.cadastrado_em|date:"d/m/Y" }}
+            </p>
+            
+            <div class="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
+                <!-- TAGS CLÍNICAS IMPORTADAS DO E-SUS -->
+                {% for pc in condicoes_ativas %}
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold bg-purple-100 text-purple-800 border border-purple-200 shadow-sm">
+                        {{ pc.condicao.icone }} {{ pc.condicao.nome }}
+                    </span>
+                {% empty %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                        Nenhuma condição crónica relatada.
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- COLUNA ESQUERDA: Demografia e Contexto Social -->
+        <div class="space-y-6">
+            
+            <!-- Documentos e Contato -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Documentos e Contato</h2>
+                <div class="space-y-3 text-sm text-gray-700">
+                    <p class="flex justify-between border-b border-gray-50 pb-2">
+                        <span class="font-semibold">CPF:</span> <span>{{ paciente.cpf|default:"---" }}</span>
+                    </p>
+                    <p class="flex justify-between border-b border-gray-50 pb-2">
+                        <span class="font-semibold">CNS (SUS):</span> <span>{{ paciente.cartao_sus|default:"---" }}</span>
+                    </p>
+                    <p class="flex justify-between border-b border-gray-50 pb-2">
+                        <span class="font-semibold">Nascimento:</span> <span>{{ paciente.data_nascimento|date:"d/m/Y"|default:"---" }}</span>
+                    </p>
+                    <p class="flex justify-between">
+                        <span class="font-semibold">Telefone:</span> <span>{{ paciente.telefone|default:"---" }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- MÁGICA CROSS-MODULE: AVALIAÇÃO FAMILIAR -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center justify-between">
+                    Território e Família
+                    <span class="text-lg">🗺️</span>
+                </h2>
+                
+                <div class="text-sm text-gray-700 mb-4">
+                    <p class="mb-1"><strong>Endereço:</strong> {{ paciente.endereco|default:"Não informado" }}, {{ paciente.numero }}</p>
+                    <p><strong>Micro-área:</strong> {% if paciente.micro_area %}<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">MA {{ paciente.micro_area.codigo }}</span>{% else %}<span class="text-red-500 font-medium">Área Descoberta</span>{% endif %}</p>
+                </div>
+
+                {% if familia %}
+                    <div class="rounded-lg p-4 border 
+                        {% if familia.classificacao == 'R3' %} bg-red-50 border-red-200 
+                        {% elif familia.classificacao == 'R2' %} bg-orange-50 border-orange-200 
+                        {% elif familia.classificacao == 'R1' %} bg-yellow-50 border-yellow-200 
+                        {% else %} bg-green-50 border-green-200 {% endif %}">
+                        
+                        <p class="text-xs font-bold uppercase tracking-wider mb-1 text-gray-500">Risco Familiar (Coelho e Savassi)</p>
+                        <div class="flex items-end gap-2 mb-2">
+                            <span class="text-2xl font-black {% if familia.classificacao == 'R3' %} text-red-700 {% elif familia.classificacao == 'R2' %} text-orange-700 {% elif familia.classificacao == 'R1' %} text-yellow-700 {% else %} text-green-700 {% endif %}">
+                                {{ familia.get_classificacao_display }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-3">Família totaliza <strong>{{ familia.score_total }} pontos</strong> de vulnerabilidade.</p>
+                        
+                        <a href="{% url 'core:familia_detalhe' familia.cpf_responsavel %}" class="block w-full text-center bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold py-2 rounded transition shadow-sm">
+                            Ver Avaliação Completa
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                        <p class="text-sm text-gray-500">Família não mapeada no Score de Risco.</p>
+                        <p class="text-xs text-gray-400 mt-1">O cálculo será gerado automaticamente quando houver Responsável Familiar.</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+        </div>
+
+        <!-- COLUNA DIREITA: Histórico e Ações -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Guias de Encaminhamento -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-6 border-b pb-3">
+                    <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                        Histórico de Encaminhamentos
+                    </h2>
+                    
+                    {% if 'encaminhamentos' in modulos_ativos %}
+                    <a href="{% url 'encaminhamentos:cadastrar' %}?paciente={{ paciente.pk }}" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                        Nova Guia
+                    </a>
+                    {% endif %}
+                </div>
+
+                {% if encaminhamentos %}
+                    <div class="space-y-4">
+                        {% for guia in encaminhamentos %}
+                            <div class="flex items-center justify-between p-4 rounded-lg border {% if guia.status in 'entregue,unificada' %} bg-gray-50 border-gray-200 {% else %} bg-white border-green-200 hover:shadow-md transition {% endif %}">
+                                <div>
+                                    <h3 class="font-bold text-gray-800 text-base">{{ guia.tipo.nome }}</h3>
+                                    <p class="text-xs text-gray-500 mt-0.5">Solicitado em: {{ guia.data_solicitacao|date:"d/m/Y" }} • Prioridade: {{ guia.prioridade }}</p>
+                                </div>
+                                
+                                <div class="flex items-center gap-4">
+                                    <div class="text-right hidden sm:block">
+                                        <p class="text-xs font-bold uppercase tracking-wider 
+                                            {% if guia.status == 'aguardando' %} text-yellow-600 
+                                            {% elif guia.status in 'regulacao,upae' %} text-blue-600 
+                                            {% elif guia.status == 'disponivel' %} text-green-600 
+                                            {% elif guia.status == 'cancelado' %} text-red-600 
+                                            {% else %} text-gray-500 {% endif %}">
+                                            {{ guia.get_status_display }}
+                                        </p>
+                                        {% if guia.status in 'aguardando,regulacao,upae' %}
+                                            <p class="text-[10px] text-gray-400">Na fila há {{ guia.dias_no_status }} dias</p>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{% url 'encaminhamentos:detalhe' guia.pk %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 p-2 rounded-lg shadow-sm transition" title="Ver Detalhes">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <p class="font-medium">Nenhum encaminhamento registrado para este paciente.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

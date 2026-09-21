@@ -23,8 +23,13 @@
     {# Links de navegação usando a Nova Arquitetura de Módulos Dinâmicos #}
     <nav class="drawer-nav">
         
+        <!-- 🚀 Link Direto para o Hub de Pacientes / Prontuário 360 -->
+        <a href="{% url 'pacientes:hub' %}" class="{% if request.resolver_match.app_name == 'pacientes' %}ativo{% endif %}">
+            👥 Buscar Paciente
+        </a>
+
         {% if 'encaminhamentos' in modulos_ativos %}
-            <a href="{% url 'encaminhamentos:inicio' %}" {% if request.resolver_match.app_name == 'encaminhamentos' %}class="ativo"{% endif %}>
+            <a href="{% url 'encaminhamentos:inicio' %}" class="{% if request.resolver_match.app_name == 'encaminhamentos' %}ativo{% endif %}">
                 📋 Encaminhamentos
             </a>
         {% endif %}
@@ -47,20 +52,20 @@
 
         {% if 'mutirao' in modulos_ativos %}
             <hr class="drawer-separador">
-            <a href="{% url 'mutirao:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="ativo"{% endif %}>📈 Mutirão — Dashboard</a>
-            <a href="{% url 'mutirao:listar' %}" {% if request.resolver_match.url_name == 'listar' %}class="ativo"{% endif %}>📋 Mutirão — Atendimentos</a>
-            <a href="{% url 'mutirao:cadastrar' %}" {% if request.resolver_match.url_name == 'cadastrar' %}class="ativo"{% endif %}>➕ Mutirão — Novo cadastro</a>
-            <a href="{% url 'mutirao:relatorio' %}" {% if request.resolver_match.url_name == 'relatorio' %}class="ativo"{% endif %}>📊 Mutirão — Relatório</a>
+            <a href="{% url 'mutirao:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}ativo{% endif %}">📈 Mutirão — Dashboard</a>
+            <a href="{% url 'mutirao:listar' %}" class="{% if request.resolver_match.url_name == 'listar' %}ativo{% endif %}">📋 Mutirão — Atendimentos</a>
+            <a href="{% url 'mutirao:cadastrar' %}" class="{% if request.resolver_match.url_name == 'cadastrar' %}ativo{% endif %}">➕ Mutirão — Novo cadastro</a>
+            <a href="{% url 'mutirao:relatorio' %}" class="{% if request.resolver_match.url_name == 'relatorio' %}ativo{% endif %}">📊 Mutirão — Relatório</a>
             <a href="{% url 'mutirao:exportar_csv' %}">📥 Mutirão — Exportar CSV</a>
         {% endif %}
         
         <!-- Verifica se ele tem poderes na USF atual ou se é Master -->
         {% if is_master or is_admin_unidade %}
             <hr class="drawer-separador">
-            <a href="{% url 'core:painel_admin' %}" {% if request.resolver_match.url_name == 'painel_admin' %}class="ativo"{% endif %}>
+            <a href="{% url 'core:painel_admin' %}" class="{% if request.resolver_match.url_name == 'painel_admin' %}ativo{% endif %}">
                 ⚙ Administração
             </a>
-            <a href="{% url 'core:admin_avisos' %}" {% if request.resolver_match.url_name == 'admin_avisos' %}class="ativo"{% endif %}>
+            <a href="{% url 'core:admin_avisos' %}" class="{% if request.resolver_match.url_name == 'admin_avisos' %}ativo{% endif %}">
                 📢 Mural de avisos
             </a>
         {% endif %}

@@ -15,7 +15,7 @@ import subprocess
 import csv
 import io
 from datetime import datetime, date, timedelta
-# Repare que ConfiguracaoSistema não está mais aqui!
+
 from core.models import (Cargo, CondicaoSaude, EquipeUSF, HistoricoFamiliar, Paciente, PacienteCondicao, 
                          PerfilUsuario, USF, TipoAtendimento, Aviso, MicroArea, ModuloSistema)
 
@@ -25,6 +25,7 @@ from core.validators import validar_cpf
 from django.apps import apps
 from territorializacao.models import FamiliaScore, Logradouro, SentinelaRisco, FamiliaSentinela, MembroSentinela
 from django.db.models import Count
+from django.utils.text import slugify
 
 # ─── LOGIN & LOGOUT ───────────────────────────────────────────────────────────
 def login_view(request):
@@ -62,7 +63,6 @@ def hub(request):
 
     hoje   = date.today()
 
-    # MÁGICA DOS MÓDULOS: Descobre quais apps o Admin ligou no painel
     modulos_ativos_db = list(ModuloSistema.objects.filter(ativo=True).values_list('slug_app', flat=True))
 
     total_fila       = 0
@@ -70,7 +70,6 @@ def hub(request):
     retornos_mes     = []
     retornos_proximo = []
 
-    # Verifica se "encaminhamentos" está ligado E instalado fisicamente
     encaminhamentos_visivel = 'encaminhamentos' in modulos_ativos_db and apps.is_installed('encaminhamentos')
 
     if encaminhamentos_visivel and usf:
@@ -104,18 +103,13 @@ def hub(request):
 def erro_404(request, exception):
     return render(request, '404.html', status=404)
 
-# ─── ALTERNAR USF (MULTI-TENANCY) ─────────────────────────────────────────────
 @login_required
 def alternar_usf(request, usf_id):
-    """Muda a USF ativa do utilizador na sessão atual e recarrega a página."""
     if request.method == 'POST' and hasattr(request.user, 'perfil'):
         perfil = request.user.perfil
         is_master = perfil.is_master
-        
-        # Verifica se a USF existe
         usf = get_object_or_404(USF, pk=usf_id, ativo=True)
         
-        # Verifica se ele tem permissão para aceder a esta USF (se não for Master)
         tem_permissao = False
         if is_master:
             tem_permissao = True
@@ -123,14 +117,12 @@ def alternar_usf(request, usf_id):
             tem_permissao = EquipeUSF.objects.filter(user=request.user, usf=usf, ativo=True).exists()
         
         if tem_permissao:
-            # MAGIA: Guarda a escolha no perfil!
             perfil.usf_ativa_padrao = usf
             perfil.save()
             messages.success(request, f'Unidade alterada para {usf.nome}!')
         else:
             messages.error(request, 'Você não tem permissão para aceder a esta unidade.')
             
-    # Redireciona de volta para a página onde ele estava (ou para o Hub se falhar)
     next_url = request.META.get('HTTP_REFERER', reverse('core:hub'))
     return redirect(next_url)
 
@@ -166,6 +158,48 @@ def painel_admin(request):
         contexto['total_cotas'] = ConfigCota.objects.count()
         
     return render(request, 'core/admin/painel.html', contexto)
+
+@admin_required
+def admin_modulos(request):
+    apps_oficiais = {
+        'encaminhamentos': 'Regulação e Cotas',
+        'territorializacao': 'Território e Famílias',
+        'vacinas': 'Imunização e PNI',
+        'mutirao': 'Ações em Massa (Mutirão)',
+        'pacientes': 'Prontuário 360º (Pacientes)'
+    }
+    
+    for slug, nome_padrao in apps_oficiais.items():
+        if not ModuloSistema.objects.filter(slug_app=slug).exists():
+            ModuloSistema.objects.create(nome=nome_padrao, slug_app=slug, ativo=False, ordem=99)
+            
+    modulos = ModuloSistema.objects.all().order_by('ordem', 'nome')
+    return render(request, 'core/admin/modulos.html', {'modulos': modulos})
+
+@admin_required
+def admin_modulo_salvar(request, pk=None):
+    modulo = get_object_or_404(ModuloSistema, pk=pk) if pk else None
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        slug_app = modulo.slug_app if modulo else request.POST.get('slug_app', '').strip()
+        ordem = request.POST.get('ordem', 1)
+        ativo = request.POST.get('ativo') == 'on'
+        
+        if not nome or not slug_app:
+            messages.error(request, 'Nome é obrigatório.')
+        else:
+            dados = dict(nome=nome, slug_app=slug_app, ordem=ordem, ativo=ativo)
+            if modulo:
+                for campo, valor in dados.items(): setattr(modulo, campo, valor)
+                modulo.save()
+                messages.success(request, f'Módulo "{nome}" atualizado com sucesso!')
+            else:
+                ModuloSistema.objects.create(**dados)
+                messages.success(request, f'Módulo "{nome}" criado com sucesso!')
+            return redirect('core:admin_modulos')
+            
+    return render(request, 'core/admin/modulo_form.html', {'modulo': modulo, 'titulo': 'Editar Módulo' if modulo else 'Novo Módulo', 'acao': 'Salvar' if modulo else 'Criar'})
 
 @admin_required
 def admin_usuarios(request):
@@ -478,7 +512,6 @@ def admin_paciente_salvar(request, pk=None):
                 if not PacienteCondicao.objects.filter(paciente=paciente, condicao_id=int(condicao_id), data_fim__isnull=True).exists():
                     PacienteCondicao.objects.create(paciente=paciente, condicao_id=int(condicao_id), data_inicio=date.today())
 
-            # O IF foi removido daqui! O Historico já é nativo do Core.
             hf_ids = request.POST.getlist('hf_id'); hf_condicoes = request.POST.getlist('hf_condicao')
             hf_graus = request.POST.getlist('hf_grau'); hf_obs = request.POST.getlist('hf_observacao')
             ids_mantidos = set()
@@ -554,106 +587,90 @@ def admin_pacientes_inativar_confirmar(request):
     messages.success(request, f'✅ {total} paciente{"s" if total != 1 else ""} inativado{"s" if total != 1 else ""} com sucesso.')
     return redirect(reverse('core:admin_pacientes') + f'?q={q}&microarea={microarea_filtro}&situacao={situacao_filtro}')
 
-
 @admin_required
 def importar_pacientes(request):
-    usf = USF.objects.filter(ativo=True).first()
-    if request.method == 'POST' and request.FILES.get('arquivo'):
-        arquivo = request.FILES['arquivo']
-        try: conteudo = arquivo.read().decode('latin-1')
-        except Exception: messages.error(request, 'Erro ao ler o ficheiro.'); return redirect('core:importar_pacientes')
-        linhas = conteudo.splitlines()
-        linha_header = next((i for i, linha in enumerate(linhas) if 'Nome equipe' in linha or 'Nome' in linha and 'equipe' in linha), None)
-        if linha_header is None: messages.error(request, 'Formato inválido. Cabeçalho não encontrado.'); return redirect('core:importar_pacientes')
-        
-        Paciente.objects.filter(usf=usf).update(atualizado=False)
-        reader = csv.DictReader(linhas[linha_header:], delimiter=';')
-        criados = 0; atualizados = 0; ignorados = 0; erros = []
-
-        for linha in reader:
-            nome = linha.get('Nome', '').strip()
-            if not nome: continue
-            cpf_cns = linha.get('CPF/CNS', '').strip()
-            cpf = None; cartao_sus = None
-            if cpf_cns and cpf_cns not in ['-', '']:
-                cpf_limpo = ''.join(c for c in cpf_cns if c.isdigit())
-                if len(cpf_limpo) == 11: cpf = cpf_limpo
-                elif len(cpf_limpo) == 15: cartao_sus = cpf_limpo
-                else: ignorados += 1; erros.append(f'{nome} — CPF/CNS inválido.'); continue
-            if not cpf and not cartao_sus: ignorados += 1; erros.append(f'{nome} — sem CPF ou CNS válido.'); continue
-            
-            microarea_cod = linha.get('Microárea', '').strip()
-            microarea = None
-            if microarea_cod and microarea_cod not in ['-', 'Não informada', '']:
-                microarea = MicroArea.objects.filter(codigo=microarea_cod, usf=usf).first() or MicroArea.objects.filter(codigo__icontains=microarea_cod, usf=usf).first()
-
-            sexo = 'M' if 'Masculino' in linha.get('Sexo', '') else 'F' if 'Feminino' in linha.get('Sexo', '') else 'I'
-            data_nasc = None
-            if linha.get('Data de nascimento', '') not in ['-', '']:
-                try: data_nasc = datetime.strptime(linha.get('Data de nascimento', '').strip(), '%d/%m/%Y').date()
-                except ValueError: pass
-
-            tel_raw = linha.get('Telefone celular', '').strip()
-            telefone = ''.join(c for c in tel_raw if c.isdigit()) if tel_raw != '-' else ''
-            
-            endereco = ''; numero = ''
-            endereco_raw = linha.get('Endereço', '').strip()
-            if endereco_raw and endereco_raw != '-':
-                rua_num = endereco_raw.split('.')[0].strip()
-                if ',' in rua_num: idx = rua_num.rfind(','); endereco = rua_num[:idx].strip(); numero = rua_num[idx+1:].strip()
-                else: endereco = rua_num
-
-            try:
-                paciente = Paciente.objects.filter(usf=usf, cpf=cpf).first() if cpf else Paciente.objects.filter(usf=usf, cartao_sus=cartao_sus).first() if cartao_sus else None
-                dados = dict(nome=nome, sexo=sexo, data_nascimento=data_nasc, telefone=telefone, endereco=endereco, numero=numero, micro_area=microarea, usf=usf, atualizado=True, ultima_atualizacao=timezone.now())
-                if cpf: dados['cpf'] = cpf
-                if cartao_sus: dados['cartao_sus'] = cartao_sus
-                if paciente:
-                    for campo, valor in dados.items(): setattr(paciente, campo, valor)
-                    paciente.save(); atualizados += 1
-                else:
-                    dados['cadastrado_por'] = request.user
-                    Paciente.objects.create(**dados); criados += 1
-            except Exception as e: erros.append(f'{nome} — erro: {str(e)}'); ignorados += 1
-
-        vivos_fora_area = Paciente.objects.filter(usf=usf, atualizado=False, obito=False)
-        total_fora = vivos_fora_area.count(); vivos_fora_area.update(micro_area=None, ativo=False)
-        obitos_mantidos = Paciente.objects.filter(usf=usf, atualizado=False, obito=True)
-        total_obitos_mantidos = obitos_mantidos.count(); obitos_mantidos.update(ativo=False)
-
-        messages.success(request, f'Importação concluída! {criados} criados · {atualizados} atualizados · {ignorados} ignorados. 📦 {total_fora} vivos movidos para fora de área e ⚰️ {total_obitos_mantidos} óbitos mantidos no território.')
-        return redirect('core:importar_pacientes')
-    return render(request, 'core/admin/importar_pacientes.html', {'usf': usf, 'total_pacientes': Paciente.objects.filter(usf=usf).count() if usf else 0})
+    messages.warning(request, 'A importação foi atualizada! Use a nova Central de Importação.')
+    return redirect('importacoes:hub')
 
 @admin_required
 def importar_condicoes(request):
-    messages.warning(request, 'A importação detalhada de condições será reativada no Módulo Clínico.')
-    return redirect('core:painel_admin')
+    messages.warning(request, 'A importação foi atualizada! Use a nova Central de Importação.')
+    return redirect('importacoes:hub')
 
 @admin_required
 def importar_territorio(request):
-    messages.warning(request, 'A importação de território requer o módulo de Territorialização.')
-    return redirect('core:painel_admin')
+    messages.warning(request, 'A importação foi atualizada! Use a nova Central de Importação.')
+    return redirect('importacoes:hub')
 
-@admin_required
-def familias_score(request):
-    messages.warning(request, 'O score familiar requer o módulo de Territorialização.')
-    return redirect('core:painel_admin')
-
-@admin_required
-def familia_detalhe(request, cpf_responsavel):
-    messages.warning(request, 'O detalhe familiar requer o módulo de Territorialização.')
-    return redirect('core:painel_admin')
-
+# ─── MÓDULO: SENTINELAS DE RISCO ──────────────────────────────────────────────
 @admin_required
 def admin_sentinelas(request):
-    messages.warning(request, 'As sentinelas requerem o módulo de Territorialização.')
-    return redirect('core:painel_admin')
+    """Lista as regras da Escala de Coelho e Savassi."""
+    sentinelas = SentinelaRisco.objects.all().select_related('condicao_saude').order_by('tipo', '-peso', 'nome')
+    return render(request, 'core/admin/sentinelas.html', {'sentinelas': sentinelas})
 
 @admin_required
 def admin_sentinela_salvar(request, pk=None):
-    messages.warning(request, 'As sentinelas requerem o módulo de Territorialização.')
-    return redirect('core:painel_admin')
+    """Cria ou edita uma regra de risco familiar."""
+    sentinela = get_object_or_404(SentinelaRisco, pk=pk) if pk else None
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        tipo = request.POST.get('tipo', 'individual')
+        peso = int(request.POST.get('peso', 1))
+        observacao = request.POST.get('observacao', '').strip()
+        ativo = request.POST.get('ativo') == 'on'
+        
+        # Campos que só existem dependendo do "tipo" escolhido
+        idade_minima = request.POST.get('idade_minima')
+        idade_maxima = request.POST.get('idade_maxima')
+        condicao_saude_id = request.POST.get('condicao_saude')
+        
+        if not nome:
+            messages.error(request, 'O nome da sentinela é obrigatório.')
+        else:
+            dados = {
+                'nome': nome,
+                'tipo': tipo,
+                'peso': peso,
+                'observacao': observacao,
+                'ativo': ativo,
+                'idade_minima': int(idade_minima) if idade_minima and idade_minima.isdigit() else None,
+                'idade_maxima': int(idade_maxima) if idade_maxima and idade_maxima.isdigit() else None,
+                'condicao_saude_id': int(condicao_saude_id) if condicao_saude_id and condicao_saude_id.isdigit() else None,
+            }
+            
+            if sentinela:
+                for campo, valor in dados.items():
+                    setattr(sentinela, campo, valor)
+                sentinela.save()
+                messages.success(request, f'Sentinela "{nome}" atualizada com sucesso!')
+            else:
+                # O Python cria o "slug" (código interno) automaticamente
+                codigo_base = slugify(nome)
+                codigo = codigo_base
+                contador = 1
+                while SentinelaRisco.objects.filter(codigo=codigo).exists():
+                    codigo = f"{codigo_base}-{contador}"
+                    contador += 1
+                    
+                dados['codigo'] = codigo
+                SentinelaRisco.objects.create(**dados)
+                messages.success(request, f'Sentinela "{nome}" criada com sucesso!')
+            
+            return redirect('core:admin_sentinelas')
+            
+    tipos = SentinelaRisco.TIPOS
+    condicoes = CondicaoSaude.objects.filter(ativo=True).order_by('nome')
+    
+    return render(request, 'core/admin/sentinela_form.html', {
+        'sentinela': sentinela,
+        'tipos': tipos,
+        'condicoes': condicoes,
+        'titulo': 'Editar Sentinela de Risco' if sentinela else 'Nova Sentinela de Risco',
+        'acao': 'Salvar Regra' if sentinela else 'Criar Regra'
+    })
+
 
 @admin_required
 def admin_condicoes(request):
@@ -663,16 +680,25 @@ def admin_condicoes(request):
 def admin_condicao_salvar(request, pk=None):
     condicao = get_object_or_404(CondicaoSaude, pk=pk) if pk else None
     if request.method == 'POST':
-        nome = request.POST.get('nome', '').strip(); codigo = request.POST.get('codigo', '').strip(); icone = request.POST.get('icone', '').strip()
-        afeta_prioridade = request.POST.get('afeta_prioridade') == 'on'; ativo = request.POST.get('ativo') == 'on'
-        if not nome or not codigo: messages.error(request, 'Nome e código são obrigatórios.')
+        nome = request.POST.get('nome', '').strip()
+        codigo = slugify(nome)
+        icone = request.POST.get('icone', '').strip()
+        afeta_prioridade = request.POST.get('afeta_prioridade') == 'on'
+        ativo = request.POST.get('ativo') == 'on'
+        
+        if not nome: 
+            messages.error(request, 'O nome da condição é obrigatório.')
         else:
             dados = dict(nome=nome, codigo=codigo, icone=icone, afeta_prioridade=afeta_prioridade, ativo=ativo)
             if condicao:
                 for campo, valor in dados.items(): setattr(condicao, campo, valor)
-                condicao.save(); messages.success(request, f'Condição "{nome}" atualizada!')
-            else: CondicaoSaude.objects.create(**dados); messages.success(request, f'Condição "{nome}" criada!')
+                condicao.save()
+                messages.success(request, f'Condição "{nome}" atualizada!')
+            else: 
+                CondicaoSaude.objects.create(**dados)
+                messages.success(request, f'Condição "{nome}" criada!')
             return redirect('core:admin_condicoes')
+            
     return render(request, 'core/admin/condicao_form.html', {'condicao': condicao, 'titulo': 'Editar condição' if condicao else 'Nova condição', 'acao': 'Salvar' if condicao else 'Criar'})
 
 @user_passes_test(lambda u: u.is_superuser)
@@ -692,13 +718,10 @@ def executar_git_pull(request):
 
 @login_required
 def familias_score(request):
-    """Dashboard de pontuação de risco das famílias."""
-    # Garanta que o modelo MicroArea e Paciente estão importados lá no topo do arquivo!
     from core.models import MicroArea, Paciente
 
     usf = request.user.perfil.usf_ativa_padrao
     
-    # Recalcula tudo se o usuário clicar no botão
     if request.method == 'POST' and request.POST.get('acao') == 'recalcular':
         familias = FamiliaScore.objects.filter(usf=usf)
         for f in familias:
@@ -708,7 +731,7 @@ def familias_score(request):
 
     q = request.GET.get('q', '')
     classificacao_filtro = request.GET.get('classificacao', '')
-    microarea_filtro = request.GET.get('microarea', '') # <-- NOVO FILTRO
+    microarea_filtro = request.GET.get('microarea', '') 
 
     familias = FamiliaScore.objects.filter(usf=usf).order_by('-score_total')
     
@@ -717,18 +740,13 @@ def familias_score(request):
     if classificacao_filtro:
         familias = familias.filter(classificacao=classificacao_filtro)
     
-    # --- MÁGICA DA MICRO-ÁREA ---
     if microarea_filtro:
-        # 1. Pega os CPFs dos responsáveis de todos os pacientes que moram nessa micro-área
         cpfs_da_micro = Paciente.objects.filter(micro_area_id=microarea_filtro, usf=usf).values_list('cpf_responsavel', flat=True)
-        # 2. Filtra as famílias que batem com esses CPFs!
         familias = familias.filter(cpf_responsavel__in=cpfs_da_micro)
 
-    # Conta quantas famílias em cada nível (R0, R1, R2, R3)
     totais = FamiliaScore.objects.filter(usf=usf).values('classificacao').annotate(total=Count('id'))
     dict_totais = {item['classificacao']: item['total'] for item in totais}
 
-    # Busca as micro-áreas ativas para preencher o Menu Suspenso
     microareas = MicroArea.objects.filter(usf=usf, ativo=True).order_by('codigo')
 
     context = {
@@ -745,24 +763,19 @@ def familias_score(request):
 
 @login_required
 def familia_detalhe(request, cpf_responsavel):
-    """Ficha do ACS para avaliar uma família específica."""
     usf = request.user.perfil.usf_ativa_padrao
     familia = get_object_or_404(FamiliaScore, cpf_responsavel=cpf_responsavel, usf=usf)
     
     if request.method == 'POST':
-        # --- NOVA AÇÃO MÁGICA: RECALCULAR AUTOMÁTICO ---
         if request.POST.get('acao') == 'recalcular':
             familia.salvar_com_score()
             messages.success(request, f"Score da família sincronizado com as idades e doenças mais recentes!")
             return redirect('core:familia_detalhe', cpf_responsavel=cpf_responsavel)
 
-        # 🐛 CORREÇÃO DO BUG AQUI: Converter Texto para Número Inteiro! 
         comodos_str = request.POST.get('numero_comodos')
         familia.numero_comodos = int(comodos_str) if comodos_str and comodos_str.isdigit() else None
-        
         familia.save()
         
-        # Limpa tudo para recriar apenas os marcados
         FamiliaSentinela.objects.filter(familia=familia).delete()
         MembroSentinela.objects.filter(familia=familia).delete()
 
@@ -776,19 +789,16 @@ def familia_detalhe(request, cpf_responsavel):
                 s_id = parts[2]
                 MembroSentinela.objects.create(familia=familia, paciente_id=p_id, sentinela_id=s_id, registrado_por=request.user)
         
-        # A MÁGICA: Calcula e salva o novo score!
         familia.salvar_com_score()
         messages.success(request, f"Avaliação da família de {familia.nome_responsavel} atualizada!")
         return redirect('core:familia_detalhe', cpf_responsavel=cpf_responsavel)
 
-    # Busca os riscos para montar o formulário
     sentinelas_dom = SentinelaRisco.objects.filter(tipo='domicilio', ativo=True)
     sentinelas_ind = SentinelaRisco.objects.filter(tipo='individual', ativo=True)
     sentinelas_auto = SentinelaRisco.objects.filter(tipo__in=['idade', 'condicao'], ativo=True)
     
     dom_marcadas = FamiliaSentinela.objects.filter(familia=familia).values_list('sentinela_id', flat=True)
     
-    # Busca os membros vivos e ativos
     membros = Paciente.objects.filter(cpf_responsavel=cpf_responsavel, usf=usf, ativo=True, obito=False)
     for m in membros:
         m.marcadas_ids = MembroSentinela.objects.filter(familia=familia, paciente=m).values_list('sentinela_id', flat=True)
@@ -803,33 +813,50 @@ def familia_detalhe(request, cpf_responsavel):
     }
     return render(request, 'core/admin/familia_detalhe.html', context)
 
-
 @login_required
 @admin_required
 def territorio_lista(request):
-    """Mostra as ruas e quais Micro-áreas atendem essas ruas."""
+    from django.db.models import Prefetch
+    from territorializacao.models import VinculoLogradouro, Logradouro
+    from core.models import MicroArea
+    
     usf = request.user.perfil.usf_ativa_padrao
-    
     q = request.GET.get('q', '')
+    ordenar = request.GET.get('ordenar', 'rua')
     
-    # Busca todos os logradouros desta USF e já traz as micro-áreas junto (prefetch)
-    logradouros = Logradouro.objects.filter(usf=usf).prefetch_related('vinculos__micro_area').order_by('logradouro')
-    
-    if q:
-        logradouros = logradouros.filter(logradouro__icontains=q)
-        
     context = {
-        'logradouros': logradouros,
         'q': q,
+        'ordenar': ordenar,
         'usf': usf
     }
+    
+    if ordenar == 'microarea':
+        vinculos_query = VinculoLogradouro.objects.select_related('logradouro').order_by('logradouro__logradouro')
+        if q:
+            vinculos_query = vinculos_query.filter(logradouro__logradouro__icontains=q)
+            
+        microareas = MicroArea.objects.filter(usf=usf, ativo=True).prefetch_related(
+            Prefetch('logradouros_vinculados', queryset=vinculos_query, to_attr='vinculos_filtrados')
+        ).order_by('codigo')
+        
+        context['microareas_agrupadas'] = [ma for ma in microareas if ma.vinculos_filtrados]
+        
+        ruas_descobertas = Logradouro.objects.filter(usf=usf, vinculos__isnull=True)
+        if q:
+            ruas_descobertas = ruas_descobertas.filter(logradouro__icontains=q)
+        context['ruas_descobertas'] = ruas_descobertas
+        
+    else:
+        logradouros = Logradouro.objects.filter(usf=usf).prefetch_related('vinculos__micro_area')
+        if q:
+            logradouros = logradouros.filter(logradouro__icontains=q)
+        context['logradouros'] = logradouros.order_by('logradouro')
+        
     return render(request, 'core/admin/territorio_lista.html', context)
-
 
 @login_required
 @admin_required
 def admin_rua_salvar(request, pk=None):
-    """Tela para o Coordenador cadastrar ou editar uma Rua e a sua Micro-área."""
     from territorializacao.models import Logradouro, VinculoLogradouro
     from core.models import MicroArea
     
@@ -843,7 +870,6 @@ def admin_rua_salvar(request, pk=None):
         microarea_id = request.POST.get('microarea')
         ativo = request.POST.get('ativo') == 'on'
         
-        # 🚀 NOVOS CAMPOS: Capturando os limites da rua
         num_inicial = request.POST.get('numero_inicial')
         num_final = request.POST.get('numero_final')
         
@@ -856,17 +882,31 @@ def admin_rua_salvar(request, pk=None):
             rua.ativo = ativo
             rua.save()
             
-        # Associa a rua à Micro-área escolhida
-        rua.vinculos.all().delete() # Limpa o vínculo antigo
         if microarea_id:
             microarea = get_object_or_404(MicroArea, pk=microarea_id, usf=usf)
-            VinculoLogradouro.objects.create(
-                logradouro=rua, 
-                micro_area=microarea,
-                # Verifica se digitaram algo e converte para número matemático
-                numero_inicial=int(num_inicial) if num_inicial and num_inicial.isdigit() else None,
-                numero_final=int(num_final) if num_final and num_final.isdigit() else None
-            )
+            vinculo = rua.vinculos.first()
+            ignorar_anomalia = request.POST.get('ignorar_anomalia') == 'on'
+            
+            if vinculo:
+                vinculo.micro_area = microarea
+                vinculo.numero_inicial = int(num_inicial) if num_inicial and num_inicial.isdigit() else None
+                vinculo.numero_final = int(num_final) if num_final and num_final.isdigit() else None
+                if ignorar_anomalia:
+                    vinculo.motivo = "✔️ Validado (Numeração Correta)"
+                elif vinculo.motivo == "✔️ Validado (Numeração Correta)":
+                    vinculo.motivo = ""
+                vinculo.save()
+            else:
+                motivo = "✔️ Validado (Numeração Correta)" if ignorar_anomalia else ""
+                VinculoLogradouro.objects.create(
+                    logradouro=rua, 
+                    micro_area=microarea,
+                    numero_inicial=int(num_inicial) if num_inicial and num_inicial.isdigit() else None,
+                    numero_final=int(num_final) if num_final and num_final.isdigit() else None,
+                    motivo=motivo
+                )
+        else:
+            rua.vinculos.all().delete() 
         
         messages.success(request, 'Rua e vínculos atualizados com sucesso!')
         return redirect('core:territorio_lista')

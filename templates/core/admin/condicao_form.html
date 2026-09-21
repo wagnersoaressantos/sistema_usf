@@ -1,76 +1,60 @@
 {% extends 'base.html' %}
-{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block titulo %}{{ titulo }} — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem;">
-    <a href="{% url 'core:admin_condicoes' %}"
-       style="color:var(--verde); text-decoration:none; font-size:20px;">←</a>
-    <h1 class="page-title" style="margin:0;">{{ titulo }}</h1>
-</div>
-
-<form method="post">
-    {% csrf_token %}
-    <div class="card" style="margin-bottom:1rem;">
-
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label>Nome *</label>
-            <input type="text" name="nome" class="form-input"
-                   value="{{ condicao.nome|default:'' }}"
-                   placeholder="Ex: Hipertensão, Diabetes, Gestante">
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">{{ titulo }}</h1>
+            <p class="text-gray-600 mt-1">Configuração de listas temáticas e acompanhamentos.</p>
         </div>
-
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label>Código *
-                <span style="font-size:12px; color:#9ca3af;">
-                    (sem espaços, não altere após criado)
-                </span>
-            </label>
-            <input type="text" name="codigo" class="form-input"
-                   value="{{ condicao.codigo|default:'' }}"
-                   placeholder="Ex: hipertensao, diabetes">
-        </div>
-
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label>Ícone (emoji)</label>
-            <input type="text" name="icone" class="form-input"
-                   style="max-width:100px;"
-                   value="{{ condicao.icone|default:'' }}"
-                   placeholder="Ex: ❤️ 🩸 🤰">
-            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0;">
-                Cole um emoji para identificar visualmente a condição.
-            </p>
-        </div>
-
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label style="display:flex; align-items:center;
-                           gap:8px; cursor:pointer;">
-                <input type="checkbox" name="afeta_prioridade"
-                       {% if condicao and condicao.afeta_prioridade %}checked{% endif %}>
-                Afeta prioridade no encaminhamento
-            </label>
-            <p style="font-size:12px; color:#9ca3af; margin:4px 0 0 24px;">
-                Se marcado, o sistema sugere prioridade preferencial
-                ao cadastrar encaminhamento para este paciente.
-            </p>
-        </div>
-
-        <div class="form-group">
-            <label style="display:flex; align-items:center;
-                           gap:8px; cursor:pointer;">
-                <input type="checkbox" name="ativo"
-                       {% if not condicao or condicao.ativo %}checked{% endif %}>
-                Condição ativa
-            </label>
-        </div>
-    </div>
-
-    <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <a href="{% url 'core:admin_condicoes' %}" class="btn btn-cinza">
-            Cancelar
+        <a href="{% url 'core:admin_condicoes' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
+            Voltar
         </a>
-        <button type="submit" class="btn btn-verde">{{ acao }}</button>
     </div>
-</form>
 
+    <form method="POST" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            
+            <div class="col-span-1 md:col-span-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Nome da Condição / Lista Temática</label>
+                <input type="text" name="nome" value="{{ condicao.nome|default:'' }}" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Ex: Saúde da Mulher">
+                <p class="text-xs text-purple-600 font-medium mt-1">✨ O código interno será gerado automaticamente pelo sistema.</p>
+            </div>
+
+            <div class="col-span-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Ícone (Emoji) <span class="text-gray-400 font-normal">(Opcional)</span></label>
+                <input type="text" name="icone" value="{{ condicao.icone|default:'' }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Ex: 🤰, 🩸, 🦷">
+            </div>
+            
+        </div>
+
+        <div class="mb-4 p-4 bg-purple-50 border border-purple-100 rounded-lg">
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="afeta_prioridade" class="mt-1 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500" {% if condicao and condicao.afeta_prioridade %}checked{% endif %}>
+                <div>
+                    <span class="text-sm font-bold text-gray-800">Afeta Prioridade de Encaminhamento</span>
+                    <span class="text-xs text-gray-600 block mt-0.5">Marque isto se pacientes com esta condição (ex: Gestante, Idoso) deverem saltar à frente na fila de regulação.</span>
+                </div>
+            </label>
+        </div>
+
+        <div class="mb-8">
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="ativo" class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500" {% if not condicao or condicao.ativo %}checked{% endif %}>
+                <span class="text-sm font-medium text-gray-800">Condição Ativa no Sistema</span>
+            </label>
+        </div>
+
+        <div class="flex justify-end pt-4 border-t border-gray-100">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition">
+                {{ acao }}
+            </button>
+        </div>
+    </form>
+</div>
 {% endblock %}
