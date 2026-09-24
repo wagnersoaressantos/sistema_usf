@@ -14,7 +14,7 @@
         
         <div class="flex items-center gap-3">
             <!-- NOVO BOTÃO: SINCRONIZAR SCORE -->
-            <form method="POST" action="{% url 'core:familia_detalhe' familia.cpf_responsavel %}" class="m-0">
+            <form method="POST" action="{% url 'territorializacao:familia_detalhe' familia.cpf_responsavel %}" class="m-0">
                 {% csrf_token %}
                 <input type="hidden" name="acao" value="recalcular">
                 <button type="submit" class="text-blue-700 hover:text-blue-800 font-bold flex items-center gap-2 transition bg-blue-50 border border-blue-200 hover:bg-blue-100 py-2 px-4 rounded-lg shadow-sm" title="Puxar as doenças e idades mais recentes do prontuário">
@@ -25,7 +25,7 @@
                 </button>
             </form>
 
-            <a href="{% url 'core:familias_score' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
+            <a href="{% url 'territorializacao:familias_score' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
                 Voltar à Lista
             </a>

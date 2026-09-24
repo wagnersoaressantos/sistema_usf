@@ -36,8 +36,11 @@
 
         {% if 'territorializacao' in modulos_ativos %}
             <!-- A rota mágica que aponta para as Famílias! -->
-            <a href="{% url 'core:familias_score' %}" class="{% if 'familias' in request.path %}ativo{% endif %}">
+            <a href="{% url 'territorializacao:familias_score' %}" class="{% if 'familias' in request.path %}ativo{% endif %}">
                 🗺️ Famílias e Território
+            </a>
+            <a href="{% url 'territorializacao:painel_ssa2' %}" class="{% if 'ssa2' in request.path %}ativo{% endif %}">
+                📊 Fichas SSA2
             </a>
         {% endif %}
 

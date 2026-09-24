@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Ficha SSA2 - MA {{ microarea.codigo }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+
+    <div class="flex items-center gap-4 mb-8">
+        <a href="{% url 'territorializacao:painel_ssa2' %}" class="text-gray-400 hover:text-cyan-600 transition bg-white p-2 rounded-full shadow-sm border border-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">📝 Ficha SSA2 — Micro-área {{ microarea.codigo }}</h1>
+            <p class="text-gray-600 mt-1 font-medium">Competência: <span class="text-cyan-700">{{ nome_mes }} / {{ ano }}</span></p>
+        </div>
+    </div>
+
+    <!-- Guia Rápido -->
+    <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg shadow-sm">
+        <p class="text-sm text-green-800 font-medium">
+            💡 Os campos com <strong>fundo verde</strong> já foram calculados automaticamente pelo sistema cruzando as Doenças e Idades do Prontuário 360º.
+        </p>
+    </div>
+
+    <form method="POST" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-10">
+            
+            <!-- ======================= COLUNA 1 ======================= -->
+            <div class="space-y-8">
+                
+                <!-- GESTANTES E FAMÍLIAS -->
+                <div class="bg-indigo-50/30 rounded-lg p-5 border border-indigo-100">
+                    <h2 class="text-sm font-black text-indigo-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span>🤰</span> Gestantes e Famílias
+                    </h2>
+                    <div class="space-y-3">
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-medium">
+                            Gestantes Cadastradas (Auto)
+                            <input type="number" name="gest_cadastradas" value="{{ ficha_salva.gest_cadastradas|default_if_none:dados_automaticos.gest_cadastradas|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 font-bold text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Gestantes Acompanhadas
+                            <input type="number" name="gest_acompanhadas" value="{{ ficha_salva.gest_acompanhadas|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-indigo-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Com vacina em dia
+                            <input type="number" name="gest_vacina_em_dia" value="{{ ficha_salva.gest_vacina_em_dia|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-indigo-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Consulta pré-natal no mês
+                            <input type="number" name="gest_consulta_mes" value="{{ ficha_salva.gest_consulta_mes|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-indigo-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Pré-natal iniciado no 1º TRI
+                            <input type="number" name="gest_inicio_1_trimestre" value="{{ ficha_salva.gest_inicio_1_trimestre|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-indigo-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-medium">
+                            < 20 anos cadastradas (Auto)
+                            <input type="number" name="gest_menor_20_anos" value="{{ ficha_salva.gest_menor_20_anos|default_if_none:dados_automaticos.gest_menor_20_anos|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 font-bold text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        
+                        <div class="h-px bg-indigo-200 my-4"></div>
+                        
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-medium">
+                            Famílias Cadastradas (Auto)
+                            <input type="number" name="total_familias_cadastradas" value="{{ ficha_salva.total_familias_cadastradas|default_if_none:dados_automaticos.total_familias_cadastradas|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 font-bold text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Visita domiciliar (ACS)
+                            <input type="number" name="visita_domiciliar_acs" value="{{ ficha_salva.visita_domiciliar_acs|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-indigo-500 text-center">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- DOENÇAS CRÔNICAS E TRANSMISSÍVEIS -->
+                <div class="bg-red-50/40 rounded-lg p-5 border border-red-100">
+                    <h2 class="text-sm font-black text-red-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span>🩸</span> Doenças e Acompanhamentos
+                    </h2>
+                    <div class="space-y-3">
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-medium">
+                            Diabéticos Cadastrados (Auto)
+                            <input type="number" name="diab_cadastrados" value="{{ ficha_salva.diab_cadastrados|default_if_none:dados_automaticos.diab_cadastrados|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 font-bold text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Diabéticos Acompanhados
+                            <input type="number" name="diab_acompanhados" value="{{ ficha_salva.diab_acompanhados|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-red-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-medium">
+                            Hipertensos Cadastrados (Auto)
+                            <input type="number" name="hiper_cadastrados" value="{{ ficha_salva.hiper_cadastrados|default_if_none:dados_automaticos.hiper_cadastrados|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 font-bold text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Hipertensos Acompanhados
+                            <input type="number" name="hiper_acompanhados" value="{{ ficha_salva.hiper_acompanhados|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-red-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-medium">
+                            Tuberculose: Cadastrados (Auto)
+                            <input type="number" name="tb_cadastrados" value="{{ ficha_salva.tb_cadastrados|default_if_none:dados_automaticos.tb_cadastrados|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 font-bold text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Tuberculose: Acompanhados
+                            <input type="number" name="tb_acompanhados" value="{{ ficha_salva.tb_acompanhados|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-red-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-medium">
+                            Hanseníase: Cadastrados (Auto)
+                            <input type="number" name="han_cadastrados" value="{{ ficha_salva.han_cadastrados|default_if_none:dados_automaticos.han_cadastrados|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 font-bold text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            Hanseníase: Acompanhados
+                            <input type="number" name="han_acompanhados" value="{{ ficha_salva.han_acompanhados|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-red-500 text-center">
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ======================= COLUNA 2 ======================= -->
+            <div class="space-y-8">
+                
+                <!-- CRIANÇAS -->
+                <div class="bg-emerald-50/40 rounded-lg p-5 border border-emerald-100">
+                    <h2 class="text-sm font-black text-emerald-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span>👶</span> Crianças
+                    </h2>
+                    <div class="space-y-2.5">
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-medium">
+                            Nascidos vivos no mês (Auto)
+                            <input type="number" name="nascidos_vivos_mes" value="{{ ficha_salva.nascidos_vivos_mes|default_if_none:dados_automaticos.nascidos_vivos_mes|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 font-bold text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            RN pesados ao nascer
+                            <input type="number" name="rn_pesados_ao_nascer" value="{{ ficha_salva.rn_pesados_ao_nascer|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-emerald-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-sm text-gray-700">
+                            RN com peso < 2.500g
+                            <input type="number" name="rn_baixo_peso" value="{{ ficha_salva.rn_baixo_peso|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-emerald-500 text-center">
+                        </label>
+                        
+                        <div class="h-px bg-emerald-200 my-3 border-dashed border-b border-emerald-300"></div>
+                        
+                        <!-- 🚀 NOVO CAMPO: 0 A 3 MESES -->
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-bold">
+                            Total de 0 a 3 meses e 29 dias (Auto)
+                            <input type="number" name="cria_0_3m_total" value="{{ ficha_salva.cria_0_3m_total|default_if_none:dados_automaticos.cria_0_3m_total|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Aleitamento Exclusivo
+                            <input type="number" name="cria_0_3m_aleitamento_exclusivo" value="{{ ficha_salva.cria_0_3m_aleitamento_exclusivo|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Aleitamento Misto
+                            <input type="number" name="cria_0_3m_aleitamento_misto" value="{{ ficha_salva.cria_0_3m_aleitamento_misto|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        
+                        <div class="h-px bg-emerald-200 my-3 border-dashed border-b border-emerald-300"></div>
+                        
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-bold">
+                            Total de 0 a 11 meses e 29 dias (Auto)
+                            <input type="number" name="cria_0_11m_total" value="{{ ficha_salva.cria_0_11m_total|default_if_none:dados_automaticos.cria_0_11m_total|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Com vacina em dia
+                            <input type="number" name="cria_0_11m_vacina_em_dia" value="{{ ficha_salva.cria_0_11m_vacina_em_dia|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Pesadas
+                            <input type="number" name="cria_0_11m_pesadas" value="{{ ficha_salva.cria_0_11m_pesadas|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Desnutridas
+                            <input type="number" name="cria_0_11m_desnutridas" value="{{ ficha_salva.cria_0_11m_desnutridas|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+
+                        <div class="h-px bg-emerald-200 my-3 border-dashed border-b border-emerald-300"></div>
+
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-bold">
+                            Total de 12 a 23 meses e 29 dias (Auto)
+                            <input type="number" name="cria_12_23m_total" value="{{ ficha_salva.cria_12_23m_total|default_if_none:dados_automaticos.cria_12_23m_total|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Com vacina em dia
+                            <input type="number" name="cria_12_23m_vacina_em_dia" value="{{ ficha_salva.cria_12_23m_vacina_em_dia|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Pesadas
+                            <input type="number" name="cria_12_23m_pesadas" value="{{ ficha_salva.cria_12_23m_pesadas|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Desnutridas
+                            <input type="number" name="cria_12_23m_desnutridas" value="{{ ficha_salva.cria_12_23m_desnutridas|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        
+                        <div class="h-px bg-emerald-200 my-3 border-dashed border-b border-emerald-300"></div>
+                        
+                        <label class="flex justify-between items-center text-sm text-gray-700 font-bold">
+                            Total Menores de 2 anos (Auto)
+                            <input type="number" name="cria_menor_2a_total" value="{{ ficha_salva.cria_menor_2a_total|default_if_none:dados_automaticos.cria_menor_2a_total|default_if_none:'' }}" class="w-20 px-3 py-1.5 border border-green-400 bg-green-50 text-green-900 rounded-md focus:ring-green-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Tiveram diarreia
+                            <input type="number" name="cria_menor_2a_diarreia" value="{{ ficha_salva.cria_menor_2a_diarreia|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Diarreia e usaram TRO
+                            <input type="number" name="cria_menor_2a_diarreia_tro" value="{{ ficha_salva.cria_menor_2a_diarreia_tro|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                        <label class="flex justify-between items-center text-xs text-gray-600 pl-4">
+                            ↳ Infecção Respiratória (IRA)
+                            <input type="number" name="cria_menor_2a_ira" value="{{ ficha_salva.cria_menor_2a_ira|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-emerald-500 text-center">
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ======================= LINHA INFERIOR ======================= -->
+            
+            <!-- HOSPITALIZAÇÕES -->
+            <div class="bg-amber-50/50 rounded-lg p-5 border border-amber-200">
+                <h2 class="text-sm font-black text-amber-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span>🏥</span> Hospitalizações
+                </h2>
+                <div class="space-y-3">
+                    <label class="flex justify-between items-center text-xs text-gray-700">
+                        < 5 anos por pneumonia
+                        <input type="number" name="hosp_menor_5a_pneumonia" value="{{ ficha_salva.hosp_menor_5a_pneumonia|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-amber-500 text-center">
+                    </label>
+                    <label class="flex justify-between items-center text-xs text-gray-700">
+                        < 5 anos por desidratação
+                        <input type="number" name="hosp_menor_5a_desidratacao" value="{{ ficha_salva.hosp_menor_5a_desidratacao|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-amber-500 text-center">
+                    </label>
+                    <label class="flex justify-between items-center text-xs text-gray-700">
+                        Por abuso de álcool
+                        <input type="number" name="hosp_abuso_alcool" value="{{ ficha_salva.hosp_abuso_alcool|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-amber-500 text-center">
+                    </label>
+                    <label class="flex justify-between items-center text-xs text-gray-700">
+                        Por complicação do Diabetes
+                        <input type="number" name="hosp_complicacao_diabetes" value="{{ ficha_salva.hosp_complicacao_diabetes|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-amber-500 text-center">
+                    </label>
+                    <label class="flex justify-between items-center text-xs text-gray-700">
+                        Por outras causas
+                        <input type="number" name="hosp_outras_causas" value="{{ ficha_salva.hosp_outras_causas|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-amber-500 text-center">
+                    </label>
+                    <label class="flex justify-between items-center text-xs text-gray-700">
+                        Internações psiquiátricas
+                        <input type="number" name="hosp_psiquiatrico" value="{{ ficha_salva.hosp_psiquiatrico|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-amber-500 text-center">
+                    </label>
+                    <div class="h-px bg-amber-200 my-2"></div>
+                    <label class="flex justify-between items-center text-sm font-bold text-gray-800">
+                        Total de Hospitalizações
+                        <input type="number" name="hosp_total" value="{{ ficha_salva.hosp_total|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-amber-500 text-center font-bold">
+                    </label>
+                </div>
+            </div>
+
+            <!-- ÓBITOS GERAIS E INFANTIS -->
+            <div class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                <h2 class="text-sm font-black text-gray-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span>⚰️</span> Óbitos
+                </h2>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2 border-r border-gray-200 pr-4">
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Óbitos < 28 dias</p>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Diarreia <input type="number" name="obito_menor_28d_diarreia" value="{{ ficha_salva.obito_menor_28d_diarreia|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Infec. Resp. <input type="number" name="obito_menor_28d_ira" value="{{ ficha_salva.obito_menor_28d_ira|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Outras <input type="number" name="obito_menor_28d_outras" value="{{ ficha_salva.obito_menor_28d_outras|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                        </div>
+                        <div class="space-y-2">
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">28 dias a 11 meses</p>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Diarreia <input type="number" name="obito_28d_11m_diarreia" value="{{ ficha_salva.obito_28d_11m_diarreia|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Infec. Resp. <input type="number" name="obito_28d_11m_ira" value="{{ ficha_salva.obito_28d_11m_ira|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Outras <input type="number" name="obito_28d_11m_outras" value="{{ ficha_salva.obito_28d_11m_outras|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-gray-200 my-2"></div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2 border-r border-gray-200 pr-4">
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Óbitos < 1 ano</p>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Diarreia <input type="number" name="obito_menor_1a_diarreia" value="{{ ficha_salva.obito_menor_1a_diarreia|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Infec. Resp. <input type="number" name="obito_menor_1a_ira" value="{{ ficha_salva.obito_menor_1a_ira|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Outras <input type="number" name="obito_menor_1a_outras" value="{{ ficha_salva.obito_menor_1a_outras|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                        </div>
+                        <div class="space-y-2">
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Óbitos Gerais</p>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700 font-bold">
+                                Mulheres 10 a 14a (Auto)
+                                <input type="number" name="obito_mulher_10_14a" value="{{ ficha_salva.obito_mulher_10_14a|default_if_none:dados_automaticos.obito_mulher_10_14a|default_if_none:'' }}" class="w-14 px-1 py-1 border border-green-400 bg-green-50 text-green-900 rounded focus:ring-green-500 text-center">
+                            </label>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700 font-bold">
+                                Mulheres 15 a 49a (Auto)
+                                <input type="number" name="obito_mulher_15_49a" value="{{ ficha_salva.obito_mulher_15_49a|default_if_none:dados_automaticos.obito_mulher_15_49a|default_if_none:'' }}" class="w-14 px-1 py-1 border border-green-400 bg-green-50 text-green-900 rounded focus:ring-green-500 text-center">
+                            </label>
+                            <label class="flex justify-between items-center text-[11px] text-gray-700">
+                                Outros Óbitos
+                                <input type="number" name="obito_outras_causas" value="{{ ficha_salva.obito_outras_causas|default_if_none:'' }}" class="w-14 px-1 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="h-px bg-gray-200 my-2"></div>
+                    
+                    <label class="flex justify-between items-center text-xs text-gray-700">
+                        Adolescentes (10 a 19) por violência
+                        <input type="number" name="obito_adolescente_violencia" value="{{ ficha_salva.obito_adolescente_violencia|default_if_none:'' }}" class="w-16 px-2 py-1 border border-gray-300 rounded focus:ring-gray-500 text-center">
+                    </label>
+                    <label class="flex justify-between items-center text-sm font-bold text-gray-800 mt-2">
+                        Total de Óbitos (Auto)
+                        <input type="number" name="obito_total" value="{{ ficha_salva.obito_total|default_if_none:dados_automaticos.obito_total|default_if_none:'' }}" class="w-16 px-2 py-1 border border-green-400 bg-green-50 text-green-900 rounded focus:ring-green-500 text-center">
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-end gap-4 border-t border-gray-200 pt-6">
+            <a href="{% url 'territorializacao:painel_ssa2' %}" class="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition w-full sm:w-auto text-center">Cancelar</a>
+            <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition w-full sm:w-auto flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                Salvar Ficha do Mês
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

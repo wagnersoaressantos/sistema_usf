@@ -208,3 +208,89 @@ class MembroSentinela(models.Model):
 
     class Meta:
         unique_together = ['paciente', 'sentinela']
+
+# ==============================================================================
+# FICHA SSA2 (SITUAÇÃO DE SAÚDE - PRODUÇÃO ACS E ENFERMAGEM)
+# ==============================================================================
+class FichaSSA2(models.Model):
+    """Guarda a produção mensal da micro-área."""
+    microarea = models.ForeignKey(MicroArea, on_delete=models.CASCADE, related_name='fichas_ssa2')
+    mes = models.IntegerField('Mês')
+    ano = models.IntegerField('Ano')
+    data_preenchimento = models.DateTimeField(auto_now=True)
+
+    # --- Gestantes / Famílias ---
+    gest_cadastradas = models.IntegerField(null=True, blank=True)
+    gest_acompanhadas = models.IntegerField(null=True, blank=True)
+    gest_vacina_em_dia = models.IntegerField(null=True, blank=True)
+    gest_consulta_mes = models.IntegerField(null=True, blank=True)
+    gest_inicio_1_trimestre = models.IntegerField(null=True, blank=True)
+    gest_menor_20_anos = models.IntegerField(null=True, blank=True)
+    total_familias_cadastradas = models.IntegerField(null=True, blank=True)
+    visita_domiciliar_acs = models.IntegerField(null=True, blank=True)
+
+    # --- Doenças ---
+    diab_cadastrados = models.IntegerField(null=True, blank=True)
+    diab_acompanhados = models.IntegerField(null=True, blank=True)
+    hiper_cadastrados = models.IntegerField(null=True, blank=True)
+    hiper_acompanhados = models.IntegerField(null=True, blank=True)
+    tb_cadastrados = models.IntegerField(null=True, blank=True)
+    tb_acompanhados = models.IntegerField(null=True, blank=True)
+    han_cadastrados = models.IntegerField(null=True, blank=True)
+    han_acompanhados = models.IntegerField(null=True, blank=True)
+
+    # --- Hosp ---
+    hosp_menor_5a_pneumonia = models.IntegerField(null=True, blank=True)
+    hosp_menor_5a_desidratacao = models.IntegerField(null=True, blank=True)
+    hosp_abuso_alcool = models.IntegerField(null=True, blank=True)
+    hosp_complicacao_diabetes = models.IntegerField(null=True, blank=True)
+    hosp_outras_causas = models.IntegerField(null=True, blank=True)
+    hosp_total = models.IntegerField(null=True, blank=True)
+    hosp_psiquiatrico = models.IntegerField(null=True, blank=True)
+
+# --- Crianças ---
+    nascidos_vivos_mes = models.IntegerField(null=True, blank=True)
+    rn_pesados_ao_nascer = models.IntegerField(null=True, blank=True)
+    rn_baixo_peso = models.IntegerField(null=True, blank=True)
+    
+    # 🚀 O CAMPO QUE FALTAVA!
+    cria_0_3m_total = models.IntegerField(null=True, blank=True) 
+    
+    cria_0_3m_aleitamento_exclusivo = models.IntegerField(null=True, blank=True)
+    cria_0_3m_aleitamento_misto = models.IntegerField(null=True, blank=True)
+    cria_0_11m_total = models.IntegerField(null=True, blank=True)
+    cria_0_11m_vacina_em_dia = models.IntegerField(null=True, blank=True)
+    cria_0_11m_pesadas = models.IntegerField(null=True, blank=True)
+    cria_0_11m_desnutridas = models.IntegerField(null=True, blank=True)
+    cria_12_23m_total = models.IntegerField(null=True, blank=True)
+    cria_12_23m_vacina_em_dia = models.IntegerField(null=True, blank=True)
+    cria_12_23m_pesadas = models.IntegerField(null=True, blank=True)
+    cria_12_23m_desnutridas = models.IntegerField(null=True, blank=True)
+    cria_menor_2a_total = models.IntegerField(null=True, blank=True)
+    cria_menor_2a_diarreia = models.IntegerField(null=True, blank=True)
+    cria_menor_2a_diarreia_tro = models.IntegerField(null=True, blank=True)
+    cria_menor_2a_ira = models.IntegerField(null=True, blank=True)
+
+    # --- Obitos ---
+    obito_menor_28d_diarreia = models.IntegerField(null=True, blank=True)
+    obito_menor_28d_ira = models.IntegerField(null=True, blank=True)
+    obito_menor_28d_outras = models.IntegerField(null=True, blank=True)
+    obito_28d_11m_diarreia = models.IntegerField(null=True, blank=True)
+    obito_28d_11m_ira = models.IntegerField(null=True, blank=True)
+    obito_28d_11m_outras = models.IntegerField(null=True, blank=True)
+    obito_menor_1a_diarreia = models.IntegerField(null=True, blank=True)
+    obito_menor_1a_ira = models.IntegerField(null=True, blank=True)
+    obito_menor_1a_outras = models.IntegerField(null=True, blank=True)
+    obito_mulher_10_14a = models.IntegerField(null=True, blank=True)
+    obito_mulher_15_49a = models.IntegerField(null=True, blank=True)
+    obito_outras_causas = models.IntegerField(null=True, blank=True)
+    obito_total = models.IntegerField(null=True, blank=True)
+    obito_adolescente_violencia = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Ficha SSA2'
+        verbose_name_plural = 'Fichas SSA2'
+        unique_together = ['microarea', 'mes', 'ano'] # Impede criar duas fichas para o mesmo mês/MA
+
+    def __str__(self):
+        return f"SSA2 - MA {self.microarea.codigo} ({self.mes}/{self.ano})"

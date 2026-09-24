@@ -6,7 +6,7 @@ from django.db.models import Count, Q
 
 from core.decorators import admin_required
 from core.models import EquipeUSF, Paciente, USF
-from .models import Encaminhamento, HistoricoEncaminhamento, TipoEncaminhamento, Subcategoria
+from .models import ConfigCota, ConfigCotaSubcategoria, Encaminhamento, HistoricoEncaminhamento, TipoEncaminhamento, Subcategoria
 
 # --- FUNÇÃO AUXILIAR ---
 def obter_usf_usuario(user):
@@ -197,4 +197,99 @@ def detalhe(request, pk):
     return render(request, 'encaminhamentos/detalhe.html', {
         'encaminhamento': encaminhamento,
         'status_choices': Encaminhamento.STATUS_CHOICES,
+    })
+
+# ==============================================================================
+# 🚀 FASE 7: ADMINISTRAÇÃO DA REGULAÇÃO (LINGUAGEM UBÍQUA)
+# ==============================================================================
+
+@admin_required
+def admin_tipos_enc(request):
+    """Lista todos os Grupos (Subcategorias) e as Especialidades (Tipos) atreladas a eles."""
+    # O prefetch_related carrega todas as especialidades de cada categoria num único comando rápido
+    categorias = Subcategoria.objects.prefetch_related('tipos').all().order_by('nome')
+    return render(request, 'encaminhamentos/admin/especialidades.html', {'categorias': categorias})
+
+@admin_required
+def admin_categoria_salvar(request, pk=None):
+    """Cria ou edita um Grupo Principal (Subcategoria no DB)."""
+    categoria = get_object_or_404(Subcategoria, pk=pk) if pk else None
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        cota_padrao = int(request.POST.get('cota_padrao', 0))
+        ativo = request.POST.get('ativo') == 'on'
+        
+        if not nome:
+            messages.error(request, 'O nome da Categoria/Grupo é obrigatório.')
+        else:
+            if categoria:
+                categoria.nome = nome
+                categoria.cota_padrao = cota_padrao
+                categoria.ativo = ativo
+                categoria.save()
+                messages.success(request, f'Grupo "{nome}" atualizado com sucesso!')
+            else:
+                Subcategoria.objects.create(nome=nome, cota_padrao=cota_padrao, ativo=ativo)
+                messages.success(request, f'Grupo "{nome}" criado com sucesso!')
+            return redirect('encaminhamentos:admin_tipos_enc')
+            
+    return render(request, 'encaminhamentos/admin/categoria_form.html', {
+        'categoria': categoria,
+        'titulo': 'Editar Grupo/Categoria' if categoria else 'Novo Grupo Principal',
+        'acao': 'Salvar Grupo' if categoria else 'Criar Grupo'
+    })
+
+@admin_required
+def admin_especialidade_salvar(request, pk=None):
+    """Cria ou edita uma Especialidade (TipoEncaminhamento no DB)."""
+    especialidade = get_object_or_404(TipoEncaminhamento, pk=pk) if pk else None
+    categorias = Subcategoria.objects.filter(ativo=True).order_by('nome')
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        subcategoria_id = request.POST.get('subcategoria')
+        cota_padrao = int(request.POST.get('cota_padrao', 0))
+        idade_min = request.POST.get('idade_minima')
+        idade_max = request.POST.get('idade_maxima')
+        ativo = request.POST.get('ativo') == 'on'
+        
+        if not nome or not subcategoria_id:
+            messages.error(request, 'O Nome e o Grupo Principal são obrigatórios.')
+        else:
+            dados = {
+                'nome': nome,
+                'subcategoria_id': subcategoria_id,
+                'cota_padrao': cota_padrao,
+                'idade_minima': int(idade_min) if idade_min else None,
+                'idade_maxima': int(idade_max) if idade_max else None,
+                'ativo': ativo
+            }
+            if especialidade:
+                for k, v in dados.items():
+                    setattr(especialidade, k, v)
+                especialidade.save()
+                messages.success(request, f'Especialidade "{nome}" atualizada!')
+            else:
+                TipoEncaminhamento.objects.create(**dados)
+                messages.success(request, f'Especialidade "{nome}" criada!')
+            return redirect('encaminhamentos:admin_tipos_enc')
+            
+    return render(request, 'encaminhamentos/admin/especialidade_form.html', {
+        'especialidade': especialidade,
+        'categorias': categorias,
+        'titulo': 'Editar Especialidade / Exame' if especialidade else 'Nova Especialidade',
+        'acao': 'Salvar Especialidade' if especialidade else 'Criar Especialidade'
+    })
+
+@admin_required
+def admin_cotas(request):
+    """Painel Geral de Cotas (Limites por USF)."""
+    # Exibe USFs que têm "mordomias" ou "cortes" nas cotas padrão
+    cotas_especialidades = ConfigCota.objects.select_related('usf', 'tipo__subcategoria').all()
+    cotas_categorias = ConfigCotaSubcategoria.objects.select_related('usf', 'subcategoria').all()
+    
+    return render(request, 'encaminhamentos/admin/cotas.html', {
+        'cotas_especialidades': cotas_especialidades,
+        'cotas_categorias': cotas_categorias
     })

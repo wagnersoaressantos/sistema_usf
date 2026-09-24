@@ -69,15 +69,6 @@ urlpatterns = [
     path('administracao/avisos/<int:pk>/',              views.admin_aviso_salvar,      name='admin_aviso_editar'),
     path('administracao/avisos/<int:pk>/excluir/',      views.admin_aviso_excluir,     name='admin_aviso_excluir'),
 
-    # Território (Acesso Clínico e Gestão)
-    path('territorio/familias/',                          views.familias_score,        name='familias_score'),
-    path('territorio/familias/<str:cpf_responsavel>/',    views.familia_detalhe,       name='familia_detalhe'),
-    path('territorio/ruas/',                              views.territorio_lista,      name='territorio_lista'),
-    
-    # Território (Acesso Exclusivo Gestão)
-    path('administracao/territorio/ruas/nova/',           views.admin_rua_salvar,      name='admin_rua_criar'),
-    path('administracao/territorio/ruas/<int:pk>/',       views.admin_rua_salvar,      name='admin_rua_editar'),
-
     # Sentinelas de risco
     path('administracao/sentinelas/',          views.admin_sentinelas,       name='admin_sentinelas'),
     path('administracao/sentinelas/novo/',     views.admin_sentinela_salvar, name='admin_sentinela_criar'),

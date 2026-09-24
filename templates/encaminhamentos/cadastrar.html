@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block titulo %}Nova Guia de Encaminhamento — {{ sistema.nome }}{% endblock %}
+
 {% block conteudo %}
 <div class="container mx-auto px-4 py-8 max-w-4xl">
     
@@ -9,7 +11,7 @@
             <h1 class="text-3xl font-bold text-gray-800">Nova Guia de Encaminhamento</h1>
             <p class="text-gray-600 mt-1">Insira o paciente na fila de regulação municipal.</p>
         </div>
-        <a href="{% url 'encaminhamentos:inicio' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition">
+        <a href="{% url 'encaminhamentos:inicio' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
             </svg>
@@ -17,42 +19,48 @@
         </a>
     </div>
 
-    <form method="POST" class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+    <form method="POST" class="bg-white rounded-xl shadow-md p-6 sm:p-8 border border-gray-100 relative">
         {% csrf_token %}
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             
-            <!-- Seleção de Paciente -->
-            <div class="col-span-1 md:col-span-2">
-                <label for="paciente" class="block text-sm font-semibold text-gray-700 mb-2">Paciente</label>
-                <select name="paciente" id="paciente" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition bg-gray-50">
-                    <option value="">Selecione um paciente cadastrado...</option>
-                    {% for paciente in pacientes %}
-                        <option value="{{ paciente.pk }}">{{ paciente.nome }} (CPF: {{ paciente.cpf|default:"Não informado" }} | CNS: {{ paciente.cartao_sus|default:"Não informado" }})</option>
-                    {% empty %}
-                        <option value="" disabled>Nenhum paciente ativo encontrado na sua unidade.</option>
-                    {% endfor %}
-                </select>
-                <p class="text-xs text-gray-500 mt-2">Dica: Se o paciente não estiver na lista, vá ao menu principal e cadastre-o primeiro.</p>
+            <!-- BUSCADOR INTELIGENTE DE PACIENTES -->
+            <div class="col-span-1 md:col-span-2 relative">
+                <label for="busca_paciente" class="block text-sm font-bold text-gray-800 mb-2">Buscar Paciente</label>
+                
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-400 text-lg">🔍</span>
+                    </div>
+                    <!-- Campo visual onde o usuário digita -->
+                    <input type="text" id="busca_paciente" autocomplete="off" placeholder="Digite o Nome, CPF ou Cartão SUS..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition shadow-sm text-gray-800 font-medium">
+                </div>
+                
+                <!-- Campo OCULTO que realmente vai para o banco de dados (o ID do paciente) -->
+                <input type="hidden" name="paciente" id="paciente_id" required>
+
+                <!-- Caixa suspensa com os resultados da pesquisa -->
+                <ul id="dropdown_pacientes" class="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto mt-1 hidden divide-y divide-gray-100">
+                    <!-- Preenchido pelo JavaScript -->
+                </ul>
+
+                <p class="text-[11px] text-gray-500 mt-2 font-medium">Não encontrou? Vá ao <a href="{% url 'pacientes:hub' %}" class="text-green-600 hover:underline">Prontuário 360º</a> para cadastrá-lo.</p>
             </div>
 
             <!-- Seleção do Procedimento / Exame (Agrupado por Subcategoria) -->
             <div class="col-span-1">
-                <label for="tipo" class="block text-sm font-semibold text-gray-700 mb-2">Especialidade / Procedimento</label>
-                <select name="tipo" id="tipo" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition bg-gray-50">
+                <label for="tipo" class="block text-sm font-bold text-gray-800 mb-2">Especialidade / Procedimento</label>
+                <select name="tipo" id="tipo" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition bg-gray-50 text-gray-700">
                     <option value="">Selecione...</option>
                     
-                    {# A mágica do Django para agrupar as opções de acordo com a Categoria! #}
                     {% for tipo in tipos %}
                         {% ifchanged tipo.subcategoria.nome %}
-                            {# Fecha o optgroup anterior se não for o primeiro #}
                             {% if not forloop.first %}</optgroup>{% endif %}
-                            <optgroup label="{{ tipo.subcategoria.nome }}">
+                            <optgroup label="📁 {{ tipo.subcategoria.nome }}">
                         {% endifchanged %}
                         
                         <option value="{{ tipo.pk }}">{{ tipo.nome }}</option>
                         
-                        {# Fecha o último optgroup #}
                         {% if forloop.last %}</optgroup>{% endif %}
                     {% endfor %}
                 </select>
@@ -60,47 +68,149 @@
 
             <!-- Nível de Prioridade -->
             <div class="col-span-1">
-                <label for="prioridade" class="block text-sm font-semibold text-gray-700 mb-2">Prioridade Clínica</label>
-                <select name="prioridade" id="prioridade" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-gray-50">
-                    <option value="1">Prioridade Normal (Fila Padrão)</option>
-                    <option value="2">Prioridade 2 (Idoso, Gestante, PNE)</option>
-                    <option value="3">Urgência / Fura-Fila (Requer justificativa médica)</option>
+                <label for="prioridade" class="block text-sm font-bold text-gray-800 mb-2">Prioridade Clínica</label>
+                <select name="prioridade" id="prioridade" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-blue-50 text-blue-900 font-semibold">
+                    <option value="1">🔵 Prioridade Normal (Fila Padrão)</option>
+                    <option value="2">🟡 Prioridade 2 (Idoso, Gestante, PNE)</option>
+                    <option value="3">🔴 Urgência / Fura-Fila (Requer justificativa)</option>
                 </select>
             </div>
             
-            <!-- Data da Solicitação (Permite Retroativo) -->
-            <div class="col-span-1">
-                <label for="data_solicitacao" class="block text-sm font-semibold text-gray-700 mb-2">Data do Pedido Original</label>
-                <input type="date" name="data_solicitacao" id="data_solicitacao" value="{% now 'Y-m-d' %}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition bg-gray-50">
-                <p class="text-xs text-gray-500 mt-1">Altere apenas se estiver a cadastrar uma guia antiga de gaveta.</p>
+            <!-- Data da Solicitação -->
+            <div class="col-span-1 md:col-span-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <label for="data_solicitacao" class="block text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    📅 Data do Pedido Original
+                </label>
+                <input type="date" name="data_solicitacao" id="data_solicitacao" value="{% now 'Y-m-d' %}" class="w-full sm:w-1/2 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                <p class="text-xs text-gray-500 mt-2">Altere apenas se estiver a dar entrada de uma guia antiga que ficou esquecida na gaveta.</p>
             </div>
 
             <!-- Justificativa Clínica e Observações -->
-            <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                 <div>
-                    <label for="motivo" class="block text-sm font-semibold text-gray-700 mb-2">Motivo Médico (Guia) <span class="text-xs font-normal text-gray-400">(Opcional)</span></label>
-                    <textarea name="motivo" id="motivo" rows="3" placeholder="O que o médico escreveu..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"></textarea>
+                    <label for="motivo" class="block text-sm font-bold text-gray-800 mb-2">Motivo Médico (Guia) <span class="text-xs font-normal text-gray-400">(Opcional)</span></label>
+                    <textarea name="motivo" id="motivo" rows="3" placeholder="Diagnóstico ou hipótese que o médico escreveu..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
                 </div>
                 <div>
-                    <label for="observacao" class="block text-sm font-semibold text-gray-700 mb-2">Observações da Regulação <span class="text-xs font-normal text-gray-400">(Opcional)</span></label>
-                    <textarea name="observacao" id="observacao" rows="3" placeholder="Ex: Paciente sem telefone, deixar recado com ACS..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 bg-yellow-50"></textarea>
+                    <label for="observacao" class="block text-sm font-bold text-gray-800 mb-2">Observações da Regulação <span class="text-xs font-normal text-gray-400">(Opcional)</span></label>
+                    <textarea name="observacao" id="observacao" rows="3" placeholder="Ex: Paciente não tem WhatsApp. Ligar para o vizinho..." class="w-full border border-yellow-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-yellow-50 placeholder-yellow-600 text-yellow-900"></textarea>
                 </div>
             </div>
 
         </div>
 
         <!-- Botões de Ação -->
-        <div class="flex items-center justify-end gap-4 mt-6 pt-6 border-t border-gray-100">
-            <a href="{% url 'encaminhamentos:inicio' %}" class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
-                Cancelar
-            </a>
-            <button type="submit" class="px-6 py-2.5 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-md transition flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+        <div class="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+            <button type="submit" class="px-8 py-3 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 shadow-lg hover:shadow-xl transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Registrar Guia
+                Registrar na Fila
             </button>
         </div>
     </form>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. O Django injeta os dados dos pacientes numa lista rápida do Javascript
+        // Como não há senhas aqui, é super rápido e seguro injetar na tela!
+        const pacientesDb = [
+            {% for p in pacientes %}
+            {
+                id: "{{ p.pk }}",
+                nome: "{{ p.nome|escapejs }}",
+                cpf: "{{ p.cpf|default:'' }}",
+                cns: "{{ p.cartao_sus|default:'' }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        const inputBusca = document.getElementById('busca_paciente');
+        const inputOculto = document.getElementById('paciente_id');
+        const dropdown = document.getElementById('dropdown_pacientes');
+
+        // 2. MÁGICA DE PRÉ-SELEÇÃO (Vindo do Prontuário 360)
+        // Se a URL tiver "?paciente=123", o sistema auto-preenche e bloqueia o campo!
+        const urlParams = new URLSearchParams(window.location.search);
+        const pacienteParamsId = urlParams.get('paciente');
+
+        if (pacienteParamsId) {
+            const pacienteEncontrado = pacientesDb.find(p => p.id === pacienteParamsId);
+            if (pacienteEncontrado) {
+                selecionarPaciente(pacienteEncontrado.id, pacienteEncontrado.nome);
+                inputBusca.classList.add('bg-green-50', 'border-green-400', 'font-bold', 'text-green-900');
+            }
+        }
+
+        // 3. EVENTO DE DIGITAÇÃO NO CAMPO
+        inputBusca.addEventListener('input', function() {
+            const termoOriginal = this.value.trim();
+            const termoBusca = termoOriginal.toLowerCase();
+            const termoNumeros = termoOriginal.replace(/\D/g, ''); // Extrai só números
+            
+            // Se o usuário apagar o texto, apaga o ID Oculto também
+            inputOculto.value = '';
+
+            // Só começa a procurar se digitar pelo menos 2 letras/números
+            if (termoOriginal.length < 2) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+
+            // O Filtro Inteligente Corrigido
+            const filtrados = pacientesDb.filter(p => {
+                const matchNome = p.nome.toLowerCase().includes(termoBusca);
+                const matchCpf = termoNumeros.length > 0 && p.cpf && p.cpf.replace(/\D/g, '').includes(termoNumeros);
+                const matchCns = termoNumeros.length > 0 && p.cns && p.cns.replace(/\D/g, '').includes(termoNumeros);
+                
+                return matchNome || matchCpf || matchCns;
+            }).slice(0, 30); // Mostra apenas os 30 primeiros para não travar a tela
+
+            renderizarLista(filtrados);
+        });
+
+        // 4. DESENHA A CAIXINHA DE RESULTADOS
+        function renderizarLista(resultados) {
+            dropdown.innerHTML = '';
+            
+            if (resultados.length === 0) {
+                dropdown.innerHTML = '<li class="px-4 py-4 text-sm text-gray-500 text-center font-medium">Nenhum paciente encontrado.</li>';
+            } else {
+                resultados.forEach(p => {
+                    const li = document.createElement('li');
+                    li.className = 'px-4 py-3 hover:bg-green-50 cursor-pointer transition flex flex-col gap-1';
+                    
+                    // Formatação bonita para o resultado
+                    let subtexto = [];
+                    if(p.cpf) subtexto.push(`CPF: ${p.cpf}`);
+                    if(p.cns) subtexto.push(`SUS: ${p.cns}`);
+
+                    li.innerHTML = `
+                        <span class="font-bold text-gray-800">${p.nome}</span>
+                        <span class="text-[11px] text-gray-500 tracking-wide">${subtexto.join(' • ')}</span>
+                    `;
+                    
+                    li.addEventListener('click', () => selecionarPaciente(p.id, p.nome));
+                    dropdown.appendChild(li);
+                });
+            }
+            dropdown.classList.remove('hidden');
+        }
+
+        // 5. FUNÇÃO PARA SELECIONAR E GRAVAR O ID
+        function selecionarPaciente(id, nome) {
+            inputOculto.value = id;
+            inputBusca.value = nome;
+            dropdown.classList.add('hidden');
+        }
+
+        // 6. FECHA A CAIXINHA SE CLICAR FORA DELA
+        document.addEventListener('click', function(e) {
+            if (!inputBusca.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
+</script>
 {% endblock %}

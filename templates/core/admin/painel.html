@@ -201,7 +201,7 @@
                     </div>
                     <h3 class="font-bold text-gray-800 text-base mb-1">Ruas do Território</h3>
                     <p class="text-xs text-gray-500 mb-4 flex-1">Mapeamento e vínculos de endereços.</p>
-                    <a href="{% url 'core:territorio_lista' %}" class="w-full bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                    <a href="{% url 'territorializacao:territorio_lista' %}" class="w-full bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
                         Ver Mapa de Ruas
                     </a>
                 </div>
@@ -215,7 +215,7 @@
                     </div>
                     <h3 class="font-bold text-gray-800 text-base mb-1">Score Familiar</h3>
                     <p class="text-xs text-gray-500 mb-4 flex-1">Escala de Risco de Coelho e Savassi.</p>
-                    <a href="{% url 'core:familias_score' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                    <a href="{% url 'territorializacao:familias_score' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
                         Ver Famílias
                     </a>
                 </div>
@@ -294,35 +294,35 @@
                 </div>
             </div>
 
-            <!-- Card: Encaminhamentos (Em Construção) -->
-            <div class="bg-gray-50 rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative opacity-75">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gray-400"></div>
+            <!-- 🚀 CARD DESTRANCADO E RENOMEADO: Especialidades -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-pink-500"></div>
                 <div class="p-5 flex-1 flex flex-col">
                     <div class="flex justify-between items-start mb-3">
-                        <div class="text-3xl grayscale">📋</div>
-                        <span class="text-[10px] uppercase font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">Fase 7</span>
+                        <div class="text-3xl">📋</div>
+                        <div class="text-xl font-black text-gray-800">{{ total_tipos_enc|default:"0" }}</div>
                     </div>
-                    <h3 class="font-bold text-gray-700 text-base mb-1">Tipos de Encaminhamento</h3>
-                    <p class="text-xs text-gray-500 mb-4 flex-1">Especialidades da regulação.</p>
-                    <button disabled class="w-full bg-gray-100 text-gray-400 border border-gray-200 font-bold py-2 px-4 rounded-lg text-xs text-center cursor-not-allowed">
-                        Aguardando Migração
-                    </button>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Especialidades</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Tipos de consultas e exames.</p>
+                    <a href="{% url 'encaminhamentos:admin_tipos_enc' %}" class="w-full bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Especialidades e Exames
+                    </a>
                 </div>
             </div>
 
-            <!-- Card: Cotas (Em Construção) -->
-            <div class="bg-gray-50 rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative opacity-75">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gray-400"></div>
+            <!-- 🚀 CARD DESTRANCADO: Cotas -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col overflow-hidden relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-pink-500"></div>
                 <div class="p-5 flex-1 flex flex-col">
                     <div class="flex justify-between items-start mb-3">
-                        <div class="text-3xl grayscale">📊</div>
-                        <span class="text-[10px] uppercase font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">Fase 7</span>
+                        <div class="text-3xl">📊</div>
+                        <div class="text-xl font-black text-gray-800">{{ total_cotas|default:"0" }}</div>
                     </div>
-                    <h3 class="font-bold text-gray-700 text-base mb-1">Cotas de Especialidades</h3>
-                    <p class="text-xs text-gray-500 mb-4 flex-1">Limites mensais da regulação.</p>
-                    <button disabled class="w-full bg-gray-100 text-gray-400 border border-gray-200 font-bold py-2 px-4 rounded-lg text-xs text-center cursor-not-allowed">
-                        Aguardando Migração
-                    </button>
+                    <h3 class="font-bold text-gray-800 text-base mb-1">Cotas da Regulação</h3>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">Limites mensais de vagas.</p>
+                    <a href="{% url 'encaminhamentos:admin_cotas' %}" class="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-lg shadow-sm transition text-xs text-center">
+                        Gerenciar Cotas
+                    </a>
                 </div>
             </div>
 

@@ -8,18 +8,24 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
         <div>
             <h1 class="text-3xl font-bold text-gray-800">Busca de Pacientes</h1>
-            <p class="text-gray-600 mt-1">Aceda ao Prontuário 360º dos cidadãos da {{ usf.nome }}.</p>
+            <p class="text-gray-600 mt-1">Aceda ao Prontuário 360º dos cidadãos da {{ usf.nome|default:"sua Unidade" }}.</p>
         </div>
-        <a href="{% url 'core:hub' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
-            Voltar ao Início
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'core:admin_paciente_criar' %}?next={{ request.path }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                Novo Paciente
+            </a>
+            <a href="{% url 'core:hub' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm text-sm">
+                Voltar ao Início
+            </a>
+        </div>
     </div>
 
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
         <form method="GET" class="flex flex-col sm:flex-row gap-3">
             <div class="relative flex-1">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                    <span class="text-gray-400 text-lg">🔍</span>
                 </div>
                 <input type="text" name="q" value="{{ q }}" placeholder="Digite o Nome, CPF ou Cartão SUS..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm">
             </div>
@@ -36,7 +42,7 @@
                     <div class="flex items-start gap-4">
                         <!-- Avatar com as Iniciais -->
                         <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                            {{ paciente.nome|slice:":1" }}
+                            {{ paciente.nome|slice:":1"|upper }}
                         </div>
                         <div>
                             <h3 class="text-lg font-bold text-gray-800">{{ paciente.nome }}</h3>
@@ -51,11 +57,11 @@
                         </div>
                     </div>
                     
-                    <!-- Botão de Acesso ao Perfil -->
+                    <!-- Botão de Acesso ao Prontuário -->
                     <div>
                         <a href="{% url 'pacientes:perfil' paciente.pk %}" class="inline-flex items-center gap-2 bg-white border border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 text-indigo-700 font-semibold py-2 px-4 rounded-lg shadow-sm transition w-full sm:w-auto justify-center">
                             Ver Prontuário 360º
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            <span class="text-lg leading-none">→</span>
                         </a>
                     </div>
                 </li>
@@ -73,10 +79,10 @@
             <span class="text-sm text-gray-600">Página {{ pacientes.number }} de {{ pacientes.paginator.num_pages }}</span>
             <div class="flex gap-2">
                 {% if pacientes.has_previous %}
-                    <a href="?q={{ q }}&page={{ pacientes.previous_page_number }}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium">Anterior</a>
+                    <a href="?q={{ q }}&page={{ pacientes.previous_page_number }}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium transition">Anterior</a>
                 {% endif %}
                 {% if pacientes.has_next %}
-                    <a href="?q={{ q }}&page={{ pacientes.next_page_number }}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium">Próxima</a>
+                    <a href="?q={{ q }}&page={{ pacientes.next_page_number }}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium transition">Próxima</a>
                 {% endif %}
             </div>
         </div>

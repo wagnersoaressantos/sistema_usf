@@ -104,13 +104,18 @@
         
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <!-- Botão 1: Mapa de Ruas (Acesso Geral/Recepção) -->
-            <a href="{% url 'core:territorio_lista' %}" style="background:#ecfeff; border:1px solid #a5f3fc; border-radius:6px; padding:6px 12px; text-decoration:none; display:flex; align-items:center; gap:4px; transition:background 0.2s;" onmouseover="this.style.background='#cffafe'" onmouseout="this.style.background='#ecfeff'">
+            <a href="{% url 'territorializacao:territorio_lista' %}" style="background:#ecfeff; border:1px solid #a5f3fc; border-radius:6px; padding:6px 12px; text-decoration:none; display:flex; align-items:center; gap:4px; transition:background 0.2s;" onmouseover="this.style.background='#cffafe'" onmouseout="this.style.background='#ecfeff'">
                 <span style="font-size:12px; color:#0891b2; font-weight:600;">📍 Mapa de Ruas</span>
             </a>
             
             <!-- Botão 2: Avaliação de Famílias (Focado em ACS/Médico) -->
-            <a href="{% url 'core:familias_score' %}" style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:6px 12px; text-decoration:none; display:flex; align-items:center; gap:4px; transition:background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+            <a href="{% url 'territorializacao:familias_score' %}" style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:6px 12px; text-decoration:none; display:flex; align-items:center; gap:4px; transition:background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
                 <span style="font-size:12px; color:#4b5563; font-weight:600;">👥 Risco Familiar</span>
+            </a>
+
+            <!-- Botão 3: Relatórios SSA2 (Focado em Enfermagem/Gestão) -->
+            <a href="{% url 'territorializacao:painel_ssa2' %}" style="background:#fdf4ff; border:1px solid #fbcfe8; border-radius:6px; padding:6px 12px; text-decoration:none; display:flex; align-items:center; gap:4px; transition:background 0.2s;" onmouseover="this.style.background='#fce7f3'" onmouseout="this.style.background='#fdf4ff'">
+                <span style="font-size:12px; color:#be185d; font-weight:600;">📊 Fichas SSA2</span>
             </a>
         </div>
     </div>

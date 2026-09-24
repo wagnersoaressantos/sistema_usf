@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Consolidado Geral SSA2{% endblock %}
+
+{% block conteudo %}
+<style>
+    @media print {
+        @page { size: landscape; margin: 10mm; }
+        nav, aside, footer, header, .no-print { display: none !important; }
+        body, main, #conteudo { width: 100% !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .print-only { display: block !important; }
+        
+        .cabecalho-impressao {
+            border-bottom: 2px solid #111827;
+            padding-bottom: 15px;
+            margin-bottom: 20px !important;
+            justify-content: center !important;
+        }
+    }
+    .print-only { display: none; }
+</style>
+
+<div class="container mx-auto px-2 py-4">
+    
+    <!-- Cabeçalho & Ações -->
+    <div class="cabecalho-impressao flex justify-between items-end mb-6">
+        
+        <div class="flex items-center gap-4">
+            <img src="{% static 'img/logo.png' %}" alt="Logo" class="h-20 w-auto object-contain">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 m-0">📑 Relatório Consolidado de Saúde (SSA2)</h1>
+                <p class="text-sm text-gray-600 mt-1">Unidade: <strong>{{ usf.nome|default:"Sua USF" }}</strong> — Ano Base: <strong class="text-gray-900 text-base">{{ ano_filtro }}</strong></p>
+            </div>
+        </div>
+        
+        <div class="no-print flex items-center gap-4">
+            <form method="get" class="flex items-center gap-2 bg-white px-4 py-2 border border-gray-300 rounded-lg shadow-sm">
+                <span class="text-sm font-bold text-gray-700">Ano:</span>
+                <select name="ano" class="font-black text-cyan-700 outline-none cursor-pointer bg-transparent" onchange="this.form.submit()">
+                    {% for a in anos %}
+                        <option value="{{ a }}" {% if a == ano_filtro %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white font-bold py-2.5 px-6 rounded-lg shadow-sm transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" /></svg>
+                Imprimir Relatório
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabela Matriz -->
+    <div class="bg-white border border-gray-300 rounded-lg overflow-x-auto shadow-sm">
+        <table class="w-full text-center text-xs font-sans border-collapse">
+            <thead>
+                <tr class="bg-gray-200 border-b-2 border-gray-400">
+                    <th class="p-2.5 text-left border-r border-gray-300 w-1/4 text-gray-900 font-bold uppercase tracking-wider">
+                        Meses / Indicadores
+                    </th>
+                    {% for mes in meses_labels %}
+                        <th class="p-2.5 border-r border-gray-300 text-gray-800 font-black w-12">{{ mes }}</th>
+                    {% endfor %}
+                    <th class="p-2.5 bg-gray-300 text-gray-900 font-black w-16">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in matriz %}
+                    
+                    {% if linha.nova_categoria %}
+                        <tr class="bg-gray-200 border-t-2 border-gray-400 border-b border-gray-300">
+                            <td colspan="14" class="px-3 py-2 text-left font-black text-gray-800 text-xs tracking-widest uppercase">
+                                {{ linha.categoria }}
+                            </td>
+                        </tr>
+                    {% endif %}
+
+                    <tr class="border-b border-gray-200 transition-colors hover:bg-cyan-50 {% if '↳' not in linha.rotulo %} bg-gray-50/50 {% endif %}">
+                        
+                        <td class="p-2 text-left border-r border-gray-300 
+                            {% if '↳' in linha.rotulo %} pl-8 text-gray-600 font-medium text-[11px] 
+                            {% else %} text-gray-900 font-bold text-xs {% endif %}">
+                            {{ linha.rotulo }}
+                        </td>
+                        
+                        {% for valor in linha.meses %}
+                            <td class="p-2 border-r border-gray-200 text-gray-800 {% if '↳' not in linha.rotulo %} font-bold {% else %} font-medium {% endif %}">
+                                {{ valor }}
+                            </td>
+                        {% endfor %}
+                        
+                        <td class="p-2 border-l border-gray-300 text-gray-900
+                            {% if '↳' not in linha.rotulo %} bg-cyan-100/50 font-black {% else %} bg-gray-100 font-bold {% endif %}">
+                            {{ linha.total_anual|default:"-" }}
+                        </td>
+                        
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Assinaturas (Só aparecem no papel) -->
+    <div class="print-only mt-12">
+        <div class="flex justify-around items-end">
+            <div class="text-center w-64 border-t border-gray-800 pt-2">
+                <p class="m-0 text-xs font-bold text-gray-900">Enfermeiro(a) Responsável</p>
+                <p class="m-0 text-xs text-gray-600">COREN:</p>
+            </div>
+            <div class="text-center w-64 border-t border-gray-800 pt-2">
+                <p class="m-0 text-xs font-bold text-gray-900">Coordenação da Unidade</p>
+                <p class="m-0 text-xs text-gray-600">Data: ___/___/20___</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

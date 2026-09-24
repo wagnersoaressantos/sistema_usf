@@ -4,9 +4,9 @@ from . import views
 app_name = 'pacientes'
 
 urlpatterns = [
-    # Tela de Busca (Hub do Módulo)
+    # Hub Clínico e Busca de Pacientes
     path('', views.hub_pacientes, name='hub'),
     
-    # Prontuário 360º do Paciente (Onde a mágica acontece)
-    path('<int:pk>/perfil/', views.perfil_paciente, name='perfil'),
+    # 🚀 A Rota do Prontuário 360º
+    path('<int:pk>/', views.perfil_paciente, name='perfil'),
 ]

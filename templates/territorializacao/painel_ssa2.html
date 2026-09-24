@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Painel de Fichas SSA2 — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'core:hub' %}" class="text-gray-400 hover:text-cyan-600 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 11H13a1 1 0 100-2H9.414l1.293-1.293z" clip-rule="evenodd" /></svg>
+            </a>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">📊 Gestão de Fichas SSA2</h1>
+                <p class="text-gray-600 mt-1">Preenchimento Mensal e Status por Micro-área.</p>
+            </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-3">
+            <a href="{% url 'territorializacao:carga_geral_ssa2' %}?mes={{ mes_filtro }}&ano={{ ano_filtro }}" 
+               onclick="return confirm('O sistema vai ler os cadastros e preencher automaticamente todas as micro-áreas para este mês. Deseja continuar?');"
+               class="bg-white border border-cyan-500 text-cyan-700 hover:bg-cyan-50 font-bold py-2.5 px-4 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                ⚡ Executar Carga Automática
+            </a>
+            <a href="{% url 'territorializacao:consolidado_geral_ssa2' %}" 
+               class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm transition flex items-center justify-center gap-2">
+                🖨️ Ver Relatório Consolidado
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtro de Período -->
+    <form method="GET" class="bg-white border border-gray-200 rounded-xl shadow-sm p-5 mb-8 flex flex-col sm:flex-row items-center gap-4">
+        <span class="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" /></svg>
+            Período de Referência:
+        </span>
+        
+        <select name="mes" class="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-gray-50 focus:ring-cyan-500 focus:border-cyan-500 font-medium text-gray-700 flex-1 sm:flex-none">
+            {% for numero, nome in meses_opcoes %}
+                <option value="{{ numero }}" {% if numero == mes_filtro %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+        
+        <select name="ano" class="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-gray-50 focus:ring-cyan-500 focus:border-cyan-500 font-medium text-gray-700 w-32">
+            {% for a in anos_opcoes %}
+                <option value="{{ a }}" {% if a == ano_filtro %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+        </select>
+        
+        <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-6 rounded-lg transition w-full sm:w-auto">
+            Filtrar
+        </button>
+    </form>
+
+    <!-- Tabela de Micro-áreas -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 font-semibold">Micro-área</th>
+                    <th class="px-6 py-4 font-semibold">ACS Responsável</th>
+                    <th class="px-6 py-4 font-semibold text-center">Status no Mês</th>
+                    <th class="px-6 py-4 font-semibold text-right">Ação</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for item in lista_painel %}
+                <tr class="hover:bg-cyan-50/30 transition">
+                    <td class="px-6 py-4 font-black text-gray-800 text-base">MA {{ item.microarea.codigo }}</td>
+                    <td class="px-6 py-4 text-gray-600 font-medium">
+                        {{ item.microarea.responsavel.user.get_full_name|default:"<span class='text-red-500 text-xs font-bold uppercase tracking-wider bg-red-50 px-2 py-1 rounded'>Sem Profissional</span>"|safe }}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if item.status == 'preenchido' %}
+                            <span class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200 shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                                Entregue
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1.5 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200 shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                Pendente
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{% url 'territorializacao:ficha_ssa2_preencher' item.microarea.id %}?mes={{ mes_filtro }}&ano={{ ano_filtro }}" 
+                           class="inline-block px-4 py-2 rounded-lg font-bold text-xs transition shadow-sm
+                           {% if item.status == 'preenchido' %} bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 {% else %} bg-cyan-600 text-white hover:bg-cyan-700 {% endif %}">
+                            {% if item.status == 'preenchido' %}👁️ Revisar / Editar{% else %}📝 Preencher Ficha{% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-12">
+                        <div class="text-5xl mb-3">🗺️</div>
+                        <p class="text-gray-500 font-medium">Nenhuma micro-área cadastrada na USF.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

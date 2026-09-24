@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Gestão de Especialidades — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                📋 Especialidades e Exames
+            </h1>
+            <p class="text-gray-600 mt-1">Defina a árvore de procedimentos disponíveis para as Unidades solicitarem.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'encaminhamentos:admin_categoria_criar' %}" class="bg-gray-800 hover:bg-gray-900 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition text-sm">
+                + Novo Grupo Principal
+            </a>
+            <a href="{% url 'encaminhamentos:admin_especialidade_criar' %}" class="bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition text-sm">
+                + Nova Especialidade
+            </a>
+            <a href="{% url 'core:painel_admin' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm text-sm">
+                Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- O Acordeão Visual dos Grupos -->
+    <div class="space-y-6">
+        {% for categoria in categorias %}
+        <div class="bg-white rounded-xl shadow-sm border {% if categoria.ativo %}border-pink-200{% else %}border-gray-200 opacity-75{% endif %} overflow-hidden">
+            
+            <!-- Cabeçalho do Grupo (Subcategoria) -->
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">📁</span>
+                        <h2 class="text-lg font-bold text-gray-800">{{ categoria.nome }}</h2>
+                        {% if not categoria.ativo %}<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold uppercase">Inativo</span>{% endif %}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Cota partilhada por Unidade: <strong class="text-gray-700">{{ categoria.cota_padrao }} vagas/mês</strong></p>
+                </div>
+                <a href="{% url 'encaminhamentos:admin_categoria_editar' categoria.pk %}" class="text-xs text-gray-600 hover:text-gray-900 border border-gray-300 hover:bg-gray-100 px-3 py-1.5 rounded transition bg-white font-semibold">
+                    Editar Grupo
+                </a>
+            </div>
+
+            <!-- Especialidades dentro do Grupo (TipoEncaminhamento) -->
+            <ul class="divide-y divide-gray-50">
+                {% for tipo in categoria.tipos.all %}
+                <li class="px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-pink-50/30 transition">
+                    <div>
+                        <span class="font-bold text-gray-700 flex items-center gap-2">
+                            {{ tipo.nome }}
+                            {% if not tipo.ativo %}<span class="w-2 h-2 rounded-full bg-red-500" title="Inativo"></span>{% endif %}
+                        </span>
+                        
+                        <div class="text-[11px] mt-1 flex flex-wrap gap-2">
+                            {% if tipo.cota_padrao > 0 %}
+                                <span class="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full font-medium">Cota Própria: {{ tipo.cota_padrao }}</span>
+                            {% else %}
+                                <span class="bg-gray-100 text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full">Usa Cota do Grupo</span>
+                            {% endif %}
+
+                            {% if tipo.idade_minima or tipo.idade_maxima %}
+                                <span class="bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                    ⏳ Idade:
+                                    {% if tipo.idade_minima and tipo.idade_maxima %} {{ tipo.idade_minima }} a {{ tipo.idade_maxima }} anos
+                                    {% elif tipo.idade_minima %} A partir de {{ tipo.idade_minima }} anos
+                                    {% else %} Até {{ tipo.idade_maxima }} anos {% endif %}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2 sm:mt-0">
+                        <a href="{% url 'encaminhamentos:admin_especialidade_editar' tipo.pk %}" class="text-xs text-pink-600 hover:text-pink-800 font-bold underline">Editar</a>
+                    </div>
+                </li>
+                {% empty %}
+                <li class="px-6 py-4 text-sm text-gray-400 italic">Nenhuma especialidade ou exame dentro deste grupo.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% empty %}
+        <div class="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100 text-gray-500">
+            Nenhuma estrutura de regulação configurada.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
