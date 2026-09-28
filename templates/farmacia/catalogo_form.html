@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block titulo %}{{ titulo }} — REMUME{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">{{ titulo }}</h1>
+            <p class="text-gray-600 mt-1">Configuração de Produto no Catálogo Municipal (Curadoria).</p>
+        </div>
+        <a href="{% url 'farmacia:catalogo_lista' %}" class="text-gray-500 hover:text-purple-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
+            Cancelar
+        </a>
+    </div>
+
+    <form method="POST" class="bg-white rounded-xl shadow-md border border-gray-100 p-6 sm:p-8">
+        {% csrf_token %}
+        
+        <!-- Bloco 1: Identificação Básica -->
+        <h3 class="text-sm font-bold text-purple-800 uppercase tracking-wider mb-4 border-b pb-2">Identificação do Produto</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="col-span-1 md:col-span-2">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Nome Completo</label>
+                <input type="text" name="nome" value="{{ med.nome|default:'' }}" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500" placeholder="Ex: Losartana Potássica">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Código BR (CATMAT)</label>
+                <input type="text" name="codigo_br" value="{{ med.codigo_br|default:'' }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 font-mono focus:ring-purple-500" placeholder="Ex: BR0272906">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Concentração</label>
+                <input type="text" name="concentracao" value="{{ med.concentracao|default:'' }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500" placeholder="Ex: 50mg (Deixe em branco se for Insumo)">
+            </div>
+        </div>
+
+        <!-- Bloco 2: Classificação -->
+        <h3 class="text-sm font-bold text-purple-800 uppercase tracking-wider mb-4 border-b pb-2 mt-8">Classificação Física</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-purple-50 p-4 rounded-xl border border-purple-100">
+            <div>
+                <label class="block text-sm font-bold text-gray-800 mb-1">Tipo de Item</label>
+                <select name="tipo" class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-purple-500">
+                    <option value="">(Pendente de Curadoria)</option>
+                    {% for valor, label in tipos %}
+                        <option value="{{ valor }}" {% if med.tipo == valor %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-800 mb-1">Forma Farmacêutica (Embalagem)</label>
+                <select name="forma_farmaceutica" class="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-purple-500">
+                    <option value="">(Pendente de Curadoria)</option>
+                    {% for valor, label in formas %}
+                        <option value="{{ valor }}" {% if med.forma_farmaceutica == valor %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Bloco 3: Regras de Dispensação -->
+        <h3 class="text-sm font-bold text-purple-800 uppercase tracking-wider mb-4 border-b pb-2 mt-8">Regras de Dispensação (Balcão)</h3>
+        <div class="space-y-3 mb-8">
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="exige_receita_branca" class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500" {% if med.exige_receita_branca %}checked{% endif %}>
+                <span class="text-sm font-semibold text-gray-800">Controle Simples (Exige Receita Branca)</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="exige_receita_controlada" class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" {% if med.exige_receita_controlada %}checked{% endif %}>
+                <span class="text-sm font-semibold text-blue-900">Psicotrópico (Receita Azul ou Amarela)</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="antibiotico" class="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500" {% if med.antibiotico %}checked{% endif %}>
+                <span class="text-sm font-semibold text-red-900">Antibiótico (Retém Cópia da Receita)</span>
+            </label>
+        </div>
+
+        <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="ativo" class="mt-1 w-6 h-6 text-green-500 border-gray-300 rounded focus:ring-green-500" {% if med.ativo %}checked{% endif %}>
+                <div>
+                    <span class="text-base font-black text-gray-800">Produto Ativo (Visível no Balcão e Estoque)</span>
+                    <span class="text-xs text-gray-500 block mt-1">Ao ativar, o produto aparecerá nas buscas da Farmácia. <strong>Lembre-se:</strong> O sistema bloqueará a ativação se o Tipo ou a Forma Farmacêutica estiverem em branco!</span>
+                </div>
+            </label>
+        </div>
+
+        <div class="flex justify-end pt-6 border-t border-gray-200 mt-6">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition">
+                💾 Salvar e Aplicar ao Catálogo
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

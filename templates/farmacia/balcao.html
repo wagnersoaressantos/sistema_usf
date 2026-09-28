@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Balcão da Farmácia — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <span class="text-4xl">💊</span> Balcão de Dispensação
+            </h1>
+            <p class="text-gray-600 mt-1">Busque o paciente para iniciar o atendimento e entregar medicamentos.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'core:hub' %}" class="text-gray-500 hover:text-emerald-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm text-sm">
+                Voltar ao Início
+            </a>
+        </div>
+    </div>
+
+    <!-- Barra de Pesquisa -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-emerald-100 mb-6">
+        <form method="GET" class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-emerald-400 text-lg">🔍</span>
+                </div>
+                <input type="text" name="q" value="{{ q }}" placeholder="Digite o Nome, CPF ou Cartão SUS da Receita..." class="w-full pl-10 pr-4 py-3 border border-emerald-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm font-medium">
+            </div>
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-sm transition">
+                Buscar Paciente
+            </button>
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    <div class="bg-white rounded-xl shadow-sm border border-emerald-100 overflow-hidden">
+        <ul class="divide-y divide-emerald-50">
+            {% for paciente in pacientes %}
+                <li class="p-4 sm:p-6 hover:bg-emerald-50/50 transition duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                            {{ paciente.nome|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">{{ paciente.nome }}</h3>
+                            <div class="text-sm text-gray-500 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                                <span><strong>Idade:</strong> {{ paciente.idade_formatada }}</span>
+                                <span><strong>CPF:</strong> {{ paciente.cpf|default:"---" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <!-- Botão que agora leva à tela de dispensação real -->
+                        <a href="{% url 'farmacia:atender_receita' paciente.pk %}" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition w-full sm:w-auto justify-center">
+                            Atender Receita
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" /></svg>
+                        </a>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="p-12 text-center text-gray-500">
+                    <div class="text-4xl mb-3 text-emerald-200">💊</div>
+                    <h3 class="text-lg font-bold text-gray-700">Aguardando Paciente.</h3>
+                    <p class="text-sm mt-1">Pesquise o cidadão acima para registrar a saída de medicamentos.</p>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

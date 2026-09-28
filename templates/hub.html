@@ -121,6 +121,40 @@
     </div>
     {% endif %}
 
+    {# ── MÓDULO: FARMÁCIA (NOVO) ── #}
+    {% if 'farmacia' in modulos_ativos %}
+    <a href="{% url 'farmacia:hub' %}" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #10b981; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer;"
+             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:32px; margin-bottom:12px;">💊</div>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Farmácia e Estoque</h2>
+            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
+                Balcão de dispensação com trava inteligente antissuperposição e gestão de lotes (REMUME).
+            </p>
+            <div style="background:#d1fae5; border-radius:6px; padding:6px 12px; display:inline-block;">
+                <span style="font-size:12px; color:#047857; font-weight:500;">Acessar Balcão →</span>
+            </div>
+        </div>
+    </a>
+    {% endif %}
+
+    {# ── MÓDULO: SAÚDE DA MULHER (NOVO) ── #}
+    {% if 'saude_mulher' in modulos_ativos %}
+    <a href="#" style="text-decoration:none; color:inherit;">
+        <div style="background:white; border:1px solid #e5e7eb; border-top:4px solid #db2777; border-radius:10px; padding:1.5rem; transition:box-shadow 0.15s; cursor:pointer;"
+             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:32px; margin-bottom:12px;">🌸</div>
+            <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:#111827;">Saúde da Mulher</h2>
+            <p style="font-size:13px; color:#6b7280; margin:0 0 16px;">
+                Painel analítico (MIF), controle rigoroso de Implanon/DIU e rastreamento de exames citopatológicos.
+            </p>
+            <div style="background:#fce7f3; border-radius:6px; padding:6px 12px; display:inline-block;">
+                <span style="font-size:12px; color:#be185d; font-weight:500;">Ver Painel Analítico →</span>
+            </div>
+        </div>
+    </a>
+    {% endif %}
+
     {# ── MÓDULO 4: VACINAS (APENAS VISUAL POR ENQUANTO) ── #}
     {% if 'vacinas' in modulos_ativos %}
     <a href="#" style="text-decoration:none; color:inherit;">

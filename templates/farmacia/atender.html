@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Atender Receita — {{ paciente.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <!-- Cabeçalho (Identificação Rápida) -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 pb-4 border-b border-gray-200 gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-2xl shadow-inner">
+                {{ paciente.nome|slice:":1"|upper }}
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">{{ paciente.nome }}</h1>
+                <p class="text-gray-500 font-medium mt-0.5">
+                    {{ paciente.idade_formatada }} • CPF: {{ paciente.cpf|default:"Não informado" }} • CNS: {{ paciente.cartao_sus|default:"Não informado" }}
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'pacientes:perfil' paciente.pk %}" class="text-indigo-600 hover:text-indigo-800 font-bold text-sm underline mr-4">Ver Prontuário 360</a>
+            <a href="{% url 'farmacia:balcao_busca' %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-5 rounded-lg shadow-sm transition">
+                ← Voltar ao Balcão
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- LADO ESQUERDO: Formulário de Dispensação (O Guiché) -->
+        <div class="lg:col-span-1 space-y-6 sticky top-6">
+            
+            <div class="bg-white rounded-xl shadow-md border-t-4 border-emerald-500 p-6">
+                <h2 class="text-lg font-black text-gray-800 mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    Nova Dispensação
+                </h2>
+
+                <form method="POST" class="space-y-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="entregar">
+                    
+                    <!-- BUSCADOR INTELIGENTE DE ESTOQUE -->
+                    <div class="relative">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Medicamento / Insumo na Prateleira</label>
+                        
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-emerald-500 font-bold">🔍</span>
+                            </div>
+                            <input type="text" id="busca_lote" autocomplete="off" placeholder="Digite o nome do remédio ou insumo..." class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-emerald-500 focus:border-emerald-500 font-medium">
+                        </div>
+                        
+                        <!-- Campo OCULTO que guarda o ID do Lote -->
+                        <input type="hidden" name="lote" id="lote_id" required>
+
+                        <!-- Lista suspensa de resultados -->
+                        <ul id="dropdown_lotes" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-xl max-h-56 overflow-y-auto mt-1 hidden divide-y divide-gray-100">
+                            <!-- Preenchido via JS -->
+                        </ul>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-2">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Qtd Entregue</label>
+                            <input type="number" name="quantidade" required min="1" class="w-full border border-emerald-300 bg-emerald-50 text-emerald-900 font-bold rounded-lg px-3 py-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Toma por Dia? (Opcional)</label>
+                            <input type="number" step="0.5" name="posologia" placeholder="Ex: 1 ou 0.5" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <label class="block text-xs font-bold text-blue-800 mb-1">Para quantos dias dá? <span class="text-gray-500 font-normal">(Opcional)</span></label>
+                        <input type="number" name="dias" placeholder="Ex: 30" class="w-full border border-blue-300 rounded px-3 py-2 text-sm focus:ring-blue-500">
+                        <p class="text-[10px] text-blue-600 mt-1 leading-tight">Preencha isto para o sistema gerar a Trava Antissuperposição automática.</p>
+                    </div>
+
+                    <label class="flex items-center gap-2 cursor-pointer pt-1">
+                        <input type="checkbox" name="uso_continuo" class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
+                        <span class="text-sm font-bold text-gray-700">Uso Contínuo (Repete todo mês)</span>
+                    </label>
+
+                    <div id="box-justificativa" class="hidden mt-2">
+                        <label class="block text-xs font-bold text-red-700 mb-1">Justificativa para Antecipação / Quebra de Trava</label>
+                        <input type="text" name="justificativa" placeholder="Ex: Aumento de dose médica, perda, roubo..." class="w-full border border-red-300 bg-red-50 text-red-900 rounded-lg px-3 py-2 text-sm focus:ring-red-500 focus:border-red-500">
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-4 rounded-lg shadow-md transition mt-4 flex justify-center items-center gap-2">
+                        + Entregar Pacote
+                    </button>
+                    
+                    <button type="button" onclick="document.getElementById('box-justificativa').classList.toggle('hidden')" class="w-full text-center text-xs text-red-500 hover:text-red-700 underline font-semibold mt-2">
+                        Paciente bloqueado? Informar Justificativa.
+                    </button>
+                </form>
+            </div>
+
+            <!-- Formulário de Demanda Reprimida (Falta) -->
+            <div class="bg-red-50 rounded-xl shadow-sm border border-red-200 p-6">
+                <h2 class="text-sm font-black text-red-800 mb-2 flex items-center gap-2">
+                    <span>⚠️</span> Faltou na prateleira?
+                </h2>
+                <p class="text-[11px] text-red-600 mb-4 leading-tight">Registe aqui o que o paciente pediu e a unidade não tinha (Gera relatório de cobrança).</p>
+                
+                <form method="POST" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="falta">
+                    
+                    <!-- BUSCADOR INTELIGENTE DO CATÁLOGO DE FALTAS -->
+                    <div class="relative">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-red-400">🔍</span>
+                            </div>
+                            <input type="text" id="busca_falta" autocomplete="off" placeholder="Buscar no catálogo da REMUME..." class="w-full pl-9 pr-3 py-2 border border-red-300 rounded-lg text-sm bg-white focus:ring-red-500 focus:border-red-500 font-medium text-gray-700">
+                        </div>
+                        
+                        <input type="hidden" name="medicamento_falta" id="falta_id" required>
+
+                        <ul id="dropdown_faltas" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-xl max-h-56 overflow-y-auto mt-1 hidden divide-y divide-gray-100">
+                            <!-- Preenchido via JS -->
+                        </ul>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-white border border-red-300 hover:bg-red-100 text-red-700 font-bold py-2 px-4 rounded-lg shadow-sm transition text-sm">
+                        Gravar Falta
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- LADO DIREITO: Histórico do Paciente -->
+        <div class="lg:col-span-2 space-y-4">
+            <h3 class="text-lg font-black text-gray-800 border-b border-gray-200 pb-2">📋 Histórico de Retiradas</h3>
+            
+            {% if historico %}
+                <div class="space-y-3">
+                    {% for item in historico %}
+                        <!-- Card Colorido consoante o status -->
+                        <div class="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm
+                            {% if item.data_proxima_retirada and item.data_proxima_retirada > hoje %} 
+                                bg-yellow-50/50 border-yellow-200
+                            {% elif item.data_proxima_retirada and item.data_proxima_retirada <= hoje %}
+                                bg-emerald-50/50 border-emerald-200
+                            {% else %}
+                                bg-white border-gray-200
+                            {% endif %}">
+                            
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                                    {{ item.medicamento.nome }} {% if item.medicamento.concentracao %}{{ item.medicamento.concentracao }}{% endif %}
+                                    {% if item.uso_continuo %}
+                                        <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase tracking-wider font-bold">Uso Contínuo</span>
+                                    {% endif %}
+                                </h4>
+                                <p class="text-sm text-gray-600 mt-1">
+                                    Entregue: <strong class="text-gray-900">{{ item.quantidade_entregue }} {{ item.medicamento.unidade_medida }}</strong> 
+                                    em {{ item.dispensacao.data_dispensacao|date:"d/m/Y" }}
+                                </p>
+                                {% if item.justificativa_antecipacao %}
+                                    <p class="text-xs text-red-600 font-bold mt-1.5 flex items-center gap-1">
+                                        ⚠️ Exceção: {{ item.justificativa_antecipacao }}
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="text-left sm:text-right border-t sm:border-t-0 sm:border-l border-gray-200 pt-3 sm:pt-0 sm:pl-4">
+                                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Autorizado novo lote a partir de:</p>
+                                {% if item.data_proxima_retirada %}
+                                    {% if item.data_proxima_retirada > hoje %}
+                                        <span class="inline-flex items-center gap-1.5 text-sm font-black text-yellow-700 bg-yellow-100 px-3 py-1 rounded shadow-sm border border-yellow-300">
+                                            🔒 {{ item.data_proxima_retirada|date:"d/m/Y" }}
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center gap-1.5 text-sm font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded shadow-sm border border-emerald-300">
+                                            ✅ Liberado
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-sm font-medium text-gray-400 italic">Sem controle de dias.</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                    <span class="text-4xl text-gray-300 mb-3 block">🧾</span>
+                    <p class="text-gray-500 font-medium text-sm">Este paciente ainda não possui histórico de retiradas.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+    </div>
+</div>
+
+<!-- SCRIPTS MÁGICOS DE BUSCA -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // 1. Dados Injetados do Banco (Lotes em Estoque)
+        const lotesDb = [
+            {% for lote in lotes %}
+            {
+                id: "{{ lote.pk }}",
+                nome: "{{ lote.medicamento.nome|escapejs }} {% if lote.medicamento.concentracao %}{{ lote.medicamento.concentracao|escapejs }}{% endif %}",
+                forma: "{{ lote.medicamento.get_forma_farmaceutica_display|escapejs }}",
+                qtd: "{{ lote.quantidade_atual }} {{ lote.medicamento.unidade_medida|escapejs }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        // 2. Dados Injetados do Banco (Catálogo Geral REMUME para faltas)
+        const remumeDb = [
+            {% for med in catalogo_geral %}
+            {
+                id: "{{ med.pk }}",
+                nome: "{{ med.nome|escapejs }} {% if med.concentracao %}{{ med.concentracao|escapejs }}{% endif %}",
+                forma: "{{ med.get_forma_farmaceutica_display|escapejs }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        // --- LÓGICA DO BUSCADOR DE ESTOQUE (VERDE) ---
+        const inputLote = document.getElementById('busca_lote');
+        const hiddenLote = document.getElementById('lote_id');
+        const dropLote = document.getElementById('dropdown_lotes');
+
+        inputLote.addEventListener('input', function() {
+            const termo = this.value.toLowerCase().trim();
+            hiddenLote.value = ''; // Limpa se apagar
+            
+            if (termo.length < 2) { dropLote.classList.add('hidden'); return; }
+
+            const filtrados = lotesDb.filter(l => l.nome.toLowerCase().includes(termo) || l.forma.toLowerCase().includes(termo));
+            
+            dropLote.innerHTML = '';
+            if (filtrados.length === 0) {
+                dropLote.innerHTML = '<li class="px-3 py-3 text-xs text-gray-500 text-center font-medium">Nenhum lote em estoque encontrado.</li>';
+            } else {
+                filtrados.forEach(l => {
+                    const li = document.createElement('li');
+                    li.className = 'px-3 py-2 hover:bg-emerald-50 cursor-pointer transition flex flex-col border-b border-gray-50 last:border-0';
+                    li.innerHTML = `
+                        <span class="font-bold text-gray-800 text-sm">${l.nome}</span>
+                        <div class="flex justify-between items-center mt-0.5">
+                            <span class="text-[10px] text-gray-500 uppercase">${l.forma}</span>
+                            <span class="text-xs font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">Em Prateleira: ${l.qtd}</span>
+                        </div>
+                    `;
+                    li.addEventListener('click', () => {
+                        hiddenLote.value = l.id;
+                        inputLote.value = l.nome;
+                        inputLote.classList.add('bg-emerald-50', 'font-bold', 'text-emerald-900');
+                        dropLote.classList.add('hidden');
+                    });
+                    dropLote.appendChild(li);
+                });
+            }
+            dropLote.classList.remove('hidden');
+        });
+
+        // --- LÓGICA DO BUSCADOR DE FALTAS (VERMELHO) ---
+        const inputFalta = document.getElementById('busca_falta');
+        const hiddenFalta = document.getElementById('falta_id');
+        const dropFalta = document.getElementById('dropdown_faltas');
+
+        inputFalta.addEventListener('input', function() {
+            const termo = this.value.toLowerCase().trim();
+            hiddenFalta.value = '';
+            
+            if (termo.length < 2) { dropFalta.classList.add('hidden'); return; }
+
+            const filtrados = remumeDb.filter(m => m.nome.toLowerCase().includes(termo));
+            
+            dropFalta.innerHTML = '';
+            if (filtrados.length === 0) {
+                dropFalta.innerHTML = '<li class="px-3 py-3 text-xs text-gray-500 text-center font-medium">Não existe na REMUME.</li>';
+            } else {
+                filtrados.forEach(m => {
+                    const li = document.createElement('li');
+                    li.className = 'px-3 py-2 hover:bg-red-50 cursor-pointer transition flex flex-col border-b border-gray-50 last:border-0';
+                    li.innerHTML = `
+                        <span class="font-bold text-gray-800 text-sm">${m.nome}</span>
+                        <span class="text-[10px] text-gray-500 uppercase mt-0.5">${m.forma}</span>
+                    `;
+                    li.addEventListener('click', () => {
+                        hiddenFalta.value = m.id;
+                        inputFalta.value = m.nome;
+                        inputFalta.classList.add('bg-red-50', 'font-bold', 'text-red-900');
+                        dropFalta.classList.add('hidden');
+                    });
+                    dropFalta.appendChild(li);
+                });
+            }
+            dropFalta.classList.remove('hidden');
+        });
+
+        // Esconder os dropdowns se clicar fora
+        document.addEventListener('click', function(e) {
+            if (!inputLote.contains(e.target) && !dropLote.contains(e.target)) dropLote.classList.add('hidden');
+            if (!inputFalta.contains(e.target) && !dropFalta.contains(e.target)) dropFalta.classList.add('hidden');
+        });
+    });
+</script>
+{% endblock %}

@@ -166,7 +166,10 @@ def admin_modulos(request):
         'territorializacao': 'Território e Famílias',
         'vacinas': 'Imunização e PNI',
         'mutirao': 'Ações em Massa (Mutirão)',
-        'pacientes': 'Prontuário 360º (Pacientes)'
+        'pacientes': 'Prontuário 360º (Pacientes)',
+        # 🚀 FASE 8: Adicionando os novos módulos ao painel!
+        'farmacia': 'Farmácia e Estoque',
+        'saude_mulher': 'Saúde da Mulher e Reprodutiva',
     }
     
     for slug, nome_padrao in apps_oficiais.items():

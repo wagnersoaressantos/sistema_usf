@@ -11,6 +11,7 @@ from django.db.models import Q
 from core.decorators import admin_required
 from core.models import CondicaoSaude, EquipeUSF, Paciente, MicroArea, PacienteCondicao
 from territorializacao.models import FamiliaScore, Logradouro, VinculoLogradouro
+from farmacia.models import Medicamento
 
 @login_required
 @admin_required
@@ -112,21 +113,23 @@ def importar_pacientes_csv(request):
                         paciente = Paciente.objects.filter(cartao_sus=cartao_sus, usf=usf).first()
                         
                     if paciente:
-                        # Achamos o paciente no CSV! Guardamos o ID dele
-                        pacientes_encontrados_no_csv.add(paciente.id)
+                        # 🚀 CORREÇÃO: Achamos o paciente no CSV! Atualizamos os dados básicos dele.
+                        paciente.nome = nome
+                        paciente.sexo = sexo
+                        if data_nascimento:
+                            paciente.data_nascimento = data_nascimento
+                        if endereco_completo:
+                            paciente.endereco = endereco_completo
+                        if telefone:
+                            paciente.telefone = telefone
+                        if microarea_obj:
+                            paciente.micro_area = microarea_obj
                         
-                        # Se ele NÃO estava na nossa lista de doentes/condições, é um registro novo!
-                        if paciente.id not in doentes_atuais_ids:
-                            PacienteCondicao.objects.create(
-                                paciente=paciente,
-                                condicao=condicao_escolhida,
-                                data_inicio=timezone.now().date(),
-                                observacao='Registrado via Importação do e-SUS PEC'
-                            )
-                            total_novos_diagnosticos += 1
-                            
-                # 2. A MAGIA DA CURA/ALTA: Quem tinha a condição mas sumiu do CSV
+                        # Avisamos o sistema que este paciente continua vivo e frequenta a USF
+                        paciente.atualizado = True
+                        paciente.ultima_atualizacao = timezone.now()
                         paciente.save()
+                        
                         total_atualizados += 1
                         
                     else:
@@ -398,4 +401,108 @@ def importar_territorio_csv(request):
             messages.error(request, f'Erro grave ao processar ficheiro de território: {str(e)}')
             return redirect('importacoes:hub')
 
+    return redirect('importacoes:hub')
+
+@login_required
+@admin_required
+def importar_farmacia_csv(request):
+    """
+    O Leitor Inteligente do Catálogo (REMUME).
+    Lê o Código BR e o Nome. Descobre sozinho se é Insumo ou Remédio.
+    """
+    if request.method == 'POST':
+        ficheiro = request.FILES.get('arquivo_csv')
+        
+        if not ficheiro or not ficheiro.name.endswith('.csv'):
+            messages.error(request, 'Envie um ficheiro .csv com o catálogo.')
+            return redirect('importacoes:hub')
+
+        try:
+            conteudo = ficheiro.read()
+            try: dados_texto = conteudo.decode('utf-8-sig') 
+            except UnicodeDecodeError: dados_texto = conteudo.decode('latin-1') 
+
+            # Palavras-chave para o Robô descobrir se é Material/Insumo
+            palavras_insumo = ['SERINGA', 'AGULHA', 'ATADURA', 'LUVA', 'CATETER', 'LANCETA', 'TERMOMETRO', 'ESPARADRAPO', 'COLETOR', 'ALGODÃO', 'ÁLCOOL', 'AVENTAL', 'COMPRESSA', 'FRASCO', 'TIRA REAGENTE', 'GEL']
+            
+            linhas_todas = dados_texto.splitlines()
+            leitor_csv = csv.reader(linhas_todas, delimiter=';')
+            
+            criados, atualizados = 0, 0
+            
+            with transaction.atomic():
+                for row in leitor_csv:
+                    if len(row) < 2: continue # Ignora linhas vazias
+                    
+                    codigo_br = str(row[0]).strip()
+                    nome_completo = str(row[1]).strip().upper()
+                    
+                    if not codigo_br or codigo_br == 'CÓDIGO' or 'PRODUTO' in nome_completo:
+                        continue # Pula o cabeçalho
+                        
+                    # Inteligência: É Insumo ou Medicamento?
+                    tipo_item = None
+                    forma_farmaceutica = None
+                    
+                    for palavra in palavras_insumo:
+                        if palavra in nome_completo:
+                            tipo_item = 'INS'
+                            forma_farmaceutica = 'UNID'
+                            break
+                    
+                    # 🚀 MÁGICA: Se não for insumo, tenta descobrir a forma pela palavra
+                    if not tipo_item:
+                        if 'XAROPE' in nome_completo:
+                            tipo_item = 'MED'
+                            forma_farmaceutica = 'XARO'
+                        elif 'SOLUÇÃO ORAL' in nome_completo or 'GOTAS' in nome_completo or 'SUSPENSÃO' in nome_completo or 'ELIXIR' in nome_completo:
+                            tipo_item = 'MED'
+                            forma_farmaceutica = 'GOTA'
+                        elif 'INJETÁVEL' in nome_completo or 'INJETAVEL' in nome_completo:
+                            tipo_item = 'MED'
+                            forma_farmaceutica = 'INJE'
+                        elif 'POMADA' in nome_completo or 'CREME' in nome_completo or 'GEL' in nome_completo:
+                            tipo_item = 'MED'
+                            forma_farmaceutica = 'POMA'
+                        elif 'CAPSULA' in nome_completo:
+                            tipo_item = 'MED'
+                            forma_farmaceutica = 'CAPS'
+                        elif 'COMPRIMIDO' in nome_completo or 'DRAGEA' in nome_completo:
+                            tipo_item = 'MED'
+                            forma_farmaceutica = 'COMP'
+                            
+                    # 🚀 A MÁGICA DA CURADORIA: Se o robô não tem certeza de tudo, cadastra Inativo!
+                    item_ativo = True if tipo_item and forma_farmaceutica else False
+
+                    # Busca ou Cria
+                    med, created = Medicamento.objects.get_or_create(
+                        codigo_br=codigo_br,
+                        defaults={
+                            'nome': nome_completo,
+                            'tipo': tipo_item,
+                            'forma_farmaceutica': forma_farmaceutica,
+                            'ativo': item_ativo
+                        }
+                    )
+                    
+                    if created:
+                        criados += 1
+                    else:
+                        med.nome = nome_completo # Atualiza o nome caso tenha mudado na planilha
+                        # Se já estava cadastrado e o robô achou algo novo, preenche
+                        if not med.tipo: med.tipo = tipo_item
+                        if not med.forma_farmaceutica: med.forma_farmaceutica = forma_farmaceutica
+                        
+                        # Atenção: Ele NUNCA desativa um item que o Gestor Humano já ativou!
+                        if not med.ativo and item_ativo:
+                            med.ativo = True
+                            
+                        med.save()
+                        atualizados += 1
+
+            messages.success(request, f'✅ Catálogo importado! {criados} novos itens cadastrados e {atualizados} atualizados.')
+            
+        except Exception as e:
+            messages.error(request, f'Erro ao ler catálogo: {str(e)}')
+            
     return redirect('importacoes:hub')

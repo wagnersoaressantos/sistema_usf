@@ -11,4 +11,5 @@ urlpatterns = [
     path('pacientes/', views.importar_pacientes_csv, name='pacientes_csv'),
     path('condicoes/', views.importar_condicoes_csv, name='condicoes_csv'),
     path('territorio/', views.importar_territorio_csv, name='territorio_csv'),
+    path('farmacia-csv/', views.importar_farmacia_csv, name='farmacia_csv'),
 ]

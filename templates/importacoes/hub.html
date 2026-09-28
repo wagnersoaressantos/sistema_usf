@@ -144,6 +144,37 @@
             </form>
         </div>
 
+        <!-- CARD 4: Catálogo da Farmácia (NOVO) -->
+        <div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-6 relative overflow-hidden md:col-span-2">
+            <div class="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+            
+            <h2 class="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                4. Catálogo da Farmácia (REMUME)
+            </h2>
+            <p class="text-sm text-gray-600 mb-4">
+                Importe a lista do município (Código BR e Produto). O nosso Robô IA descobrirá sozinho o que é Remédio e o que é Insumo!
+            </p>
+            
+            <div class="bg-emerald-50 text-emerald-800 text-xs p-3 rounded mb-6 border border-emerald-100 flex gap-2 items-start">
+                <span class="text-base">💡</span>
+                <p>O Ficheiro CSV precisa ter apenas 2 colunas separadas por ponto e vírgula (;): <strong>CÓDIGO</strong> e <strong>PRODUTO</strong>.</p>
+            </div>
+
+            <form action="{% url 'importacoes:farmacia_csv' %}" method="POST" enctype="multipart/form-data" class="space-y-4 max-w-lg mx-auto">
+                {% csrf_token %}
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition cursor-pointer" onclick="document.getElementById('arquivo_farmacia').click()">
+                    <span class="text-sm text-gray-500 font-medium" id="nome_arquivo_farmacia">Clique para selecionar a Planilha de Medicamentos (.csv)</span>
+                    <input type="file" name="arquivo_csv" id="arquivo_farmacia" accept=".csv" class="hidden" required onchange="document.getElementById('nome_arquivo_farmacia').innerText = this.files[0].name">
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    Carregar Catálogo (REMUME)
+                </button>
+            </form>
+        </div>
+
     </div>
 </div>
 {% endblock %}

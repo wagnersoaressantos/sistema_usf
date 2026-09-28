@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Nova Entrada de Estoque — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Nova Entrada</h1>
+            <p class="text-gray-600 mt-1">Registe os produtos recebidos da Central (CAF).</p>
+        </div>
+        <a href="{% url 'farmacia:estoque_lista' %}" class="text-gray-500 hover:text-blue-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm">
+            Voltar ao Estoque
+        </a>
+    </div>
+
+    <form method="POST" class="bg-white rounded-xl shadow-md border border-gray-100 p-6 sm:p-8 relative">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            
+            <!-- BUSCADOR INTELIGENTE DE MEDICAMENTOS -->
+            <div class="col-span-1 md:col-span-2 relative">
+                <label class="block text-sm font-bold text-gray-800 mb-2">Produto / Medicamento da REMUME</label>
+                
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-blue-500 font-bold">🔍</span>
+                    </div>
+                    <input type="text" id="busca_medicamento" autocomplete="off" placeholder="Digite o nome ou código BR do remédio/insumo..." class="w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg text-sm bg-white focus:ring-blue-500 focus:border-blue-500 font-medium text-gray-800 shadow-sm">
+                </div>
+                
+                <!-- Campo OCULTO que guarda o ID para o Banco de Dados -->
+                <input type="hidden" name="medicamento" id="medicamento_id" required>
+
+                <!-- Lista suspensa de resultados -->
+                <ul id="dropdown_medicamentos" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-xl max-h-56 overflow-y-auto mt-1 hidden divide-y divide-gray-100">
+                    <!-- Preenchido via JS -->
+                </ul>
+
+                <p class="text-[10px] text-gray-500 mt-2 font-medium">Só aparecem itens previamente ativados pela curadoria no <a href="{% url 'farmacia:catalogo_lista' %}" class="text-blue-600 hover:underline">Painel Admin do Catálogo</a>.</p>
+            </div>
+
+            <!-- CALCULADORA DE ENTRADA INTELIGENTE -->
+            <div class="col-span-1 md:col-span-2 p-5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                <h3 class="text-sm font-bold text-emerald-800 mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>
+                    Calculadora de Entrada Inteligente
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Qtd na Caixa ou Cartela</label>
+                        <input type="number" id="calc_unidades" min="1" value="10" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-emerald-500 transition">
+                        <p class="text-[10px] text-emerald-600 mt-1 font-medium" id="hint_unidades">Ex: 10 comprimidos por tablete</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Cartelas/Caixas Recebidas</label>
+                        <input type="number" id="calc_caixas" min="1" value="10" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-emerald-500 transition">
+                        <p class="text-[10px] text-emerald-600 mt-1 font-medium">Ex: 10 tabletes entregues</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-800 mb-1">Total a salvar no Estoque</label>
+                        <input type="number" name="quantidade" id="total_quantidade" required min="1" readonly class="w-full border-2 border-emerald-400 bg-emerald-100 text-emerald-900 font-black rounded-lg px-4 py-2 focus:outline-none text-xl text-center cursor-not-allowed shadow-inner" value="100">
+                        <p class="text-[10px] text-emerald-600 mt-1 font-bold text-center" id="hint_total">Unidades Físicas Reais</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-1">
+                <label class="block text-sm font-bold text-gray-800 mb-2">Data de Validade <span class="text-gray-400 font-normal">(Opcional)</span></label>
+                <input type="date" name="data_validade" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-blue-500">
+            </div>
+            
+            <div class="col-span-1 md:col-span-2 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 class="text-sm font-bold text-gray-800 mb-3">Rastreabilidade (Lote / Guia)</h3>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nº do Lote de Fabricação</label>
+                        <input type="text" name="numero_lote" placeholder="Ex: Lote 1029A" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Guia de Remessa / Justificativa</label>
+                        <input type="text" name="justificativa" placeholder="Ex: Guia nº 450/2026" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="flex justify-end pt-6 border-t border-gray-200">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition flex items-center gap-2">
+                📥 Confirmar Recebimento e Somar ao Estoque
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        const catalogoDb = [
+            {% for m in medicamentos %}
+            {
+                id: "{{ m.pk }}",
+                codigo: "{{ m.codigo_br|default:''|escapejs }}",
+                nome: "{{ m.nome|escapejs }} {% if m.concentracao %}{{ m.concentracao|escapejs }}{% endif %}",
+                forma: "{{ m.get_forma_farmaceutica_display|escapejs }}",
+                unidade: "{{ m.unidade_medida|escapejs }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        const inputBusca = document.getElementById('busca_medicamento');
+        const hiddenMed = document.getElementById('medicamento_id');
+        const dropMed = document.getElementById('dropdown_medicamentos');
+        
+        const inputCaixas = document.getElementById('calc_caixas');
+        const inputUnidades = document.getElementById('calc_unidades');
+        const inputTotal = document.getElementById('total_quantidade');
+        
+        const hintUnidades = document.getElementById('hint_unidades');
+        const hintTotal = document.getElementById('hint_total');
+
+        function calcularTotal() {
+            const caixas = parseInt(inputCaixas.value) || 0;
+            const unidades = parseInt(inputUnidades.value) || 0;
+            inputTotal.value = caixas * unidades;
+        }
+
+        function atualizarTextos(unidade) {
+            hintUnidades.textContent = `Ex: 10 ${unidade} por embalagem`;
+            hintTotal.textContent = `Total em ${unidade} na prateleira`;
+            
+            if (unidade.includes('frasco') || unidade.includes('ampola') || unidade.includes('bisnaga') || unidade.includes('unidade')) {
+                inputUnidades.value = 1;
+                calcularTotal(); 
+            }
+        }
+
+        inputCaixas.addEventListener('input', calcularTotal);
+        inputUnidades.addEventListener('input', calcularTotal);
+
+        inputBusca.addEventListener('input', function() {
+            const termo = this.value.toLowerCase().trim();
+            hiddenMed.value = ''; 
+            
+            if (termo.length < 2) { dropMed.classList.add('hidden'); return; }
+
+            const filtrados = catalogoDb.filter(m => 
+                m.nome.toLowerCase().includes(termo) || 
+                m.codigo.toLowerCase().includes(termo)
+            );
+            
+            dropMed.innerHTML = '';
+            if (filtrados.length === 0) {
+                dropMed.innerHTML = '<li class="px-4 py-3 text-xs text-gray-500 text-center font-medium">Nenhum produto encontrado.</li>';
+            } else {
+                filtrados.slice(0, 20).forEach(m => {
+                    const li = document.createElement('li');
+                    li.className = 'px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition flex flex-col border-b border-gray-50 last:border-0';
+                    li.innerHTML = `
+                        <span class="font-bold text-gray-800 text-sm">${m.nome}</span>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded uppercase font-semibold">${m.forma}</span>
+                            ${m.codigo ? `<span class="text-[10px] text-gray-400 font-mono">${m.codigo}</span>` : ''}
+                        </div>
+                    `;
+                    li.addEventListener('click', () => {
+                        hiddenMed.value = m.id;
+                        inputBusca.value = m.nome;
+                        inputBusca.classList.add('bg-blue-50', 'font-bold', 'text-blue-900');
+                        dropMed.classList.add('hidden');
+                        atualizarTextos(m.unidade); // Aciona a mágica da calculadora
+                    });
+                    dropMed.appendChild(li);
+                });
+            }
+            dropMed.classList.remove('hidden');
+        });
+
+        // Esconder o dropdown se clicar fora
+        document.addEventListener('click', function(e) {
+            if (!inputBusca.contains(e.target) && !dropMed.contains(e.target)) {
+                dropMed.classList.add('hidden');
+            }
+        });
+    });
+</script>
+{% endblock %}

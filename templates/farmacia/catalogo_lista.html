@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Catálogo REMUME — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <span class="text-4xl">📋</span> Catálogo REMUME
+            </h1>
+            <p class="text-gray-600 mt-1">Lista completa de medicamentos e insumos padronizados no Município.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            {% if is_admin %}
+            <a href="{% url 'farmacia:catalogo_criar' %}" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition flex items-center gap-2">
+                ➕ Novo Produto
+            </a>
+            {% endif %}
+            <a href="{% url 'farmacia:hub' %}" class="text-gray-500 hover:text-purple-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm text-sm">
+                Voltar ao Hub
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros Aprimorados -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-purple-100 mb-6">
+        <form method="GET" class="flex flex-col md:flex-row gap-3">
+            <div class="relative flex-1">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-purple-400 text-lg">🔍</span>
+                </div>
+                <input type="text" name="q" value="{{ q }}" placeholder="Buscar por Nome ou Código BR..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 text-sm">
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+                <select name="tipo" class="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white focus:ring-purple-500">
+                    <option value="">Todos os Tipos</option>
+                    <option value="MED" {% if tipo_filtro == 'MED' %}selected{% endif %}>Medicamentos</option>
+                    <option value="INS" {% if tipo_filtro == 'INS' %}selected{% endif %}>Insumos e Materiais</option>
+                </select>
+                
+                <select name="status" class="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white focus:ring-purple-500">
+                    <option value="">Todos os Status</option>
+                    <option value="ativo" {% if status_filtro == 'ativo' %}selected{% endif %}>Apenas Ativos (Prontos)</option>
+                    <option value="inativo" {% if status_filtro == 'inativo' %}selected{% endif %}>Apenas Inativos (Pendentes)</option>
+                </select>
+
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-8 rounded-lg shadow-sm transition">
+                    Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela Responsiva com Formulário de Ação em Massa -->
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="desativar_massa">
+        
+        {% if is_admin %}
+        <div class="mb-4 flex items-center gap-4 bg-red-50 p-3 rounded-lg border border-red-100">
+            <button type="submit" onclick="return confirm('Tem certeza que deseja desativar os itens selecionados? Itens com estoque serão preservados.');" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-4 rounded shadow-sm transition flex items-center gap-2">
+                🗑️ Desativar Selecionados
+            </button>
+            <p class="text-xs text-red-700 font-medium">Use as caixas de seleção na tabela abaixo.</p>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <!-- 🚀 CORREÇÃO: Tiramos o 'whitespace-nowrap' padrão e colocamos nas colunas pequenas -->
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                        <tr>
+                            {% if is_admin %}
+                            <th class="px-4 py-4 w-10 text-center">
+                                <input type="checkbox" id="selecionar_todos" class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer">
+                            </th>
+                            {% endif %}
+                            <th class="px-4 py-4 font-semibold w-24 whitespace-nowrap">Código BR</th>
+                            <th class="px-4 py-4 font-semibold">Produto (Nome e Concentração)</th>
+                            <th class="px-4 py-4 font-semibold whitespace-nowrap">Categoria / Forma</th>
+                            <th class="px-4 py-4 font-semibold text-center whitespace-nowrap">Status</th>
+                            {% if is_admin %}
+                            <th class="px-4 py-4 font-semibold text-right whitespace-nowrap">Ação</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for item in catalogo %}
+                        <tr class="hover:bg-purple-50/30 transition {% if not item.ativo %}bg-gray-50 opacity-75{% endif %}">
+                            
+                            {% if is_admin %}
+                            <td class="px-4 py-4 text-center">
+                                {% if item.ativo %}
+                                <input type="checkbox" name="itens_selecionados" value="{{ item.pk }}" class="checkbox-item w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 cursor-pointer">
+                                {% endif %}
+                            </td>
+                            {% endif %}
+
+                            <td class="px-4 py-4 font-mono text-gray-500 text-xs whitespace-nowrap">{{ item.codigo_br|default:"---" }}</td>
+                            
+                            <!-- 🚀 CORREÇÃO: Permite quebra de linha em nomes gigantes -->
+                            <td class="px-4 py-4">
+                                <div class="font-bold text-gray-800 text-sm leading-snug">
+                                    {{ item.nome }} {% if item.concentracao %}{{ item.concentracao }}{% endif %}
+                                </div>
+                                <div class="text-[10px] mt-1.5 flex gap-2">
+                                    {% if item.antibiotico %}<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">Antibiótico</span>{% endif %}
+                                    {% if item.exige_receita_controlada %}<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold">Controlado (Azul)</span>{% endif %}
+                                </div>
+                            </td>
+                            
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                {% if item.tipo == 'MED' %}
+                                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold border border-indigo-100">Medicamento</span>
+                                {% elif item.tipo == 'INS' %}
+                                    <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-xs font-bold border border-emerald-100">Insumo</span>
+                                {% else %}
+                                    <span class="bg-yellow-50 text-yellow-700 px-2 py-1 rounded text-xs font-bold border border-yellow-100" title="Requer Curadoria">Não Definido</span>
+                                {% endif %}
+                                <span class="text-xs text-gray-500 ml-2 block mt-1">{{ item.get_forma_farmaceutica_display|default:"?" }}</span>
+                            </td>
+                            
+                            <td class="px-4 py-4 text-center whitespace-nowrap">
+                                {% if item.ativo %}
+                                    <span class="w-3 h-3 bg-green-500 rounded-full inline-block shadow-sm" title="Ativo no Balcão e Estoque"></span>
+                                {% else %}
+                                    <span class="w-3 h-3 bg-red-500 rounded-full inline-block shadow-sm animate-pulse" title="Desativado / Aguardando Curadoria"></span>
+                                {% endif %}
+                            </td>
+                            
+                            {% if is_admin %}
+                            <td class="px-4 py-4 text-right whitespace-nowrap">
+                                <a href="{% url 'farmacia:catalogo_editar' item.pk %}" class="text-xs bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-bold py-1.5 px-3 rounded shadow-sm transition">
+                                    ✏️ Editar
+                                </a>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-12 text-gray-500">Nenhum produto encontrado com estes filtros.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginação -->
+            {% if catalogo.has_other_pages %}
+            <div class="bg-gray-50 border-t border-gray-200 px-6 py-3 flex items-center justify-between">
+                <span class="text-sm text-gray-600">Página {{ catalogo.number }} de {{ catalogo.paginator.num_pages }}</span>
+                <div class="flex gap-2">
+                    {% if catalogo.has_previous %}
+                        <a href="?q={{ q }}&tipo={{ tipo_filtro }}&status={{ status_filtro }}&page={{ catalogo.previous_page_number }}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm font-medium">Anterior</a>
+                    {% endif %}
+                    {% if catalogo.has_next %}
+                        <a href="?q={{ q }}&tipo={{ tipo_filtro }}&status={{ status_filtro }}&page={{ catalogo.next_page_number }}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 text-sm font-medium">Próxima</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- 🚀 SCRIPT: O Selecionador Mágico -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const checkboxTodos = document.getElementById('selecionar_todos');
+        const checkboxesItens = document.querySelectorAll('.checkbox-item');
+
+        if (checkboxTodos) {
+            checkboxTodos.addEventListener('change', function() {
+                checkboxesItens.forEach(cb => {
+                    cb.checked = this.checked;
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

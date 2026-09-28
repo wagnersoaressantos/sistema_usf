@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Estoque da Farmácia — {{ sistema.nome }}{% endblock %}
+
+{% block conteudo %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <span class="text-4xl">📦</span> Controle de Estoque
+            </h1>
+            <p class="text-gray-600 mt-1">Saldo atual das prateleiras, lotes e controle de validades.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'farmacia:entrada_lote' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                Nova Entrada (Camião CAF)
+            </a>
+            <a href="{% url 'farmacia:hub' %}" class="text-gray-500 hover:text-blue-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm text-sm">
+                Voltar ao Hub
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 font-semibold">Produto / Medicamento</th>
+                    <th class="px-6 py-4 font-semibold">Nº do Lote</th>
+                    <th class="px-6 py-4 font-semibold">Validade</th>
+                    <th class="px-6 py-4 font-semibold text-right">Saldo em Prateleira</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for lote in lotes %}
+                <tr class="hover:bg-blue-50/50 transition">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-gray-800 text-base">
+                            {{ lote.medicamento.nome }} {% if lote.medicamento.concentracao %}{{ lote.medicamento.concentracao }}{% endif %}
+                        </div>
+                        <div class="text-[11px] text-gray-500 mt-1 uppercase font-semibold flex items-center gap-2">
+                            <span class="bg-gray-100 px-2 py-0.5 rounded">{{ lote.medicamento.get_tipo_display }}</span>
+                            <span>Forma: {{ lote.medicamento.get_forma_farmaceutica_display }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-mono text-gray-600">
+                        {{ lote.numero_lote|default:"<span class='text-gray-400 italic'>Não Controlado</span>"|safe }}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if lote.data_validade %}
+                            {% if lote.data_validade < hoje %}
+                                <span class="inline-flex items-center gap-1.5 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200 shadow-sm animate-pulse">
+                                    ⚠️ VENCIDO ({{ lote.data_validade|date:"d/m/Y" }})
+                                </span>
+                            {% elif lote.data_validade <= limite_validade %}
+                                <span class="inline-flex items-center gap-1.5 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200 shadow-sm">
+                                    ⏰ Vence em {{ lote.data_validade|date:"d/m/Y" }}
+                                </span>
+                            {% else %}
+                                <span class="text-green-600 font-medium">{{ lote.data_validade|date:"d/m/Y" }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-gray-400 italic">S/V</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="text-lg font-black {% if lote.quantidade_atual < 50 %}text-yellow-600{% else %}text-blue-700{% endif %}">
+                            {{ lote.quantidade_atual }}
+                        </span>
+                        <span class="text-xs text-gray-500 ml-1">{{ lote.medicamento.unidade_medida }}</span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-16 bg-gray-50">
+                        <div class="text-5xl mb-4 opacity-50">🕸️</div>
+                        <h3 class="text-lg font-bold text-gray-700">Prateleiras Vazias!</h3>
+                        <p class="text-sm text-gray-500 mt-1">A sua unidade ainda não tem saldo físico de medicamentos.</p>
+                        <a href="{% url 'farmacia:entrada_lote' %}" class="mt-4 inline-block text-blue-600 font-bold hover:underline">Fazer a primeira entrada de estoque →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

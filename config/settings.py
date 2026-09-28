@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'territorializacao',
     'pacientes',
     'importacoes',
+    'farmacia',
+    'saude_mulher',
 ]
 
 MIDDLEWARE = [
