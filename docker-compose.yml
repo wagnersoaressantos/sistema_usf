@@ -1,0 +1,16 @@
+services:
+  # 1. O NOSSO SISTEMA (DJANGO)
+  web:
+    build: .
+    container_name: usf_sistema
+    # O comando mágico que prepara o CSS (collectstatic) e liga o Gunicorn
+    command: sh -c "python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    volumes:
+      - .:/app
+      - ./db.sqlite3:/app/db.sqlite3
+    ports:
+      - "80:8000"  
+    environment:
+      - DEBUG=False
+      - ALLOWED_HOSTS=*
+    restart: unless-stopped

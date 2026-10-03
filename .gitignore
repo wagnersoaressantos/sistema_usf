@@ -49,3 +49,6 @@ PortalUSF-Service.err.log
 # Executáveis e Configurações Locais do Servidor
 PortalUSF-Service.exe
 PortalUSF-Service.xml
+
+.DS_Store
+Thumbs.db

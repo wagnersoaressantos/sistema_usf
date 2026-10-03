@@ -211,74 +211,109 @@ def admin_usuarios(request):
 
 @admin_required
 def admin_usuario_criar(request):
+    """
+    Cria um novo utilizador e o seu respetivo Perfil com validação rigorosa de CPF e senha.
+    """
     if request.method == 'POST':
-        nome      = request.POST.get('nome', '').strip()
+        nome = request.POST.get('nome', '').strip()
         sobrenome = request.POST.get('sobrenome', '').strip()
-        cpf       = ''.join(c for c in request.POST.get('cpf', '') if c.isdigit())
-        senha     = request.POST.get('senha', '')
-        nivel     = request.POST.get('nivel', 'comum')
-        ativo     = request.POST.get('ativo') == 'on'
+        cpf = ''.join(c for c in request.POST.get('cpf', '') if c.isdigit())
+        senha = request.POST.get('senha', '')
+        nivel = request.POST.get('nivel', 'comum')
+        ativo = request.POST.get('ativo') == 'on'
 
+        # Validação do CPF
         cpf_valido = True
         mensagem_erro_cpf = ''
-        try: validar_cpf(cpf)
+        try:
+            validar_cpf(cpf)
         except ValidationError as e:
             cpf_valido = False
             mensagem_erro_cpf = e.message
 
-        if not nome or not cpf or not senha: messages.error(request, 'Nome, CPF e senha são obrigatórios.')
-        elif not cpf_valido: messages.error(request, mensagem_erro_cpf)
-        elif PerfilUsuario.objects.filter(cpf=cpf).exists(): messages.error(request, f'Já existe um utilizador com o CPF {cpf}.')
-        elif len(senha) < 6: messages.error(request, 'A senha deve ter pelo menos 6 caracteres.')
+        if not nome or not cpf or not senha:
+            messages.error(request, 'Nome, CPF e senha são de preenchimento obrigatório.')
+        elif not cpf_valido:
+            messages.error(request, mensagem_erro_cpf)
+        elif PerfilUsuario.objects.filter(cpf=cpf).exists():
+            messages.error(request, f'Já existe um utilizador registado com o CPF {cpf}.')
+        elif len(senha) < 6:
+            messages.error(request, 'A senha deve conter pelo menos 6 caracteres.')
         else:
+            # Criação do User base do Django usando o CPF como username único interno
             user = User.objects.create_user(username=f'user_{cpf}', password=senha, first_name=nome, last_name=sobrenome)
-            PerfilUsuario.objects.create(user=user, cpf=cpf, nivel=nivel, ativo=ativo)
+            
+            # Define se é master global com base no nível selecionado
+            is_master = (nivel == 'master')
+            PerfilUsuario.objects.create(user=user, cpf=cpf, is_master=is_master, ativo=ativo)
+            
             messages.success(request, f'Utilizador {nome} criado com sucesso!')
             return redirect('core:admin_usuarios')
 
-    return render(request, 'core/admin/usuario_form.html', {'titulo': 'Novo utilizador', 'acao': 'Criar utilizador'})
+    return render(request, 'core/admin/usuario_form.html', {
+        'titulo': 'Novo Utilizador',
+        'acao': 'Criar Utilizador'
+    })
 
 @admin_required
 def admin_usuario_editar(request, pk):
+    """
+    Edita os dados de um utilizador existente, permitindo redefinição opcional de senha e nível.
+    """
     perfil = get_object_or_404(PerfilUsuario, pk=pk)
-    user   = perfil.user
+    user = perfil.user
+    
     if request.method == 'POST':
-        nome       = request.POST.get('nome', '').strip()
-        sobrenome  = request.POST.get('sobrenome', '').strip()
-        cpf        = ''.join(c for c in request.POST.get('cpf', '') if c.isdigit())
-        nivel      = request.POST.get('nivel', 'comum')
-        ativo      = request.POST.get('ativo') == 'on'
+        nome = request.POST.get('nome', '').strip()
+        sobrenome = request.POST.get('sobrenome', '').strip()
+        cpf = ''.join(c for c in request.POST.get('cpf', '') if c.isdigit())
+        nivel = request.POST.get('nivel', 'comum')
+        ativo = request.POST.get('ativo') == 'on'
         nova_senha = request.POST.get('senha', '').strip()
 
         cpf_valido = True
         mensagem_erro_cpf = ''
-        try: validar_cpf(cpf)
+        try:
+            validar_cpf(cpf)
         except ValidationError as e:
             cpf_valido = False
             mensagem_erro_cpf = e.message
 
-        if not cpf_valido: messages.error(request, mensagem_erro_cpf)
-        elif PerfilUsuario.objects.filter(cpf=cpf).exclude(pk=pk).exists(): messages.error(request, f'Já existe outro utilizador com o CPF {cpf}.')
+        if not cpf_valido:
+            messages.error(request, mensagem_erro_cpf)
+        elif PerfilUsuario.objects.filter(cpf=cpf).exclude(pk=pk).exists():
+            messages.error(request, f'Já existe outro utilizador com o CPF {cpf}.')
         else:
             user.first_name = nome
-            user.last_name  = sobrenome
+            user.last_name = sobrenome
             user.save()
-            perfil.cpf   = cpf
-            perfil.nivel = nivel
+            
+            perfil.cpf = cpf
+            perfil.is_master = (nivel == 'master')
             perfil.ativo = ativo
             perfil.save()
+            
             if nova_senha:
                 if len(nova_senha) < 6:
                     messages.error(request, 'A nova senha deve ter pelo menos 6 caracteres.')
-                    return render(request, 'core/admin/usuario_form.html', {'titulo': 'Editar utilizador', 'acao': 'Salvar alterações', 'perfil': perfil})
+                    return render(request, 'core/admin/usuario_form.html', {
+                        'titulo': 'Editar Utilizador',
+                        'acao': 'Salvar alterações',
+                        'perfil': perfil
+                    })
                 user.set_password(nova_senha)
                 user.save()
-                messages.success(request, f'Utilizador {nome} atualizado e senha redefinida!')
+                messages.success(request, f'Utilizador {nome} atualizado e senha redefinida com sucesso!')
             else:
                 messages.success(request, f'Utilizador {nome} atualizado com sucesso!')
+                
             return redirect('core:admin_usuarios')
 
-    return render(request, 'core/admin/usuario_form.html', {'titulo': 'Editar utilizador', 'acao': 'Salvar alterações', 'perfil': perfil})
+    return render(request, 'core/admin/usuario_form.html', {
+        'titulo': 'Editar Utilizador',
+        'acao': 'Salvar alterações',
+        'perfil': perfil
+    })
 
 @admin_required
 def admin_usfs(request):
@@ -379,23 +414,61 @@ def admin_equipe(request):
 
 @admin_required
 def admin_equipe_salvar(request, pk=None):
+    """
+    Cria ou edita o vínculo profissional de uma pessoa a uma USF (EquipeUSF).
+    Inclui validação robusta para evitar duplicidade de vínculos ativos na mesma unidade.
+    """
     vinculo = get_object_or_404(EquipeUSF, pk=pk) if pk else None
+    
     if request.method == 'POST':
-        user_id = request.POST.get('user'); usf_id = request.POST.get('usf'); cargo_id = request.POST.get('cargo')
-        ativo = request.POST.get('ativo') == 'on'; data_entrada = request.POST.get('data_entrada') or None; data_saida = request.POST.get('data_saida') or None
-        if not user_id or not usf_id or not cargo_id: messages.error(request, 'Profissional, USF e cargo são obrigatórios.')
+        user_id = request.POST.get('user')
+        usf_id = request.POST.get('usf')
+        cargo_id = request.POST.get('cargo')
+        is_admin_unidade = request.POST.get('is_admin_unidade') == 'on'
+        ativo = request.POST.get('ativo') == 'on'
+        data_entrada = request.POST.get('data_entrada') or None
+        data_saida = request.POST.get('data_saida') or None
+        
+        if not user_id or not usf_id or not cargo_id:
+            messages.error(request, 'Profissional, USF e Cargo são campos de preenchimento obrigatório.')
         else:
-            if vinculo:
-                vinculo.user_id = user_id; vinculo.usf_id = usf_id; vinculo.cargo_id = cargo_id; vinculo.ativo = ativo; vinculo.data_entrada = data_entrada; vinculo.data_saida = data_saida; vinculo.save()
-                messages.success(request, 'Vínculo atualizado!')
+            # Validação de Duplicidade: Verifica se o profissional já tem vínculo cadastrado nesta USF
+            duplicado = EquipeUSF.objects.filter(user_id=user_id, usf_id=usf_id).exclude(pk=pk).exists()
+            
+            if duplicado:
+                messages.error(request, 'Este profissional já possui um vínculo registado para esta USF.')
             else:
-                EquipeUSF.objects.create(user_id=user_id, usf_id=usf_id, cargo_id=cargo_id, ativo=ativo, data_entrada=data_entrada, data_saida=data_saida)
-                messages.success(request, 'Membro adicionado à equipa!')
-            return redirect('core:admin_equipe')
+                if vinculo:
+                    vinculo.user_id = user_id
+                    vinculo.usf_id = usf_id
+                    vinculo.cargo_id = cargo_id
+                    vinculo.is_admin_unidade = is_admin_unidade
+                    vinculo.ativo = ativo
+                    vinculo.data_entrada = data_entrada
+                    vinculo.data_saida = data_saida
+                    vinculo.save()
+                    messages.success(request, 'Vínculo da equipe atualizado com sucesso!')
+                else:
+                    EquipeUSF.objects.create(
+                        user_id=user_id, usf_id=usf_id, cargo_id=cargo_id,
+                        is_admin_unidade=is_admin_unidade, ativo=ativo,
+                        data_entrada=data_entrada, data_saida=data_saida
+                    )
+                    messages.success(request, 'Membro adicionado à equipe com sucesso!')
+                return redirect('core:admin_equipe')
+                
     usuarios = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
     usfs = USF.objects.filter(ativo=True)
     cargos = Cargo.objects.filter(ativo=True)
-    return render(request, 'core/admin/equipe_form.html', {'vinculo': vinculo, 'usuarios': usuarios, 'usfs': usfs, 'cargos': cargos, 'titulo': 'Editar vínculo' if vinculo else 'Novo membro', 'acao': 'Salvar alterações' if vinculo else 'Adicionar à equipa'})
+    
+    return render(request, 'core/admin/equipe_form.html', {
+        'vinculo': vinculo,
+        'usuarios': usuarios,
+        'usfs': usfs,
+        'cargos': cargos,
+        'titulo': 'Editar Vínculo da Equipe' if vinculo else 'Novo Membro na Equipe',
+        'acao': 'Salvar alterações' if vinculo else 'Adicionar à equipe'
+    })
 
 @admin_required
 def admin_equipe_desativar(request, pk):
@@ -482,65 +555,132 @@ def admin_pacientes(request):
 
 @admin_required
 def admin_paciente_salvar(request, pk=None):
+    """
+    Função robusta e segura para criar ou editar um paciente.
+    Garante validação estrita de CPF, Cartão SUS e consistência de vínculos.
+    """
     paciente = get_object_or_404(Paciente, pk=pk) if pk else None
     
     if request.method == 'POST':
-        nome = request.POST.get('nome', '').strip(); cpf = ''.join(c for c in request.POST.get('cpf', '') if c.isdigit()) or None
-        cartao_sus = request.POST.get('cartao_sus', '').strip() or None; data_nasc = request.POST.get('data_nascimento') or None
-        sexo = request.POST.get('sexo', 'I'); telefone = request.POST.get('telefone', '').strip()
-        endereco = request.POST.get('endereco', '').strip(); numero = request.POST.get('numero', '').strip()
-        usf_id = request.POST.get('usf'); microarea_id = request.POST.get('micro_area') or None
-        ativo = request.POST.get('ativo') == 'on'; obito = request.POST.get('obito') == 'on'; data_obito = request.POST.get('data_obito') or None
-        condicoes_ids = request.POST.getlist('condicoes'); data_prevista_parto = request.POST.get('data_prevista_parto') or None
+        nome = request.POST.get('nome', '').strip()
+        cpf = ''.join(c for c in request.POST.get('cpf', '') if c.isdigit()) or None
+        cartao_sus = request.POST.get('cartao_sus', '').strip() or None
+        data_nasc = request.POST.get('data_nascimento') or None
+        sexo = request.POST.get('sexo', 'I')
+        telefone = request.POST.get('telefone', '').strip()
+        endereco = request.POST.get('endereco', '').strip()
+        numero = request.POST.get('numero', '').strip()
+        usf_id = request.POST.get('usf')
+        microarea_id = request.POST.get('micro_area') or None
+        ativo = request.POST.get('ativo') == 'on'
+        obito = request.POST.get('obito') == 'on'
+        data_obito = request.POST.get('data_obito') or None
+        condicoes_ids = request.POST.getlist('condicoes')
+        data_prevista_parto = request.POST.get('data_prevista_parto') or None
 
-        cpf_valido = True; mensagem_erro_cpf = ''
+        # Validação de CPF
+        cpf_valido = True
+        mensagem_erro_cpf = ''
         if cpf:
-            try: validar_cpf(cpf)
-            except ValidationError as e: cpf_valido = False; mensagem_erro_cpf = e.message
+            try:
+                validar_cpf(cpf)
+            except ValidationError as e:
+                cpf_valido = False
+                mensagem_erro_cpf = e.message
 
-        if not nome or not usf_id: messages.error(request, 'Nome e USF são obrigatórios.')
-        elif not cpf and not cartao_sus: messages.error(request, 'Informe o CPF ou o Cartão SUS.')
-        elif not cpf_valido: messages.error(request, mensagem_erro_cpf)
+        # Verificações de unicidade (Evita duplicados na mesma base)
+        duplicado_cpf = False
+        duplicado_cns = False
+        if cpf:
+            duplicado_cpf = Paciente.objects.filter(cpf=cpf).exclude(pk=pk).exists()
+        if cartao_sus:
+            duplicado_cns = Paciente.objects.filter(cartao_sus=cartao_sus).exclude(pk=pk).exists()
+
+        if not nome or not usf_id:
+            messages.error(request, 'O Nome e a USF são de preenchimento obrigatório.')
+        elif not cpf and not cartao_sus:
+            messages.error(request, 'Por favor, informe pelo menos o CPF ou o Cartão SUS (CNS) do cidadão.')
+        elif not cpf_valido:
+            messages.error(request, mensagem_erro_cpf)
+        elif duplicado_cpf:
+            messages.error(request, f'Já existe outro paciente registado com o CPF {cpf}.')
+        elif duplicado_cns:
+            messages.error(request, f'Já existe outro paciente registado com o Cartão SUS {cartao_sus}.')
         else:
-            dados = dict(nome=nome, cpf=cpf, cartao_sus=cartao_sus, data_nascimento=data_nasc, sexo=sexo, telefone=telefone, endereco=endereco, numero=numero, usf_id=usf_id, micro_area_id=microarea_id, ativo=ativo, obito=obito, data_obito=data_obito)
+            dados = {
+                'nome': nome,
+                'cpf': cpf,
+                'cartao_sus': cartao_sus,
+                'data_nascimento': data_nasc,
+                'sexo': sexo,
+                'telefone': telefone,
+                'endereco': endereco,
+                'numero': numero,
+                'usf_id': usf_id,
+                'micro_area_id': microarea_id,
+                'ativo': ativo,
+                'obito': obito,
+                'data_obito': data_obito
+            }
+            
             if paciente:
-                for campo, valor in dados.items(): setattr(paciente, campo, valor)
+                for campo, valor in dados.items():
+                    setattr(paciente, campo, valor)
                 paciente.save()
             else:
                 dados['cadastrado_por'] = request.user
                 paciente = Paciente.objects.create(**dados)
 
+            # Gestão de Condições de Saúde Ativas
             PacienteCondicao.objects.filter(paciente=paciente, data_fim__isnull=True).exclude(condicao_id__in=condicoes_ids).update(data_fim=date.today())
             for condicao_id in condicoes_ids:
                 if not PacienteCondicao.objects.filter(paciente=paciente, condicao_id=int(condicao_id), data_fim__isnull=True).exists():
                     PacienteCondicao.objects.create(paciente=paciente, condicao_id=int(condicao_id), data_inicio=date.today())
 
-            hf_ids = request.POST.getlist('hf_id'); hf_condicoes = request.POST.getlist('hf_condicao')
-            hf_graus = request.POST.getlist('hf_grau'); hf_obs = request.POST.getlist('hf_observacao')
+            # Gestão de Histórico Familiar
+            hf_ids = request.POST.getlist('hf_id')
+            hf_condicoes = request.POST.getlist('hf_condicao')
+            hf_graus = request.POST.getlist('hf_grau')
+            hf_obs = request.POST.getlist('hf_observacao')
             ids_mantidos = set()
+            
             for hf_id, condicao, grau, obs in zip(hf_ids, hf_condicoes, hf_graus, hf_obs):
                 condicao = condicao.strip()
-                if not condicao: continue 
+                if not condicao:
+                    continue
                 if hf_id:
                     try:
                         hf = HistoricoFamiliar.objects.get(pk=hf_id, paciente=paciente)
-                        hf.condicao = condicao; hf.grau_parentesco = grau; hf.observacao = obs; hf.save()
+                        hf.condicao = condicao
+                        hf.grau_parentesco = grau
+                        hf.observacao = obs
+                        hf.save()
                         ids_mantidos.add(hf.pk)
-                    except HistoricoFamiliar.DoesNotExist: pass
+                    except HistoricoFamiliar.DoesNotExist:
+                        pass
                 else:
-                    hf = HistoricoFamiliar.objects.create(paciente=paciente, condicao=condicao, grau_parentesco=grau, observacao=obs, registrado_por=request.user)
+                    hf = HistoricoFamiliar.objects.create(
+                        paciente=paciente, condicao=condicao, grau_parentesco=grau, 
+                        observacao=obs, registrado_por=request.user
+                    )
                     ids_mantidos.add(hf.pk)
+                    
             HistoricoFamiliar.objects.filter(paciente=paciente).exclude(pk__in=ids_mantidos).delete()
 
+            # Referência de Gestação se aplicável
             if data_prevista_parto:
                 try:
                     pc = PacienteCondicao.objects.filter(paciente=paciente, condicao__codigo='gestante', data_fim__isnull=True).first()
-                    if pc: pc.data_referencia = data_prevista_parto; pc.save()
-                except Exception: pass
+                    if pc:
+                        pc.data_referencia = data_prevista_parto
+                        pc.save()
+                except Exception:
+                    pass
 
-            messages.success(request, f'Paciente "{nome}" {"atualizado" if pk else "cadastrado"}!')
+            messages.success(request, f'Paciente "{nome}" {"atualizado" if pk else "cadastrado"} com sucesso!')
             next_url = request.POST.get('next')
-            if next_url: return redirect(next_url)
+            if next_url:
+                return redirect(next_url)
             return redirect('core:admin_pacientes')
 
     usfs = USF.objects.filter(ativo=True)
@@ -548,13 +688,25 @@ def admin_paciente_salvar(request, pk=None):
     condicoes = CondicaoSaude.objects.filter(ativo=True)
     condicoes_ativas_ids = set()
     gestante_ativa = None
+    
     if paciente:
         ativas = PacienteCondicao.objects.filter(paciente=paciente, data_fim__isnull=True).select_related('condicao')
         condicoes_ativas_ids = {pc.condicao_id for pc in ativas}
         gestante_ativa = ativas.filter(condicao__codigo='gestante').first()
 
     graus_parentesco = HistoricoFamiliar.GRAUS
-    return render(request, 'core/pacientes/form.html', {'paciente': paciente, 'usfs': usfs, 'microareas': microareas, 'condicoes': condicoes, 'condicoes_ativas_ids': condicoes_ativas_ids, 'gestante_ativa': gestante_ativa, 'graus_parentesco': graus_parentesco, 'titulo': 'Editar paciente' if paciente else 'Novo paciente', 'acao': 'Salvar alterações' if paciente else 'Cadastrar paciente'})
+    
+    return render(request, 'core/pacientes/form.html', {
+        'paciente': paciente,
+        'usfs': usfs,
+        'microareas': microareas,
+        'condicoes': condicoes,
+        'condicoes_ativas_ids': condicoes_ativas_ids,
+        'gestante_ativa': gestante_ativa,
+        'graus_parentesco': graus_parentesco,
+        'titulo': 'Editar paciente' if paciente else 'Novo paciente',
+        'acao': 'Salvar alterações' if paciente else 'Cadastrar paciente'
+    })
 
 @admin_required
 def admin_pacientes_inativar(request):

@@ -47,7 +47,7 @@ class EquipeUSF(models.Model):
     # Se isto for True, o profissional é 'Admin' APENAS DESTA USF.
     # Ele poderá adicionar membros, editar pacientes e ver todos os relatórios DAQUI.
     # Se ele for para outra USF onde isto seja False, ele será apenas um profissional comum lá.
-    is_admin_unidade = models.BooleanField('Administrador desta Unidade', default=False, help_text='Pode gerir a equipa apenas nesta USF.')
+    is_admin_unidade = models.BooleanField('Administrador desta Unidade', default=False, help_text='Pode gerir a equipe apenas nesta USF.')
     
     data_entrada = models.DateField('Data de entrada', null=True, blank=True)
     data_saida = models.DateField('Data de saída', null=True, blank=True)
@@ -55,7 +55,7 @@ class EquipeUSF(models.Model):
 
     class Meta:
         verbose_name = 'Vínculo na USF'
-        verbose_name_plural = 'Equipa das USFs'
+        verbose_name_plural = 'Equipe das USFs'
         unique_together = ['user', 'usf'] # A mesma pessoa não pode ter 2 vínculos na MESMA USF simultaneamente.
 
     def __str__(self):

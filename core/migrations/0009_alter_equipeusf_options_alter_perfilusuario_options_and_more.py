@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='equipeusf',
-            options={'verbose_name': 'Vínculo na USF', 'verbose_name_plural': 'Equipa das USFs'},
+            options={'verbose_name': 'Vínculo na USF', 'verbose_name_plural': 'Equipe das USFs'},
         ),
         migrations.AlterModelOptions(
             name='perfilusuario',
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='equipeusf',
             name='is_admin_unidade',
-            field=models.BooleanField(default=False, help_text='Pode gerir a equipa apenas nesta USF.', verbose_name='Administrador desta Unidade'),
+            field=models.BooleanField(default=False, help_text='Pode gerir a equipe apenas nesta USF.', verbose_name='Administrador desta Unidade'),
         ),
         migrations.AddField(
             model_name='perfilusuario',

@@ -1,65 +1,87 @@
 {% extends 'base.html' %}
-{% block titulo %}Usuários — Administração{% endblock %}
+{% block titulo %}Utilizadores — Administração — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
-    <h1 class="page-title" style="margin:0;">👥 <span>Usuários</span> do sistema</h1>
-    <div style="display:flex;gap:8px;">
-        <a href="{% url 'core:painel_admin' %}" class="btn btn-cinza">← Voltar</a>
-        <a href="{% url 'core:admin_usuario_criar' %}" class="btn btn-verde">➕ Novo usuário</a>
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-gray-200 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                👥 Gestão de Utilizadores
+            </h1>
+            <p class="text-gray-600 mt-1">Controle as credenciais, níveis de acesso global e o status das contas.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'core:admin_usuario_criar' %}" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2 text-sm">
+                + Novo Utilizador
+            </a>
+            <a href="{% url 'core:painel_admin' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm text-sm">
+                Voltar
+            </a>
+        </div>
     </div>
-</div>
 
-<div class="card">
-    <div class="tabela-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>CPF</th>
-                    <th>Nível</th>
-                    <th>Situação</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for perfil in perfis %}
-                <tr>
-                    <td><strong>{{ perfil.user.get_full_name|default:perfil.user.username }}</strong></td>
-                    <td style="font-family:monospace;font-size:12px;">{{ perfil.cpf }}</td>
-                    <td>
-                        {% if perfil.nivel == 'admin' %}
-                        <span class="badge" style="background:#ede9fe;color:#5b21b6;">
-                            ⚙ Administrador
-                        </span>
-                        {% else %}
-                        <span class="badge badge-azul">Comum</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if perfil.ativo %}
-                        <span class="badge badge-verde">● Ativo</span>
-                        {% else %}
-                        <span class="badge" style="background:#fee2e2;color:#991b1b;">● Inativo</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{% url 'core:admin_usuario_editar' perfil.pk %}"
-                           style="font-size:12px;color:#185FA5;text-decoration:none;
-                                  padding:3px 8px;border:1px solid #bfdbfe;border-radius:4px;">
-                            ✏ Editar
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" style="text-align:center;padding:2rem;color:#9ca3af;">
-                        Nenhum usuário cadastrado.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-gray-50 text-gray-600 uppercase tracking-wider border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold">Nome do Profissional</th>
+                        <th class="px-6 py-4 font-semibold">CPF de Acesso</th>
+                        <th class="px-6 py-4 font-semibold text-center">Nível de Acesso</th>
+                        <th class="px-6 py-4 font-semibold text-center">Situação</th>
+                        <th class="px-6 py-4 font-semibold text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for perfil in perfis %}
+                    <tr class="hover:bg-green-50/30 transition">
+                        <td class="px-6 py-4">
+                            <span class="font-bold text-gray-800 text-base">
+                                {{ perfil.user.get_full_name|default:perfil.user.username }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-mono text-gray-600 text-xs">
+                            {{ perfil.cpf }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if perfil.is_master %}
+                                <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-bold border border-purple-200 shadow-sm">
+                                    ⭐ Gestor Municipal (Master)
+                                </span>
+                            {% else %}
+                                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">
+                                    Profissional Comum / Local
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if perfil.ativo %}
+                                <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200 shadow-sm">
+                                    ● Ativo
+                                </span>
+                            {% else %}
+                                <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200 shadow-sm">
+                                    ● Inativo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'core:admin_usuario_editar' perfil.pk %}" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-3 rounded-lg shadow-sm transition text-xs inline-flex items-center gap-1">
+                                ✏️ Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-400 italic">
+                            Nenhum utilizador cadastrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

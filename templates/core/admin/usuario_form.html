@@ -1,85 +1,75 @@
 {% extends 'base.html' %}
-{% block titulo %}{{ titulo }} — Administração{% endblock %}
+{% block titulo %}{{ titulo }} — {{ sistema.nome }}{% endblock %}
 
 {% block conteudo %}
-<h1 class="page-title">👤 <span>{{ titulo }}</span></h1>
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">{{ titulo }}</h1>
+            <p class="text-gray-600 mt-1">Defina as credenciais de acesso e o nível de privilégio global do utilizador.</p>
+        </div>
+        <a href="{% url 'core:admin_usuarios' %}" class="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition bg-white border border-gray-300 py-2 px-4 rounded-lg shadow-sm text-sm">
+            Voltar
+        </a>
+    </div>
 
-<div class="card" style="max-width:600px;">
-    <div class="card-title">{{ titulo }}</div>
-
-    <form method="post">
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         {% csrf_token %}
-        <div class="form-grid">
+        
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Nome *</label>
+                    <input type="text" name="nome" value="{{ perfil.user.first_name|default:'' }}" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 bg-white" placeholder="Primeiro nome">
+                </div>
+                <div class="form-group">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Sobrenome</label>
+                    <input type="text" name="sobrenome" value="{{ perfil.user.last_name|default:'' }}" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 bg-white" placeholder="Apelido / Sobrenome">
+                </div>
+            </div>
 
-            <div class="form-group">
-                <label>Nome *</label>
-                <input type="text" name="nome" class="form-input"
-                       value="{{ perfil.user.first_name|default:'' }}"
-                       placeholder="Nome" required autofocus>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">CPF (Aceder ao sistema) *</label>
+                    <input type="text" name="cpf" value="{{ perfil.cpf|default:'' }}" maxlength="14" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 bg-white font-mono" placeholder="000.000.000-00">
+                </div>
+                <div class="form-group">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Nível de Acesso Global</label>
+                    <select name="nivel" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm bg-white focus:ring-green-500 focus:border-green-500">
+                        <option value="comum" {% if not perfil or not perfil.is_master %}selected{% endif %}>Profissional Comum / Local</option>
+                        <option value="master" {% if perfil and perfil.is_master %}selected{% endif %}>Gestor Municipal (Master)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="form-group">
-                <label>Sobrenome</label>
-                <input type="text" name="sobrenome" class="form-input"
-                       value="{{ perfil.user.last_name|default:'' }}"
-                       placeholder="Sobrenome">
-            </div>
-
-            <div class="form-group">
-                <label>CPF (só números) *</label>
-                <input type="text" name="cpf" class="form-input"
-                       value="{{ perfil.cpf|default:'' }}"
-                       placeholder="12345678900" maxlength="14" required>
-            </div>
-
-            <div class="form-group">
-                <label>Nível de acesso</label>
-                <select name="nivel" class="form-input">
-                    <option value="comum"
-                        {% if perfil.nivel == 'comum' or not perfil %}selected{% endif %}>
-                        Comum
-                    </option>
-                    <option value="admin"
-                        {% if perfil.nivel == 'admin' %}selected{% endif %}>
-                        Administrador
-                    </option>
-                </select>
-            </div>
-
-            <div class="form-group span-2">
-                <label>
+                <label class="block text-sm font-bold text-gray-700 mb-2">
                     {% if perfil %}
-                        Nova senha
-                        <span style="font-size:11px;color:#9ca3af;font-weight:400;">
-                            — deixe em branco para não alterar
-                        </span>
+                        Nova Senha <span class="text-xs font-normal text-gray-400">— deixe em branco para manter a atual</span>
                     {% else %}
-                        Senha *
+                        Senha de Acesso *
                     {% endif %}
                 </label>
-                <input type="password" name="senha" class="form-input"
-                       placeholder="Mínimo 6 caracteres"
-                       {% if not perfil %}required{% endif %}>
+                <input type="password" name="senha" {% if not perfil %}required{% endif %} class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-green-500 focus:border-green-500 bg-white" placeholder="Mínimo de 6 caracteres">
             </div>
 
-            <div class="form-group span-2">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                    {# Checkbox para ativar/inativar o usuário #}
-                    <input type="checkbox" name="ativo"
-                           {% if not perfil or perfil.ativo %}checked{% endif %}
-                           style="width:16px;height:16px;accent-color:var(--verde);">
-                    Usuário ativo
-                    <span style="font-size:12px;color:#6b7280;">
-                        — usuários inativos não conseguem fazer login
-                    </span>
+            <div class="border-t border-gray-100 pt-4">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="ativo" class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500" {% if not perfil or perfil.ativo %}checked{% endif %}>
+                    <div>
+                        <span class="text-sm font-medium text-gray-800">Utilizador Ativo no Sistema</span>
+                        <span class="text-xs text-gray-500 block">Utilizadores inativos não conseguem efetuar login na plataforma.</span>
+                    </div>
                 </label>
             </div>
-
         </div>
 
-        <div style="margin-top:1.5rem;display:flex;gap:10px;">
-            <button type="submit" class="btn btn-verde">✓ {{ acao }}</button>
-            <a href="{% url 'core:admin_usuarios' %}" class="btn btn-cinza">Cancelar</a>
+        <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
+            <a href="{% url 'core:admin_usuarios' %}" class="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition text-sm">Cancelar</a>
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition text-sm">
+                {{ acao }}
+            </button>
         </div>
     </form>
 </div>
